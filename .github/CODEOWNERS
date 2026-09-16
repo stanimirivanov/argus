@@ -8,7 +8,10 @@
 /CODE_OF_CONDUCT.md @stanimirivanov
 /go.mod @stanimirivanov
 /go.sum @stanimirivanov
+/pyproject.toml @stanimirivanov
+/uv.lock @stanimirivanov
 /Makefile @stanimirivanov
+/contracts/ @stanimirivanov
 /tools/ @stanimirivanov
 /.github/ @stanimirivanov
 /docs/architecture/ @stanimirivanov

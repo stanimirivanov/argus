@@ -4,14 +4,16 @@ Argus is an adaptive test intelligence and evolution platform. It determines
 which tests should run for a software change, identifies stale or missing test
 coverage, and produces evidence-backed maintenance proposals.
 
-The repository is at engineering-foundation stage. Its first executable is a
-minimal control-plane process that establishes lifecycle and verification
-boundaries without introducing product behavior prematurely.
+The repository has completed its engineering foundation and now includes the
+versioned identity and evidence contract kernel used by Go and Python. The
+control-plane executable remains a minimal lifecycle scaffold; catalog and
+selection behavior follow in later milestones.
 
 ## Start here
 
 - [Product definition](docs/product/product-definition.md)
 - [Architecture overview](docs/architecture/overview.md)
+- [Contract workspace](contracts/README.md)
 - [Proposal decomposition and provenance](docs/proposal.md)
 - [Developer quickstart](docs/development/developer-quickstart.md)
 - [Dependency and license policy](docs/development/dependency-policy.md)
@@ -26,7 +28,9 @@ boundaries without introducing product behavior prematurely.
 
 ## Requirements
 
-- Go 1.26.4, as declared by [go.mod](go.mod).
+- Go 1.26.6, as declared by [go.mod](go.mod).
+- Python 3.12 and uv 0.12.5, as declared by [.python-version](.python-version)
+  and [pyproject.toml](pyproject.toml), for contract generation and validation.
 - GNU Make 4.3 or newer for the repository command surface.
 - A supported Git release and either PowerShell 7 on Windows or Bash on Linux.
 
@@ -38,10 +42,11 @@ are declared in the root [go.mod](go.mod) and the isolated
 [actionlint module](tools/actionlint/go.mod), while their invocations remain
 visible in the [Makefile](Makefile).
 
-No external service is required for the current scaffold. The first quality-
-tool run requires network access to download the versions pinned in the Go
-module files; later runs reuse the Go module cache. Vulnerability scans also
-require access to the Go vulnerability database unless it is cached.
+No external service is required for the current scaffold and contract kernel.
+The first quality-tool run requires network access to download the versions
+pinned in the Go module and uv lock files; later runs reuse local caches.
+Vulnerability scans also require access to the Go vulnerability database
+unless it is cached.
 
 ## Run the control plane
 
@@ -59,6 +64,7 @@ configuration, workers, or test-selection behavior.
 ~~~sh
 make doctor
 make build
+make generate-contracts
 make fmt
 make fmt-check
 make check
@@ -70,10 +76,11 @@ make validate
 ~~~
 
 `make validate` is the required non-mutating acceptance suite. It builds the
-command, verifies formatting and linter configuration, runs lint and static
-analysis, verifies module tidiness and checksums, runs ordinary and race-enabled
-tests without cached results, scans reachable dependencies for known
-vulnerabilities, and enforces runtime and development-tool license policy.
+command, validates schemas and the shared compatibility corpus, proves Go and
+Python binding regeneration, verifies formatting and static analysis, checks
+module and lock-file integrity, runs ordinary and race-enabled tests without
+cached results, scans reachable Go dependencies for known vulnerabilities, and
+enforces Go runtime and development-tool license policy.
 
 The tools are declared through Go's versioned `tool` directives in the root
 module and the isolated actionlint module, protected by their checksum files,
@@ -87,10 +94,11 @@ go tool go-licenses
 ~~~
 
 The build writes the platform-native executable under the ignored `bin`
-directory. `make fmt` updates Go source formatting; review its diff before
-committing. `make check` includes `govet`, `staticcheck`, and GitHub Actions
-workflow validation, so the test targets disable the duplicate implicit
-`go test` vet pass.
+directory. `make generate-contracts` updates checked-in bindings and `make fmt`
+updates Go and Python source formatting; review their diffs before committing.
+`make check` includes generator reproducibility, Python type checking, `govet`,
+`staticcheck`, and GitHub Actions workflow validation, so the test targets
+disable the duplicate implicit `go test` vet pass.
 
 ## Continuous integration
 
@@ -98,8 +106,9 @@ The [validation workflow](.github/workflows/validate.yml) runs `make validate`
 on Ubuntu 24.04 and Windows Server 2025 for every pull request and every push to
 `main`; it can also be run manually. The Windows job installs the pinned GNU
 Make 4.4.1 package because GNU Make is not part of the hosted Windows image.
-Both jobs read the exact Go version from `go.mod` and execute the repository's
-same checked-in, non-mutating acceptance suite.
+Both jobs read the exact Go version from `go.mod`, install the pinned uv release
+and Python 3.12, and execute the repository's same checked-in, non-mutating
+acceptance suite.
 
 The root [.gitattributes](.gitattributes) enforces LF line endings for text
 files on every checkout, matching `.editorconfig` and preventing Windows Git
@@ -109,5 +118,5 @@ scripts retain CRLF line endings.
 The workflow grants only read access to repository contents and does not retain
 checkout credentials. GitHub Actions references use major semantic release
 tags so routine patch and minor maintenance does not create hash-management
-work. CI requires network access for the Go toolchain, pinned quality tools,
-vulnerability database, and the Windows GNU Make package.
+work. CI requires network access for the Go and Python toolchains, pinned
+quality tools, vulnerability database, and the Windows GNU Make package.

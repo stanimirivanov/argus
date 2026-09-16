@@ -47,6 +47,14 @@ jobs:
             tools/actionlint/go.mod
             tools/actionlint/go.sum
 
+      - name: Set up uv and Python
+        uses: astral-sh/setup-uv@v10
+        with:
+          version: "0.12.5"
+          python-version: "3.12"
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
       - name: Install GNU Make on Windows
         if: runner.os == 'Windows'
         shell: pwsh

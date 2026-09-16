@@ -1,0 +1,43 @@
+{
+  "bundleVersion": "0.1.0",
+  "contracts": [
+    {
+      "name": "kernel/v1",
+      "schema": "schemas/kernel/v1/kernel.schema.json",
+      "goPackage": "contracts/generated/go/kernel/v1",
+      "pythonModule": "contracts/generated/python/argus_contracts/kernel_v1.py",
+      "fixtures": [
+        {
+          "path": "fixtures/kernel/v1/valid/full.json",
+          "schemaValid": true,
+          "bindingValid": true
+        },
+        {
+          "path": "fixtures/kernel/v1/invalid/confidence-out-of-range.json",
+          "schemaValid": false,
+          "bindingValid": false
+        },
+        {
+          "path": "fixtures/kernel/v1/invalid/invalid-identifier.json",
+          "schemaValid": false,
+          "bindingValid": false
+        },
+        {
+          "path": "fixtures/kernel/v1/invalid/mismatched-reference.json",
+          "schemaValid": true,
+          "bindingValid": false
+        },
+        {
+          "path": "fixtures/kernel/v1/invalid/unknown-field.json",
+          "schemaValid": false,
+          "bindingValid": false
+        },
+        {
+          "path": "fixtures/kernel/v1/invalid/unsupported-version.json",
+          "schemaValid": false,
+          "bindingValid": false
+        }
+      ]
+    }
+  ]
+}

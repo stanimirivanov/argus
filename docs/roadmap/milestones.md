@@ -134,6 +134,11 @@ Acceptance ingredients:
   languages consume.
 - Generate Go and Python bindings reproducibly and verify regeneration.
 
+The delivered kernel is documented in the
+[contract workspace](../../contracts/README.md); its representation and
+compatibility policy are recorded in
+[ADR-0003](../decisions/0003-use-json-schema-and-generated-contract-bindings.md).
+
 Completion means Go and Python components can exchange the shared identity and
 provenance kernel through versioned fixtures without depending on one another's
 internal types. Feature-specific contracts are added with their first consumer.

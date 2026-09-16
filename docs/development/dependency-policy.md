@@ -28,6 +28,7 @@ supported public API.
 | Concern | Authority |
 |:--|:--|
 | Go version and application module | Root [`go.mod`](../../go.mod) and [`go.sum`](../../go.sum) |
+| Python version and dependency graph | [`.python-version`](../../.python-version), [`pyproject.toml`](../../pyproject.toml), and [`uv.lock`](../../uv.lock) |
 | Isolated tool graphs | [`tools`](../../tools) module and checksum files |
 | Executable local checks and license exceptions | Root [`Makefile`](../../Makefile) |
 | GitHub Actions versions | Major semantic `uses` tags in [workflow files](../../.github/workflows) |
@@ -82,7 +83,8 @@ grouped separately and take priority over routine version updates.
 
 Every update pull request MUST:
 
-1. retain exact Go versions and checksums, and major semantic action tags;
+1. retain exact Go versions and checksums, the uv lock when applicable, and
+   major semantic action tags;
 2. review release notes and relevant upstream security or compatibility notes;
 3. explain material transitive, license, configuration, or generated changes;
 4. run `make fmt` and `make validate` on the resulting graph;
@@ -136,6 +138,28 @@ An exception MUST be present in both this table and `TOOL_LICENSE_EXCEPTIONS` in
 the Makefile. It MUST remain restricted to development tooling. Moving an
 excepted package into application or test code requires fresh review under the
 runtime allowlist; the tool exception does not follow it.
+
+The current Python graph supports contract generation, validation, and a
+reference consumer; it is not included in a deployable artifact. uv enforces
+the complete checked-in lock during every repository check. The Pydantic
+runtime/reference-consumer graph is MIT or PSF-2.0. The locked development
+graph is permissively licensed except `rfc3987`, which is GPL-3.0-or-later and
+is used only by the standalone JSON Schema format validator. It MUST NOT become
+an Argus runtime dependency or be distributed with an Argus artifact.
+
+Python package metadata is not yet enforced by `make license`; lock-changing
+pull requests MUST inspect direct and material transitive metadata against this
+policy and record any new exception here. Adding an automated Python license
+inventory belongs with distributable Python packaging or the M10 release SBOM,
+whichever comes first. This limitation MUST NOT be represented as automated
+coverage by the current license command.
+
+Dependabot's uv ecosystem currently trails the repository's required uv
+version, so Python updates remain deliberate lock-refresh changes rather than a
+known-broken automation entry. Maintainers SHOULD review `uv lock --upgrade`
+output during milestone dependency reviews and MUST run the complete acceptance
+suite before accepting it. Enable uv update automation only when the hosted
+service supports this repository's required uv version.
 
 Before publishing a distributable release, the release process MUST generate
 and verify the notices, source offers, license bundle, or SBOM required by the
