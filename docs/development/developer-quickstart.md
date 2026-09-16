@@ -42,12 +42,14 @@ an ADR unless it also changes a foundational technology or deployment boundary.
 | Go | The exact effective version in [`go.mod`](../../go.mod) | Build and test the control plane and run pinned Go-based quality tools. |
 | GNU Make | 4.3 or newer; CI uses 4.4.1 on Windows | Provide the canonical command surface in the root [`Makefile`](../../Makefile). `nmake` is not a substitute. |
 | Shell | Bash on Linux or PowerShell 7 on Windows | Run setup and Git commands. Make recipes intentionally avoid shell-specific syntax. |
-| Network | Required for initial tool resolution and fresh vulnerability data | Download modules pinned by the Makefile and query the Go vulnerability database. |
+| Network | Required for initial tool resolution and fresh vulnerability data | Download modules pinned by the checked-in Go module and checksum files, and query the Go vulnerability database. |
 
-Globally installed `golangci-lint`, `actionlint`, and `govulncheck` binaries are
-neither required nor authoritative. The Makefile invokes explicit module
-versions. IDE formatting, linting, and test integrations are optional feedback;
-their success does not replace `make validate`.
+Globally installed `golangci-lint`, `actionlint`, `govulncheck`, and
+`go-licenses` binaries are neither required nor authoritative. Their versions
+are declared as Go tools in the root module or the isolated
+`tools/actionlint` module, verified through their checksum files, and invoked
+by the Makefile. IDE formatting, linting, and test integrations are optional
+feedback; their success does not replace `make validate`.
 
 `make doctor` does not alter repository files. It reports Git, Go, platform,
 toolchain mode, CGO, and GNU Make information without printing repository

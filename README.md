@@ -14,6 +14,7 @@ boundaries without introducing product behavior prematurely.
 - [Architecture overview](docs/architecture/overview.md)
 - [Proposal decomposition and provenance](docs/proposal.md)
 - [Developer quickstart](docs/development/developer-quickstart.md)
+- [Dependency and license policy](docs/development/dependency-policy.md)
 - [Contributor workflow](CONTRIBUTING.md)
 - [Engineering standards](docs/development/engineering-standards.md)
 - [SQL migration criteria](docs/development/sql-migrations.md)
@@ -32,13 +33,15 @@ boundaries without introducing product behavior prematurely.
 Run `make doctor` to report the effective toolchain. The complete supported,
 best-effort, and out-of-contract environment definitions, installation notes,
 and troubleshooting guidance live in the
-[developer quickstart](docs/development/developer-quickstart.md). The underlying
-pinned Go invocations remain visible in the [Makefile](Makefile).
+[developer quickstart](docs/development/developer-quickstart.md). Tool versions
+are declared in the root [go.mod](go.mod) and the isolated
+[actionlint module](tools/actionlint/go.mod), while their invocations remain
+visible in the [Makefile](Makefile).
 
 No external service is required for the current scaffold. The first quality-
-tool run requires network access to download the versions pinned in the
-[Makefile](Makefile); later runs reuse the Go module cache. Vulnerability scans
-also require access to the Go vulnerability database unless it is cached.
+tool run requires network access to download the versions pinned in the Go
+module files; later runs reuse the Go module cache. Vulnerability scans also
+require access to the Go vulnerability database unless it is cached.
 
 ## Run the control plane
 
@@ -62,22 +65,25 @@ make check
 make test
 make race
 make vuln
+make license
 make validate
 ~~~
 
 `make validate` is the required non-mutating acceptance suite. It builds the
 command, verifies formatting and linter configuration, runs lint and static
 analysis, verifies module tidiness and checksums, runs ordinary and race-enabled
-tests without cached results, and scans reachable dependencies for known
-vulnerabilities.
+tests without cached results, scans reachable dependencies for known
+vulnerabilities, and enforces runtime and development-tool license policy.
 
-The tools are invoked through these pinned commands rather than ambient global
-binaries:
+The tools are declared through Go's versioned `tool` directives in the root
+module and the isolated actionlint module, protected by their checksum files,
+and invoked through these commands rather than ambient global binaries:
 
 ~~~sh
-go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.13.2
-go run golang.org/x/vuln/cmd/govulncheck@v1.7.0
-go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
+go tool golangci-lint
+go tool govulncheck
+go -C tools/actionlint tool actionlint
+go tool go-licenses
 ~~~
 
 The build writes the platform-native executable under the ignored `bin`
@@ -101,6 +107,7 @@ settings from creating formatter-only differences. Windows batch and command
 scripts retain CRLF line endings.
 
 The workflow grants only read access to repository contents and does not retain
-checkout credentials. Its GitHub-authored actions are pinned to immutable
-release commits. CI requires network access for the Go toolchain, pinned quality
-tools, vulnerability database, and the Windows GNU Make package.
+checkout credentials. GitHub Actions references use major semantic release
+tags so routine patch and minor maintenance does not create hash-management
+work. CI requires network access for the Go toolchain, pinned quality tools,
+vulnerability database, and the Windows GNU Make package.

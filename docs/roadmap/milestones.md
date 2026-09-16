@@ -4,8 +4,8 @@
 
 - Milestones are outcome-oriented, numbered M01 through M10, and must not be
   renumbered after publication.
-- Every listed work item is intended to fit one independently reviewable pull
-  request.
+- Acceptance ingredients are grouped into 19 substantial delivery slices;
+  ingredients are not individual pull-request boundaries.
 - Functional API selection is the first product vertical slice.
 - UI adaptation follows only after deterministic impact and validation work.
 - Predictive selection follows measured shadow-mode baselines.
@@ -17,7 +17,7 @@
 | Milestone title | Short message |
 |:--|:--|
 | M01 - Engineering foundation | Make every change repeatable, reviewable, and safe. |
-| M02 - Contracts and identity | Give every change, capability, test, decision, and result a stable language. |
+| M02 - Contracts and identity | Give shared identities and evidence metadata a stable cross-language foundation. |
 | M03 - Repository catalog | Build the authoritative map of repositories, capabilities, suites, and tests. |
 | M04 - Change impact | Turn a pull-request diff into explainable affected capabilities. |
 | M05 - Functional API selection | Produce and execute the first cross-repository impacted-test manifest. |
@@ -51,11 +51,47 @@ Autonomy MUST advance independently per repository, test family, and adaptation
 class. When evidence is below the agreed gate, the capability remains in
 recommendation or shadow mode and the milestone records that limitation.
 
+## Delivery slices
+
+A delivery slice is the default issue and pull-request boundary. It groups the
+contracts, implementation, persistence, adapters, tests, documentation, and
+operational evidence needed to prove one observable outcome. A slice may close
+several acceptance ingredients in its milestone. Specialized contracts are
+defined with the first feature that consumes them instead of in a speculative
+schema-only phase.
+
+| Milestone | Delivery slice | Bundled outcome |
+|:--|:--|:--|
+| M01 | Foundation governance closeout | Automate dependency updates; enforce local vulnerability and licensing checks; define security ownership and the larger-slice delivery policy. |
+| M02 | Contract and identity kernel | Establish the versioned workspace, compatibility harness, shared identities and provenance values, representative fixtures, and reproducible Go/Python generation. |
+| M03 | Catalog persistence and descriptor ingestion | Establish PostgreSQL migrations and persist the core catalog while validating and ingesting repository descriptors. |
+| M03 | Design-partner mapping and catalog query | Ingest source/test mappings, detect conflicts and staleness, and expose deterministic versioned reads. |
+| M04 | Trusted change ingestion | Verify and deduplicate GitHub deliveries, resolve immutable revisions, bound diffs, and produce normalized ChangeSet values. |
+| M04 | Semantic API impact | Discover and compare OpenAPI contracts, map changes to capabilities, persist evidence, and expose explainable affected-capability queries. |
+| M05 | Explainable functional API selection | Discover and map stable tests, apply deterministic policy and graph rules, and emit an explained ExecutionManifest. |
+| M05 | Selection execution and shadow evaluation | Execute the manifest, ingest results, run the remaining/full control, and report time savings and misses. |
+| M06 | Constrained functional API repair | Classify stale tests and generate minimal endpoint or field-rename candidates while rejecting intent-changing edits. |
+| M06 | Repair validation and review learning | Reproduce failure, validate repair and negative control, package evidence, open a review PR, and ingest the final outcome. |
+| M07 | Browser catalog and selection | Discover Playwright tests, map routes/components, ingest browser evidence, and select deterministically. |
+| M07 | Constrained locator repair | Diagnose locator failures, generate and reject candidates, validate repeatedly with a negative control, and open an evidence-backed PR. |
+| M08 | Offline predictive evaluation | Build chronological data, baselines, replay, ranking, calibration, and abstention evidence. |
+| M08 | Safe budgeted scheduling | Estimate cost and dependencies, schedule diverse stages, execute relevant-now/remaining-later modes, and monitor safety. |
+| M09 | Perfeng contract and catalog integration | Agree on versioned messages and synchronize workload, environment, baseline, and capability references. |
+| M09 | Performance evidence lifecycle | Dispatch and correlate idempotent requests, consume quality/regression evidence, and demonstrate the end-to-end decision flow. |
+| M10 | Security, tenancy, and resource controls | Establish identity, authorization, tenancy, least privilege, and bounded resource/model use. |
+| M10 | Durable operations and recovery | Add observability, worker leasing, retries, dead letters, backup, restore, retention, and operator recovery. |
+| M10 | Deployment and readiness | Package immutable deployment, rollout and rollback, health and SLO monitoring, threat modeling, and production-readiness evidence. |
+
+The table is a planning baseline, not permission to hide incompatible changes
+inside a large diff. A slice is split only when it contains independently
+valuable outcomes with materially different risk, ownership, rollout, or
+review needs.
+
 ## M01 - Engineering foundation
 
 **Message:** Make every change repeatable, reviewable, and safe.
 
-Work items:
+Acceptance ingredients:
 
 - Establish the contributor and engineering harness.
 - Harden the harness for autonomous contributors and add baseline open-source
@@ -76,39 +112,38 @@ Work items:
   runs the same checked-in commands.
 - Add the [developer quickstart and supported local environment
   contract](../development/developer-quickstart.md).
-- Establish dependency update, licensing, and security-reporting policy.
+- Establish the [dependency update, licensing, and security-reporting
+  policy](../development/dependency-policy.md).
 
 Completion means a new contributor can build, verify, and understand the empty
 system skeleton using versioned instructions.
 
 ## M02 - Contracts and identity
 
-**Message:** Give every change, capability, test, decision, and result a stable
-language.
+**Message:** Give shared identities and evidence metadata a stable
+cross-language foundation.
 
-Work items:
+Acceptance ingredients:
 
 - Create the versioned contract workspace and compatibility-test harness.
 - Define repository, revision, component, capability, suite, and stable test
   identifiers.
 - Define provenance, confidence, observation time, and expiry values.
-- Define the normalized ChangeSet contract.
-- Define Capability and TestCatalogEntry contracts.
-- Define ImpactEdge and mapping-conflict contracts.
-- Define ExecutionManifest and selection-explanation contracts.
-- Define normalized TestResult and execution-attempt contracts.
-- Define AdaptationProposal, ValidationEvidence, and ReviewOutcome contracts.
+- Define common version, validation-error, and compatibility metadata.
+- Add representative identity and provenance fixtures that both generated
+  languages consume.
 - Generate Go and Python bindings reproducibly and verify regeneration.
 
-Completion means components can exchange versioned fixtures without depending
-on one another's internal types.
+Completion means Go and Python components can exchange the shared identity and
+provenance kernel through versioned fixtures without depending on one another's
+internal types. Feature-specific contracts are added with their first consumer.
 
 ## M03 - Repository catalog
 
 **Message:** Build the authoritative map of repositories, capabilities, suites,
 and tests.
 
-Work items:
+Acceptance ingredients:
 
 - Select the PostgreSQL migration runner and record its ADR.
 - Add the PostgreSQL development/test environment and migration-chain checks.
@@ -116,6 +151,8 @@ Work items:
 - Create the capability and authoritative-contract catalog schema.
 - Create the test repository, suite, and stable test identity schema.
 - Create the impact-edge, provenance, confidence, and expiry schema.
+- Define versioned Capability, TestCatalogEntry, ImpactEdge, and
+  mapping-conflict contracts.
 - Define and validate the repository-local Argus descriptor.
 - Ingest explicit repository and test mappings from one design partner.
 - Expose catalog read APIs with deterministic pagination and versioning.
@@ -128,8 +165,9 @@ repository are represented with stable, queryable identities.
 
 **Message:** Turn a pull-request diff into explainable affected capabilities.
 
-Work items:
+Acceptance ingredients:
 
+- Define the normalized ChangeSet contract and compatibility fixtures.
 - Verify and normalize GitHub webhook deliveries.
 - Store webhook delivery identity and make ingestion idempotent.
 - Resolve immutable base and head revisions for a pull request.
@@ -149,9 +187,11 @@ explainable capability impact result.
 **Message:** Produce and execute the first cross-repository impacted-test
 manifest.
 
-Work items:
+Acceptance ingredients:
 
 - Define the functional API adapter protocol and conformance fixtures.
+- Define ExecutionManifest, selection-explanation, normalized TestResult, and
+  execution-attempt contracts.
 - Discover stable functional API test IDs from the design-partner repository.
 - Bind OpenAPI operations and capabilities to functional API tests.
 - Implement versioned must-run, pin, exclusion, and fallback policy.
@@ -169,8 +209,9 @@ while the full suite remains the authority.
 
 **Message:** Repair narrow functional API drift without weakening test intent.
 
-Work items:
+Acceptance ingredients:
 
+- Define AdaptationProposal, ValidationEvidence, and ReviewOutcome contracts.
 - Classify impacted tests as valid, invalidated, uncovered, or uncertain.
 - Detect an authoritative one-to-one endpoint rename.
 - Generate a deterministic endpoint-reference patch.
@@ -190,7 +231,7 @@ without silently turning a failing test green.
 
 **Message:** Extend mapping and constrained adaptation to browser tests.
 
-Work items:
+Acceptance ingredients:
 
 - Define the browser-test adapter contract and Playwright conformance fixtures.
 - Discover stable Playwright test IDs, projects, tags, and owners.
@@ -211,7 +252,7 @@ operate under the same evidence model as functional API tests.
 
 **Message:** Reduce feedback cost using calibrated evidence and safe fallbacks.
 
-Work items:
+Acceptance ingredients:
 
 - Build the chronological execution/change feature dataset.
 - Implement run-all, explicit-impact, recent-failure, duration, and random
@@ -233,7 +274,7 @@ repositories where measured risk stays within policy.
 **Message:** Request and consume trustworthy performance evidence without
 duplicating Perfeng.
 
-Work items:
+Acceptance ingredients:
 
 - Define and jointly review the versioned Argus–Perfeng contract boundary.
 - Define PerformanceEvidenceRequested and compatibility fixtures.
@@ -256,7 +297,7 @@ artifacts.
 
 **Message:** Operate Argus securely, observably, recoverably, and at scale.
 
-Work items:
+Acceptance ingredients:
 
 - Define authentication, authorization, repository tenancy, and service
   identity.
@@ -272,6 +313,8 @@ Work items:
   adaptation failure.
 - Complete threat modeling, dependency/licensing review, and production
   readiness assessment.
+- Evaluate repository-hosted dependency graph and advisory integrations against
+  the selected GitHub plan, then enable only the checks with explicit ownership.
 
 Completion means Argus can be deployed with explicit security, reliability,
 recovery, cost, and ownership controls.
@@ -284,9 +327,16 @@ recovery, cost, and ownership controls.
 - Promotion targets are set from design-partner baselines; research or vendor
   results MUST NOT be copied as local acceptance thresholds.
 - Every issue names one exact milestone.
+- Every issue SHOULD target one delivery slice and MAY close multiple acceptance
+  ingredients within that milestone.
+- Do not create separate issues merely for a contract, table, adapter, test
+  fixture, or documentation file when they are necessary parts of one slice.
+- Define specialized contracts with the first consuming capability; do not
+  front-load schemas that no executable behavior validates.
 - Move an issue between milestones only when its outcome dependency changes;
   update this roadmap in the same planning change.
-- Split any item discovered to require multiple independently valuable or risky
-  changes before implementation begins.
+- Split a slice when it contains independently valuable outcomes with
+  materially different security, compatibility, ownership, deployment,
+  rollback, or review risk.
 - A milestone may complete with deliberately deferred items only when the
   milestone message is still true and the deferral is recorded.
