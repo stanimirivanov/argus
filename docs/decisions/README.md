@@ -100,3 +100,4 @@ How will the assumptions and consequences be verified?
 | ADR | Decision | Status | Date |
 |:--|:--|:--|:--|
 | [ADR-0001](0001-use-go-and-evidence-based-cross-project-reuse.md) | Use Go and evidence-based cross-project reuse | Accepted | 2026-09-16 |
+| [ADR-0002](0002-keep-argus-in-a-single-product-repository.md) | Keep Argus in a single product repository | Accepted | 2026-09-16 |
