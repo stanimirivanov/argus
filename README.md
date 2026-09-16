@@ -87,6 +87,11 @@ Make 4.4.1 package because GNU Make is not part of the hosted Windows image.
 Both jobs read the exact Go version from `go.mod` and execute the repository's
 same checked-in, non-mutating acceptance suite.
 
+The root [.gitattributes](.gitattributes) enforces LF line endings for text
+files on every checkout, matching `.editorconfig` and preventing Windows Git
+settings from creating formatter-only differences. Windows batch and command
+scripts retain CRLF line endings.
+
 The workflow grants only read access to repository contents and does not retain
 checkout credentials. Its GitHub-authored actions are pinned to immutable
 release commits. CI requires network access for the Go toolchain, pinned quality
