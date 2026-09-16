@@ -4,9 +4,9 @@
 
 - Argus is verified on Ubuntu 24.04 x86-64 and Windows Server 2025 x86-64;
   Windows 11 x86-64 and Ubuntu 24.04 x86-64 are the supported local targets.
-- Use the exact effective Go version declared by `go.mod`, Python 3.12, uv
-  0.12.5, GNU Make 4.3 or newer, a supported Git release, and either Bash or
-  PowerShell 7.
+- Use the exact effective Go version declared by `go.mod`, Node.js 24.18.0,
+  pnpm 11.19.0, GNU Make 4.3 or newer, a supported Git release, and either Bash
+  or PowerShell 7.
 - Run `make doctor` to report the effective toolchain, then run `make fmt` and
   `make validate` before review.
 - The current scaffold needs no database, container runtime, cloud account,
@@ -41,27 +41,24 @@ an ADR unless it also changes a foundational technology or deployment boundary.
 |:--|:--|:--|
 | Git | A vendor-supported release that honors `.gitattributes` | Clone, branch, diff, and preserve the repository's LF line-ending contract. |
 | Go | The exact effective version in [`go.mod`](../../go.mod) | Build and test the control plane and run pinned Go-based quality tools. |
-| Python | 3.12 as declared by [`.python-version`](../../.python-version) | Validate contracts, test the generated reference binding, and run Python-based generation and quality tools. |
-| uv | 0.12.5 as required by [`pyproject.toml`](../../pyproject.toml) | Reproduce the Python environment from [`uv.lock`](../../uv.lock) and run pinned tools. |
+| Node.js | 24.18.0 as declared by [`.node-version`](../../.node-version) | Author, generate, type-check, and test Effect Schema contracts. |
+| pnpm | 11.19.0 as declared by [`package.json`](../../package.json) | Reproduce the Node dependency graph from [`pnpm-lock.yaml`](../../pnpm-lock.yaml). |
 | GNU Make | 4.3 or newer; CI uses 4.4.1 on Windows | Provide the canonical command surface in the root [`Makefile`](../../Makefile). `nmake` is not a substitute. |
 | Shell | Bash on Linux or PowerShell 7 on Windows | Run setup and Git commands. Make recipes intentionally avoid shell-specific syntax. |
-| Network | Required for initial tool resolution and fresh vulnerability data | Download dependencies pinned by the Go module and uv lock files, and query the Go vulnerability database. |
+| Network | Required for initial tool resolution and fresh vulnerability data | Download dependencies pinned by Go and pnpm lock files, and query vulnerability databases. |
 
-Globally installed `golangci-lint`, `actionlint`, `govulncheck`,
-`go-licenses`, `go-jsonschema`, `ruff`, `ty`, and
-`datamodel-code-generator` binaries are neither required nor authoritative.
-Their versions are declared as Go tools in the root or isolated actionlint
-module, or locked by uv, and invoked by the Makefile. IDE formatting, linting,
-and test integrations are optional feedback; their success does not replace
-`make validate`.
+Globally installed `golangci-lint`, `actionlint`, `govulncheck`, `go-licenses`,
+`biome`, `tsx`, and `typescript` binaries are neither required nor
+authoritative. Their versions are declared as Go tools or exact pnpm
+dependencies and invoked by the Makefile. IDE formatting, linting, and test
+integrations are optional feedback; their success does not replace `make
+validate`.
 
-`make doctor` reports Git, Go, platform, toolchain mode, CGO, uv, Python, and
+`make doctor` reports Git, Go, platform, toolchain mode, CGO, Node.js, pnpm, and
 GNU Make information without printing repository paths, proxy URLs,
-credentials, or the general process environment. uv may create or synchronize
-the ignored `.venv` from the locked graph; it does not change tracked files.
-The command does not replace acceptance checks. When `GOTOOLCHAIN=auto` and
-the required Go version is absent, the Go command can perform its standard
-toolchain download.
+credentials, or the general process environment. The command does not replace
+acceptance checks. When `GOTOOLCHAIN=auto` and the required Go version is
+absent, the Go command can perform its standard toolchain download.
 
 ## First-time setup
 
@@ -84,21 +81,21 @@ Confirm that:
 
 - `go version` and `GOVERSION` match the exact version in `go.mod`;
 - `GOOS` and `GOARCH` describe the intended supported environment;
-- `uv --version` reports 0.12.5 and Python reports 3.12;
+- Node.js reports 24.18.0 and pnpm reports 11.19.0;
 - GNU Make is version 4.3 or newer; and
 - Git is a maintained vendor release.
 
 Then format and run the complete acceptance suite:
 
 ~~~sh
+pnpm install --frozen-lockfile
 make fmt
 git diff --check
 make validate
 ~~~
 
-The first run can be slower because Go and uv resolve pinned quality tools and
-uv creates the ignored `.venv`. The build writes a platform-native executable
-under ignored `bin/`.
+The first run can be slower because Go and pnpm resolve pinned dependencies.
+The build writes platform-native executables under ignored `bin/`.
 Start the current control-plane scaffold with:
 
 ~~~sh
@@ -112,10 +109,10 @@ requires no configuration or external service at this stage.
 
 ### Windows
 
-Install the exact Go version from the official Go distribution and ensure it is
-ahead of older Go installations on `PATH`. Install uv 0.12.5 using its official
-installer or a trusted managed package; uv installs the required Python 3.12
-runtime when it is absent. The CI-aligned GNU Make package is:
+Install the exact Go and Node.js versions from their official distributions or
+a trusted version manager and ensure they are ahead of older installations on
+`PATH`. Activate pnpm 11.19.0 from the `packageManager` declaration using
+Corepack or a trusted managed package. The CI-aligned GNU Make package is:
 
 ~~~powershell
 choco install make --version=4.4.1 --yes
@@ -138,11 +135,10 @@ sudo apt-get update
 sudo apt-get install --yes git make
 ~~~
 
-Install the exact Go version declared by `go.mod` from the official Go
-distribution or an equivalently trusted managed source, then install uv 0.12.5
-from its official installer or a trusted managed package. uv installs the
-required Python 3.12 runtime when it is absent. Other maintained Linux
-distributions are best-effort until represented in CI.
+Install the exact Go and Node.js versions declared by repository files from
+their official distributions or an equivalently trusted managed source, then
+activate pnpm 11.19.0 with Corepack or a trusted managed package. Other
+maintained Linux distributions are best-effort until represented in CI.
 
 ### WSL2
 
@@ -182,9 +178,9 @@ broker, or GitHub token. Do not add placeholder infrastructure merely to
 anticipate roadmap work.
 
 The first validation run needs access to Go module sources, checksum services,
-and the Python package index used by uv. Vulnerability checks need the Go
-vulnerability database unless it is already cached. Corporate proxies and
-certificate authorities SHOULD be configured through approved host, Go, and uv
+and the package registry used by pnpm. Vulnerability checks need the Go and npm
+advisory databases unless already cached. Corporate proxies and certificate
+authorities SHOULD be configured through approved host, Go, Node.js, and pnpm
 settings. Do not disable checksum, certificate, lock, lint, test, race, or
 vulnerability checks to bypass a network or trust failure.
 

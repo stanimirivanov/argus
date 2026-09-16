@@ -7,13 +7,14 @@
 - Go tools use native `tool` directives and checksum files; incompatible build
   graphs use a checked-in isolated tool module. GitHub Actions use major
   semantic release tags. Ambient global binaries are not authoritative.
-- Dependabot proposes grouped non-major and security updates for Go modules and
-  GitHub Actions. Updates are reviewed and validated; they are never implicitly
-  trusted or auto-merged by repository policy.
+- Dependabot proposes grouped non-major and security updates for Go modules,
+  npm/pnpm dependencies, and GitHub Actions. Updates are reviewed and validated;
+  they are never implicitly trusted or auto-merged by repository policy.
 - `make license` permits a narrow runtime license allowlist and separately checks
   development tools with named, non-distributed exceptions.
-- `make vuln` checks reachable Go vulnerabilities without requiring an
-  optional repository-hosted dependency graph.
+- `make vuln` checks reachable Go vulnerabilities and audits production pnpm
+  dependencies without requiring an optional repository-hosted dependency
+  graph.
 - Novel or exploitable findings follow [SECURITY.md](../../SECURITY.md), not a
   public issue. Exceptions require an owner, rationale, scope, expiry, and
   compensating controls.
@@ -28,7 +29,7 @@ supported public API.
 | Concern | Authority |
 |:--|:--|
 | Go version and application module | Root [`go.mod`](../../go.mod) and [`go.sum`](../../go.sum) |
-| Python version and dependency graph | [`.python-version`](../../.python-version), [`pyproject.toml`](../../pyproject.toml), and [`uv.lock`](../../uv.lock) |
+| Node.js version and dependency graph | [`.node-version`](../../.node-version), [`package.json`](../../package.json), and [`pnpm-lock.yaml`](../../pnpm-lock.yaml) |
 | Isolated tool graphs | [`tools`](../../tools) module and checksum files |
 | Executable local checks and license exceptions | Root [`Makefile`](../../Makefile) |
 | GitHub Actions versions | Major semantic `uses` tags in [workflow files](../../.github/workflows) |
@@ -76,15 +77,16 @@ repository MUST NOT be committed.
 
 ## Update automation and review
 
-Dependabot checks Go modules and GitHub Actions weekly. Minor and patch version
-updates are grouped per ecosystem to reduce review overhead. Major updates stay
-separate because they can change compatibility or policy. Security updates are
-grouped separately and take priority over routine version updates.
+Dependabot checks Go modules, npm/pnpm dependencies, and GitHub Actions weekly.
+Minor and patch version updates are grouped per ecosystem to reduce review
+overhead. Major updates stay separate because they can change compatibility or
+policy. Security updates are grouped separately and take priority over routine
+version updates.
 
 Every update pull request MUST:
 
-1. retain exact Go versions and checksums, the uv lock when applicable, and
-   major semantic action tags;
+1. retain exact Go and Node dependency versions, checksum/lock files, and major
+   semantic action tags;
 2. review release notes and relevant upstream security or compatibility notes;
 3. explain material transitive, license, configuration, or generated changes;
 4. run `make fmt` and `make validate` on the resulting graph;
@@ -139,27 +141,19 @@ the Makefile. It MUST remain restricted to development tooling. Moving an
 excepted package into application or test code requires fresh review under the
 runtime allowlist; the tool exception does not follow it.
 
-The current Python graph supports contract generation, validation, and a
-reference consumer; it is not included in a deployable artifact. uv enforces
-the complete checked-in lock during every repository check. The Pydantic
-runtime/reference-consumer graph is MIT or PSF-2.0. The locked development
-graph is permissively licensed except `rfc3987`, which is GPL-3.0-or-later and
-is used only by the standalone JSON Schema format validator. It MUST NOT become
-an Argus runtime dependency or be distributed with an Argus artifact.
+The Node production graph currently contains Effect and its MIT-licensed
+transitive packages. `make license` inventories the production graph through
+pnpm and fails when a license group is outside the runtime allowlist. Build and
+test packages are development tools and are not distributed with the Go
+commands; lock-changing pull requests MUST still review their direct and
+material transitive licenses. Release SBOM and notice generation remain M10
+packaging work.
 
-Python package metadata is not yet enforced by `make license`; lock-changing
-pull requests MUST inspect direct and material transitive metadata against this
-policy and record any new exception here. Adding an automated Python license
-inventory belongs with distributable Python packaging or the M10 release SBOM,
-whichever comes first. This limitation MUST NOT be represented as automated
-coverage by the current license command.
-
-Dependabot's uv ecosystem currently trails the repository's required uv
-version, so Python updates remain deliberate lock-refresh changes rather than a
-known-broken automation entry. Maintainers SHOULD review `uv lock --upgrade`
-output during milestone dependency reviews and MUST run the complete acceptance
-suite before accepting it. Enable uv update automation only when the hosted
-service supports this repository's required uv version.
+Effect, TypeScript, Node.js, pnpm, Biome, and tsx versions are exact. Effect v4
+release candidates are not admitted while the contract source targets stable
+Effect v3. Updates MUST regenerate JSON Schema, run the shared fixture corpus,
+and inspect generated diffs rather than assuming type-check success proves wire
+compatibility.
 
 Before publishing a distributable release, the release process MUST generate
 and verify the notices, source offers, license bundle, or SBOM required by the
@@ -168,11 +162,12 @@ current policy prevents incompatible dependencies from entering unnoticed.
 
 ## Vulnerability policy
 
-`make vuln` uses the pinned `govulncheck` tool to fail on vulnerabilities
-reachable from Argus packages and the isolated actionlint graph. It is the
-current executable vulnerability gate and does not depend on optional GitHub
-dependency-graph features. Repository-hosted advisory review may be evaluated
-as part of M10 production readiness.
+`make vuln` uses the pinned `govulncheck` tool for vulnerabilities reachable
+from Argus packages and the isolated actionlint graph, and `pnpm audit --prod`
+for high-severity or critical advisories in the production Node graph. It is
+the current executable vulnerability gate and does not depend on optional
+GitHub dependency-graph features. Repository-hosted advisory review may be
+evaluated as part of M10 production readiness.
 
 A maintainer reviewing an alert MUST establish the affected version, scope,
 reachability, exploit preconditions, available fix, and operational exposure.

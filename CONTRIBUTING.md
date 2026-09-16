@@ -260,11 +260,12 @@ it separately with evidence.
 
 Run `make fmt` before final verification and review its diff. `make validate`
 is the required non-mutating repository acceptance suite; it builds the
-command, checks Go and Python formatting and static analysis, proves generated
-contract bindings are current, validates the compatibility corpus, verifies
-module and lock state, runs ordinary and race-enabled tests, scans reachable Go
-vulnerabilities, and enforces the documented license gate. A narrower target
-MAY provide interim feedback but MUST NOT be reported as the complete suite.
+commands, checks Go and TypeScript formatting and static analysis, proves
+generated contract artifacts are current, validates the compatibility corpus,
+verifies module and lock state, runs ordinary and race-enabled tests, scans Go
+and Node dependencies for vulnerabilities, and enforces the documented license
+gate. A narrower target MAY provide interim feedback but MUST NOT be reported
+as the complete suite.
 
 The pinned tools and exact targets are defined in the root Makefile. Their first
 run and the vulnerability database may require network access. When that access

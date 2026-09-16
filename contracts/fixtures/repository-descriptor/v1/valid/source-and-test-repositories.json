@@ -1,0 +1,48 @@
+{
+  "apiVersion": "argus.dev/repository-descriptor/v1",
+  "repository": {
+    "provider": "github",
+    "host": "github.com",
+    "providerRepositoryId": "R_orders_source_01",
+    "owner": "example",
+    "name": "orders"
+  },
+  "capabilities": [
+    {
+      "key": "create-order",
+      "name": "Create an order"
+    },
+    {
+      "key": "cancel-order",
+      "name": "Cancel an order"
+    }
+  ],
+  "components": [
+    {
+      "key": "orders-api",
+      "root": "services/orders-api",
+      "capabilities": ["create-order", "cancel-order"]
+    }
+  ],
+  "testSuites": [
+    {
+      "key": "orders-api-contract",
+      "repository": {
+        "provider": "github",
+        "host": "github.com",
+        "providerRepositoryId": "R_orders_tests_01",
+        "owner": "example",
+        "name": "orders-tests"
+      },
+      "family": "functional-api",
+      "adapter": "generic-http",
+      "tests": [
+        {
+          "key": "create-order-valid",
+          "name": "create order with a valid request",
+          "capabilities": ["create-order"]
+        }
+      ]
+    }
+  ]
+}

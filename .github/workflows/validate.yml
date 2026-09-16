@@ -47,13 +47,20 @@ jobs:
             tools/actionlint/go.mod
             tools/actionlint/go.sum
 
-      - name: Set up uv and Python
-        uses: astral-sh/setup-uv@v10
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
         with:
-          version: "0.12.5"
-          python-version: "3.12"
-          enable-cache: true
-          cache-dependency-glob: uv.lock
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install TypeScript dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: Install GNU Make on Windows
         if: runner.os == 'Windows'

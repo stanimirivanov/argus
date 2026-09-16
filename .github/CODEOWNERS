@@ -8,8 +8,12 @@
 /CODE_OF_CONDUCT.md @stanimirivanov
 /go.mod @stanimirivanov
 /go.sum @stanimirivanov
-/pyproject.toml @stanimirivanov
-/uv.lock @stanimirivanov
+/.node-version @stanimirivanov
+/package.json @stanimirivanov
+/pnpm-lock.yaml @stanimirivanov
+/pnpm-workspace.yaml @stanimirivanov
+/tsconfig.json @stanimirivanov
+/biome.json @stanimirivanov
 /Makefile @stanimirivanov
 /contracts/ @stanimirivanov
 /tools/ @stanimirivanov

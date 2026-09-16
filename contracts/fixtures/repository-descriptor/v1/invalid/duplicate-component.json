@@ -1,0 +1,24 @@
+{
+  "apiVersion": "argus.dev/repository-descriptor/v1",
+  "repository": {
+    "provider": "github",
+    "host": "github.com",
+    "providerRepositoryId": "R_orders_source_01",
+    "owner": "example",
+    "name": "orders"
+  },
+  "capabilities": [{ "key": "create-order", "name": "Create an order" }],
+  "components": [
+    {
+      "key": "orders-api",
+      "root": "services/orders-api",
+      "capabilities": ["create-order"]
+    },
+    {
+      "key": "orders-api",
+      "root": "services/orders-worker",
+      "capabilities": ["create-order"]
+    }
+  ],
+  "testSuites": []
+}

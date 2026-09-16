@@ -1,0 +1,246 @@
+{
+  "$id": "https://argus.dev/contracts/repository-descriptor/v1/schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "RepositoryDescriptorV1": {
+      "type": "object",
+      "required": [
+        "apiVersion",
+        "repository",
+        "capabilities",
+        "components",
+        "testSuites"
+      ],
+      "properties": {
+        "apiVersion": {
+          "type": "string",
+          "enum": [
+            "argus.dev/repository-descriptor/v1"
+          ]
+        },
+        "repository": {
+          "$ref": "#/$defs/RepositoryReference"
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CapabilityDeclaration"
+          },
+          "description": "an array of at least 1 item(s)",
+          "title": "minItems(1)",
+          "minItems": 1
+        },
+        "components": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ComponentDeclaration"
+          },
+          "description": "an array of at least 1 item(s)",
+          "title": "minItems(1)",
+          "minItems": 1
+        },
+        "testSuites": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TestSuiteDeclaration"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "description": "Declares repository-scoped capabilities, components, test suites, stable tests, and explicit mappings.",
+      "title": "Argus repository descriptor v1"
+    },
+    "RepositoryReference": {
+      "type": "object",
+      "required": [
+        "provider",
+        "host",
+        "providerRepositoryId",
+        "owner",
+        "name"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": [
+            "github",
+            "gitlab",
+            "azure-devops",
+            "other"
+          ]
+        },
+        "host": {
+          "type": "string",
+          "description": "a string matching the pattern ^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$",
+          "title": "maxLength(255)",
+          "minLength": 1,
+          "maxLength": 255,
+          "pattern": "^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$"
+        },
+        "providerRepositoryId": {
+          "type": "string",
+          "description": "a string at most 255 character(s) long",
+          "title": "maxLength(255)",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "owner": {
+          "type": "string",
+          "description": "a string at most 255 character(s) long",
+          "title": "maxLength(255)",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "name": {
+          "type": "string",
+          "description": "a string at most 255 character(s) long",
+          "title": "maxLength(255)",
+          "minLength": 1,
+          "maxLength": 255
+        }
+      },
+      "additionalProperties": false,
+      "description": "A repository reference anchored by the provider-assigned identity; owner and name are mutable display coordinates."
+    },
+    "CapabilityDeclaration": {
+      "type": "object",
+      "required": [
+        "key",
+        "name"
+      ],
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/LocalKey"
+        },
+        "name": {
+          "type": "string",
+          "description": "a string at most 255 character(s) long",
+          "title": "maxLength(255)",
+          "minLength": 1,
+          "maxLength": 255
+        }
+      },
+      "additionalProperties": false
+    },
+    "LocalKey": {
+      "type": "string",
+      "description": "A stable, repository-declared key. It is scoped by its containing repository or parent declaration.",
+      "title": "maxLength(63)",
+      "minLength": 1,
+      "maxLength": 63,
+      "pattern": "^[a-z][a-z0-9._-]*$"
+    },
+    "ComponentDeclaration": {
+      "type": "object",
+      "required": [
+        "key",
+        "root",
+        "capabilities"
+      ],
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/LocalKey"
+        },
+        "root": {
+          "type": "string",
+          "description": "a string at most 1024 character(s) long",
+          "title": "maxLength(1024)",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LocalKey"
+          },
+          "description": "an array of at least 1 item(s)",
+          "title": "minItems(1)",
+          "minItems": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "TestSuiteDeclaration": {
+      "type": "object",
+      "required": [
+        "key",
+        "repository",
+        "family",
+        "adapter",
+        "tests"
+      ],
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/LocalKey"
+        },
+        "repository": {
+          "$ref": "#/$defs/RepositoryReference"
+        },
+        "family": {
+          "type": "string",
+          "enum": [
+            "unit",
+            "component",
+            "contract",
+            "integration",
+            "functional-api",
+            "functional-ui",
+            "end-to-end",
+            "performance",
+            "security",
+            "resilience",
+            "other"
+          ]
+        },
+        "adapter": {
+          "type": "string",
+          "description": "a string at most 127 character(s) long",
+          "title": "maxLength(127)",
+          "minLength": 1,
+          "maxLength": 127
+        },
+        "tests": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TestDeclaration"
+          },
+          "description": "an array of at least 1 item(s)",
+          "title": "minItems(1)",
+          "minItems": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "TestDeclaration": {
+      "type": "object",
+      "required": [
+        "key",
+        "name",
+        "capabilities"
+      ],
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/LocalKey"
+        },
+        "name": {
+          "type": "string",
+          "description": "a string at most 255 character(s) long",
+          "title": "maxLength(255)",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LocalKey"
+          },
+          "description": "an array of at least 1 item(s)",
+          "title": "minItems(1)",
+          "minItems": 1
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "$ref": "#/$defs/RepositoryDescriptorV1"
+}

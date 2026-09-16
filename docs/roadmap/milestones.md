@@ -63,8 +63,8 @@ schema-only phase.
 | Milestone | Delivery slice | Bundled outcome |
 |:--|:--|:--|
 | M01 | Foundation governance closeout | Automate dependency updates; enforce local vulnerability and licensing checks; define security ownership and the larger-slice delivery policy. |
-| M02 | Contract and identity kernel | Establish the versioned workspace, compatibility harness, shared identities and provenance values, representative fixtures, and reproducible Go/Python generation. |
-| M03 | Catalog persistence and descriptor ingestion | Establish PostgreSQL migrations and persist the core catalog while validating and ingesting repository descriptors. |
+| M02 | Repository descriptor and identity boundary | Establish Effect-authored contracts, generated JSON Schema, repository and revision identity, catalog-domain conversion, compatibility fixtures, and an executable ingestion seam. |
+| M03 | Catalog persistence and descriptor ingestion | Establish PostgreSQL migrations and persist normalized repository descriptor snapshots. |
 | M03 | Design-partner mapping and catalog query | Ingest source/test mappings, detect conflicts and staleness, and expose deterministic versioned reads. |
 | M04 | Trusted change ingestion | Verify and deduplicate GitHub deliveries, resolve immutable revisions, bound diffs, and produce normalized ChangeSet values. |
 | M04 | Semantic API impact | Discover and compare OpenAPI contracts, map changes to capabilities, persist evidence, and expose explainable affected-capability queries. |
@@ -120,28 +120,33 @@ system skeleton using versioned instructions.
 
 ## M02 - Contracts and identity
 
-**Message:** Give shared identities and evidence metadata a stable
-cross-language foundation.
+**Message:** Turn a real repository descriptor into validated catalog state.
 
 Acceptance ingredients:
 
-- Create the versioned contract workspace and compatibility-test harness.
-- Define repository, revision, component, capability, suite, and stable test
-  identifiers.
-- Define provenance, confidence, observation time, and expiry values.
-- Define common version, validation-error, and compatibility metadata.
-- Add representative identity and provenance fixtures that both generated
-  languages consume.
-- Generate Go and Python bindings reproducibly and verify regeneration.
+- Author the repository descriptor in Effect Schema v3.
+- Generate and verify a deterministic JSON Schema Draft 2020-12 artifact.
+- Define stable provider repository identity and trusted immutable revision
+  context without premature global identifier syntax.
+- Declare components, capabilities, test suites, stable tests, test families,
+  and explicit capability mappings.
+- Validate strict wire structure before converting into an idiomatic Go catalog
+  model.
+- Enforce semantic uniqueness, reference, path, and revision invariants through
+  a shared positive and negative fixture corpus.
+- Deliver a command that validates and normalizes one source repository with a
+  separate functional-test repository.
 
-The delivered kernel is documented in the
+The delivered descriptor boundary is documented in the
 [contract workspace](../../contracts/README.md); its representation and
 compatibility policy are recorded in
-[ADR-0003](../decisions/0003-use-json-schema-and-generated-contract-bindings.md).
+[ADR-0003](../decisions/0003-use-effect-schema-at-contract-boundaries.md).
 
-Completion means Go and Python components can exchange the shared identity and
-provenance kernel through versioned fixtures without depending on one another's
-internal types. Feature-specific contracts are added with their first consumer.
+Completion means the Go control plane can strictly validate a repository-owned
+descriptor, bind it to a trusted immutable revision, and produce normalized
+catalog state for one source repository and one separate test repository.
+OpenAPI documents and additional language stubs are added with their first real
+producer or consumer.
 
 ## M03 - Repository catalog
 
@@ -158,7 +163,6 @@ Acceptance ingredients:
 - Create the impact-edge, provenance, confidence, and expiry schema.
 - Define versioned Capability, TestCatalogEntry, ImpactEdge, and
   mapping-conflict contracts.
-- Define and validate the repository-local Argus descriptor.
 - Ingest explicit repository and test mappings from one design partner.
 - Expose catalog read APIs with deterministic pagination and versioning.
 - Detect and report conflicting or stale mappings without overwriting them.

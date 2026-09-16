@@ -22,6 +22,9 @@
 - [ADR-0002](../decisions/0002-keep-argus-in-a-single-product-repository.md)
   keeps Argus-owned components in one product repository and requires explicit
   lifecycle evidence and a migration ADR before a split.
+- [ADR-0003](../decisions/0003-use-effect-schema-at-contract-boundaries.md)
+  selects Effect Schema as the contract source, generated JSON Schema as the
+  portable artifact, and consumer-owned domain conversion.
 - Storage technology, queues, and deployment topology remain deferred to ADRs
   and evidence from vertical slices.
 
@@ -29,11 +32,12 @@
 
 This document defines system responsibilities, logical boundaries, information
 flow, and non-negotiable architectural constraints. It does not itself select a
-database, queue, deployment topology, repository split, or model provider.
-Those durable choices MUST be recorded in
+database, queue, deployment topology, or model provider. Those durable choices
+MUST be recorded in
 [architecture decision records](../decisions/README.md). ADR-0001 selects the
 control-plane language and cross-project reuse policy; ADR-0002 selects the
-initial repository topology and split criteria.
+initial repository topology and split criteria; ADR-0003 selects the contract
+authoring and interoperability boundary.
 
 The [product definition](../product/product-definition.md) governs product
 behavior and safety. The [implementation milestones](../roadmap/milestones.md)
@@ -111,11 +115,11 @@ NOT become a network boundary merely because it appears as a separate row.
 
 ## Core information model
 
-The first contracts SHOULD establish stable identities and versioning for:
+The repository descriptor establishes repository, component, capability, suite,
+and test identity at a trusted immutable revision. Later boundaries still need
+stable identities and versioning for:
 
-- repository and immutable revision;
-- component, API operation, UI surface, and business capability;
-- test repository, suite, stable test, owner, and execution environment;
+- API operation, UI surface, owner, and execution environment;
 - normalized change set and semantic change;
 - impact edge with evidence type, provenance, confidence, observation time,
   and expiry;
@@ -261,7 +265,6 @@ accepted:
 
 | Decision | Candidate direction | Authority |
 |:--|:--|:--|
-| Contract representation | JSON Schema, OpenAPI, Protobuf, or a justified combination | M02 work and ADR if required |
 | Metadata persistence | PostgreSQL with relational impact edges before a graph database | M03 migration/tooling ADRs |
 | Durable asynchronous work | CI callbacks plus a queue or database-backed work ownership | ADR when required by first workflow |
 | Model provider | Hosted or self-hosted model behind a gateway | Decision after bounded use case and evaluation |
