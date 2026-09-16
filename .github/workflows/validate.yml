@@ -49,9 +49,7 @@ jobs:
         run: choco install make --version=4.4.1 --no-progress --yes
 
       - name: Report toolchain
-        run: |
-          go version
-          make --version
+        run: make doctor
 
       - name: Run acceptance suite
         run: make validate

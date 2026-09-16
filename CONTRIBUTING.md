@@ -37,6 +37,7 @@ not silently create another level of normative strength.
 | Product scope, taxonomy, decision outcomes, and safety | [docs/product/product-definition.md](docs/product/product-definition.md) |
 | Conceptual architecture and system boundaries | [docs/architecture/overview.md](docs/architecture/overview.md) |
 | Engineering and language standards | [docs/development/engineering-standards.md](docs/development/engineering-standards.md) |
+| Supported local environments and first-time setup | [docs/development/developer-quickstart.md](docs/development/developer-quickstart.md) |
 | PostgreSQL schema and migration rules | [docs/development/sql-migrations.md](docs/development/sql-migrations.md) |
 | Architecture decisions | [docs/decisions](docs/decisions/README.md) |
 | Milestones and planned work | [docs/roadmap/milestones.md](docs/roadmap/milestones.md) |

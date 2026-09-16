@@ -13,6 +13,7 @@ boundaries without introducing product behavior prematurely.
 - [Product definition](docs/product/product-definition.md)
 - [Architecture overview](docs/architecture/overview.md)
 - [Proposal decomposition and provenance](docs/proposal.md)
+- [Developer quickstart](docs/development/developer-quickstart.md)
 - [Contributor workflow](CONTRIBUTING.md)
 - [Engineering standards](docs/development/engineering-standards.md)
 - [SQL migration criteria](docs/development/sql-migrations.md)
@@ -25,8 +26,14 @@ boundaries without introducing product behavior prematurely.
 ## Requirements
 
 - Go 1.26.4, as declared by [go.mod](go.mod).
-- GNU Make for the repository command surface. The underlying pinned Go
-  invocations are visible in the [Makefile](Makefile).
+- GNU Make 4.3 or newer for the repository command surface.
+- A supported Git release and either PowerShell 7 on Windows or Bash on Linux.
+
+Run `make doctor` to report the effective toolchain. The complete supported,
+best-effort, and out-of-contract environment definitions, installation notes,
+and troubleshooting guidance live in the
+[developer quickstart](docs/development/developer-quickstart.md). The underlying
+pinned Go invocations remain visible in the [Makefile](Makefile).
 
 No external service is required for the current scaffold. The first quality-
 tool run requires network access to download the versions pinned in the
@@ -47,6 +54,7 @@ configuration, workers, or test-selection behavior.
 ## Build and verify
 
 ~~~sh
+make doctor
 make build
 make fmt
 make fmt-check

@@ -8,10 +8,11 @@ GOLANGCI_LINT := go run $(GOLANGCI_LINT_MODULE)@$(GOLANGCI_LINT_VERSION)
 GOVULNCHECK := go run $(GOVULNCHECK_MODULE)@$(GOVULNCHECK_VERSION)
 ACTIONLINT := go run $(ACTIONLINT_MODULE)@$(ACTIONLINT_VERSION)
 
-.PHONY: help build fmt fmt-check check test race vuln validate
+.PHONY: help doctor build fmt fmt-check check test race vuln validate
 
 help:
 	@echo Argus engineering-foundation command surface
+	@echo   make doctor  Report the effective local development toolchain
 	@echo   make build  Compile all Go packages
 	@echo   make fmt    Format Go sources and imports
 	@echo   make fmt-check  Verify formatting without changes
@@ -20,6 +21,12 @@ help:
 	@echo   make race   Run all tests with the race detector
 	@echo   make vuln   Scan reachable dependencies for known vulnerabilities
 	@echo   make validate  Run all non-mutating acceptance checks
+
+doctor:
+	@git --version
+	@go version
+	@go env -json GOVERSION GOOS GOARCH GOTOOLCHAIN CGO_ENABLED
+	@$(MAKE) --version
 
 build:
 	go build -o bin/ ./cmd/control-plane
