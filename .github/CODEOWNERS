@@ -6,6 +6,10 @@
 /CONTRIBUTING.md @stanimirivanov
 /SECURITY.md @stanimirivanov
 /CODE_OF_CONDUCT.md @stanimirivanov
+/go.mod @stanimirivanov
+/go.sum @stanimirivanov
+/Makefile @stanimirivanov
+/tools/ @stanimirivanov
 /.github/ @stanimirivanov
 /docs/architecture/ @stanimirivanov
 /docs/decisions/ @stanimirivanov

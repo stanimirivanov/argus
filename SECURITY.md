@@ -9,6 +9,8 @@
   details.
 - Argus is pre-release; the current default branch is the only supported line.
 - Reports should contain enough reproducible evidence for safe triage.
+- Public dependency advisories are handled through normal reviewed updates;
+  novel or sensitive exploit information always uses the private channel.
 
 ## Supported versions
 
@@ -16,6 +18,26 @@ Argus is in engineering foundation and has no supported production release.
 Security fixes target the current default branch. When releases begin, this
 section MUST be replaced with an explicit supported-version table and disclosure
 policy.
+
+## Dependency vulnerabilities
+
+The [dependency policy](docs/development/dependency-policy.md) defines admission,
+update, license, automated review, suppression, and ownership requirements.
+Routine remediation of an already-public advisory MAY use a normal dependency
+pull request. Do not include new exploit techniques, sensitive reproduction
+details, credentials, or affected private environments in that pull request.
+
+A novel, embargoed, or plausibly exploitable finding MUST be reported through
+the private process in [Reporting a vulnerability](#reporting-a-vulnerability)
+even when it originates in a third-party dependency.
+Maintainers MUST assess the selected and fixed versions, reachability, exposure,
+available mitigations, and whether coordinated disclosure is required. Scanner
+severity alone does not replace that assessment.
+
+Repository owners SHOULD enable and monitor the dependency graph, Dependabot
+alerts and security updates, private vulnerability reporting, and available
+secret scanning. Checked-in configuration cannot enable every repository-level
+security setting.
 
 ## Reporting a vulnerability
 

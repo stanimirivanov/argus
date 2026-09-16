@@ -1,0 +1,11 @@
+# License policy is enforced by `make license`, which distinguishes shipped
+# packages from reviewed development-only tool exceptions.
+license-check: false
+vulnerability-check: true
+fail-on-severity: moderate
+fail-on-scopes:
+  - runtime
+  - development
+  - unknown
+comment-summary-in-pr: never
+show-openssf-scorecard: true

@@ -1,14 +1,36 @@
-GOLANGCI_LINT_VERSION := v2.13.2
-GOVULNCHECK_VERSION := v1.7.0
-ACTIONLINT_VERSION := v1.7.12
 GOLANGCI_LINT_MODULE := github.com/golangci/golangci-lint/v2/cmd/golangci-lint
 GOVULNCHECK_MODULE := golang.org/x/vuln/cmd/govulncheck
-ACTIONLINT_MODULE := github.com/rhysd/actionlint/cmd/actionlint
-GOLANGCI_LINT := go run $(GOLANGCI_LINT_MODULE)@$(GOLANGCI_LINT_VERSION)
-GOVULNCHECK := go run $(GOVULNCHECK_MODULE)@$(GOVULNCHECK_VERSION)
-ACTIONLINT := go run $(ACTIONLINT_MODULE)@$(ACTIONLINT_VERSION)
+GO_LICENSES_MODULE := github.com/google/go-licenses/v2
+GOLANGCI_LINT := go tool golangci-lint
+GOVULNCHECK := go tool govulncheck
+ACTIONLINT := go -C tools/actionlint tool actionlint
+GO_LICENSES := go tool go-licenses
 
-.PHONY: help doctor build fmt fmt-check check test race vuln validate
+TOOL_PACKAGES := \
+	$(GOLANGCI_LINT_MODULE) \
+	$(GOVULNCHECK_MODULE) \
+	$(GO_LICENSES_MODULE)
+
+RUNTIME_ALLOWED_LICENSES := Apache-2.0,BSD-2-Clause,BSD-3-Clause,ISC,MIT
+DEVELOPMENT_ALLOWED_LICENSES := $(RUNTIME_ALLOWED_LICENSES),MPL-2.0
+
+# These packages are reachable only from repository development tools. Their
+# reviewed exceptions and non-distribution constraint are documented in the
+# dependency policy; application and test dependencies receive no exceptions.
+TOOL_LICENSE_EXCEPTIONS := \
+	--ignore github.com/OpenPeeDeeP/depguard/v2 \
+	--ignore github.com/alecthomas/chroma/v2 \
+	--ignore github.com/ashanbrown/forbidigo/v2 \
+	--ignore github.com/ashanbrown/makezero/v2 \
+	--ignore github.com/denis-tingaikin/go-header \
+	--ignore github.com/firefart/nonamedreturns \
+	--ignore github.com/golangci/gofmt \
+	--ignore github.com/golangci/golangci-lint/v2 \
+	--ignore github.com/ldez/structtags \
+	--ignore github.com/leonklingele/grouper \
+	--ignore github.com/xen0n/gosmopolitan
+
+.PHONY: help doctor build fmt fmt-check check test race vuln license validate
 
 help:
 	@echo Argus engineering-foundation command surface
@@ -20,6 +42,7 @@ help:
 	@echo   make test   Run ordinary tests without cached results
 	@echo   make race   Run all tests with the race detector
 	@echo   make vuln   Scan reachable dependencies for known vulnerabilities
+	@echo   make license  Enforce runtime and development-tool license policy
 	@echo   make validate  Run all non-mutating acceptance checks
 
 doctor:
@@ -43,6 +66,8 @@ check: fmt-check
 	$(ACTIONLINT)
 	go mod tidy -diff
 	go mod verify
+	go -C tools/actionlint mod tidy -diff
+	go -C tools/actionlint mod verify
 
 test:
 	go test -vet=off -count=1 ./...
@@ -52,5 +77,11 @@ race:
 
 vuln:
 	$(GOVULNCHECK) ./...
+	go -C tools/actionlint tool govulncheck github.com/rhysd/actionlint/cmd/actionlint
 
-validate: build check test race vuln
+license:
+	$(GO_LICENSES) check --include_tests ./... --allowed_licenses $(RUNTIME_ALLOWED_LICENSES)
+	$(GO_LICENSES) check $(TOOL_PACKAGES) --allowed_licenses $(DEVELOPMENT_ALLOWED_LICENSES) $(TOOL_LICENSE_EXCEPTIONS)
+	go -C tools/actionlint tool go-licenses check github.com/rhysd/actionlint/cmd/actionlint --allowed_licenses $(RUNTIME_ALLOWED_LICENSES)
+
+validate: build check test race vuln license

@@ -16,6 +16,8 @@
 - Keep domain policy independent from frameworks and infrastructure.
 - Include tests, documentation, assumptions, and verification evidence with
   the change.
+- Treat roadmap bullets as acceptance ingredients; group them into the
+  delivery slices defined by the roadmap instead of opening artifact-sized PRs.
 
 ## Policy language and sources of truth
 
@@ -38,6 +40,7 @@ not silently create another level of normative strength.
 | Conceptual architecture and system boundaries | [docs/architecture/overview.md](docs/architecture/overview.md) |
 | Engineering and language standards | [docs/development/engineering-standards.md](docs/development/engineering-standards.md) |
 | Supported local environments and first-time setup | [docs/development/developer-quickstart.md](docs/development/developer-quickstart.md) |
+| Dependency admission, updates, licensing, and vulnerability handling | [docs/development/dependency-policy.md](docs/development/dependency-policy.md) |
 | PostgreSQL schema and migration rules | [docs/development/sql-migrations.md](docs/development/sql-migrations.md) |
 | Architecture decisions | [docs/decisions](docs/decisions/README.md) |
 | Milestones and planned work | [docs/roadmap/milestones.md](docs/roadmap/milestones.md) |
@@ -200,6 +203,12 @@ A pull request MUST:
 - be reviewable without depending on an unmerged speculative follow-up; and
 - contain evidence for expected and important failure behavior.
 
+The roadmap's acceptance ingredients are not individual pull-request
+boundaries. A delivery slice SHOULD combine the contracts, implementation,
+persistence, adapters, tests, documentation, and operational evidence required
+for one observable outcome. Do not split work merely by file, layer, language,
+or artifact type.
+
 Split work when it combines independent behavior, broad cleanup, dependency
 upgrades, schema redesign, unrelated formatting, or several architectural
 decisions. A change is not automatically too large because it touches several
@@ -252,9 +261,9 @@ it separately with evidence.
 Run `make fmt` before final verification and review its diff. `make validate`
 is the required non-mutating Go acceptance suite; it builds the command, checks
 formatting, runs pinned lint and static analysis, verifies module state, runs
-ordinary and race-enabled tests, and scans reachable vulnerabilities. A
-narrower target MAY provide interim feedback but MUST NOT be reported as the
-complete suite.
+ordinary and race-enabled tests, scans reachable vulnerabilities, and enforces
+license policy. A narrower target MAY provide interim feedback but MUST NOT be
+reported as the complete suite.
 
 The pinned tools and exact targets are defined in the root Makefile. Their first
 run and the vulnerability database may require network access. When that access

@@ -26,7 +26,7 @@ Assumptions and unresolved questions:
 - [ ] Integration/contract tests where applicable
 - [ ] Race/concurrency/fuzz checks where applicable
 - [ ] Migration empty-database and upgrade checks where applicable
-- [ ] Vulnerability/dependency checks
+- [ ] Vulnerability, dependency, and license checks
 
 Commands and evidence:
 
