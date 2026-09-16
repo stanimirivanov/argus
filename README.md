@@ -9,11 +9,15 @@ not been scaffolded yet.
 
 ## Start here
 
+- [Product definition](docs/product/product-definition.md)
+- [Architecture overview](docs/architecture/overview.md)
+- [Proposal decomposition and provenance](docs/proposal.md)
 - [Contributor workflow](CONTRIBUTING.md)
 - [Engineering standards](docs/development/engineering-standards.md)
 - [SQL migration criteria](docs/development/sql-migrations.md)
 - [Architecture decisions](docs/decisions/README.md)
 - [Implementation milestones](docs/roadmap/milestones.md)
+- [Research and market landscape](docs/research/landscape.md)
 - [Security policy](SECURITY.md)
 - [Code of conduct](CODE_OF_CONDUCT.md)
 

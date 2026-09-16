@@ -12,8 +12,9 @@ Normative terms such as MUST, SHOULD, and MAY have the meanings defined there.
    [verification](CONTRIBUTING.md#verification-and-constrained-environments)
    rules.
 2. You MUST inspect the working tree and preserve pre-existing changes.
-3. You MUST read the relevant material under
-   [docs/development](docs/development) and accepted decisions in
+3. You MUST read the [product definition](docs/product/product-definition.md),
+   [architecture overview](docs/architecture/overview.md), relevant material
+   under [docs/development](docs/development), and accepted decisions in
    [docs/decisions](docs/decisions/README.md).
 4. You MUST use the repository-local build and verification commands. You
    MUST NOT claim that an unavailable or unexecuted check passed.
