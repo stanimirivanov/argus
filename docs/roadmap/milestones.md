@@ -64,7 +64,8 @@ Work items:
   sources of truth.
 - Record the control-plane language and cross-project reuse boundary in
   [ADR-0001](../decisions/0001-use-go-and-evidence-based-cross-project-reuse.md).
-- Record the initial repository topology ADR.
+- Record the initial repository topology in
+  [ADR-0002](../decisions/0002-keep-argus-in-a-single-product-repository.md).
 - Scaffold the Go module and a minimal control-plane command with graceful
   startup and shutdown.
 - Add pinned formatting, linting, static analysis, test, race, and vulnerability

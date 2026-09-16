@@ -19,17 +19,21 @@
   selects Go for the operational control plane, permits a later versioned
   Python analysis boundary, and requires evidence before cross-project code
   extraction.
-- Storage technology, queues, deployment topology, and repository splits remain
-  deferred to ADRs and evidence from vertical slices.
+- [ADR-0002](../decisions/0002-keep-argus-in-a-single-product-repository.md)
+  keeps Argus-owned components in one product repository and requires explicit
+  lifecycle evidence and a migration ADR before a split.
+- Storage technology, queues, and deployment topology remain deferred to ADRs
+  and evidence from vertical slices.
 
 ## Purpose and authority
 
 This document defines system responsibilities, logical boundaries, information
-flow, and non-negotiable architectural constraints. It does not select a
+flow, and non-negotiable architectural constraints. It does not itself select a
 database, queue, deployment topology, repository split, or model provider.
 Those durable choices MUST be recorded in
 [architecture decision records](../decisions/README.md). ADR-0001 selects the
-control-plane language and cross-project reuse policy.
+control-plane language and cross-project reuse policy; ADR-0002 selects the
+initial repository topology and split criteria.
 
 The [product definition](../product/product-definition.md) governs product
 behavior and safety. The [implementation milestones](../roadmap/milestones.md)
@@ -225,6 +229,10 @@ Each adapter MUST normalize untrusted external data before it reaches domain
 policy and MUST preserve provider-specific identities needed for idempotency and
 diagnosis without leaking provider types into the core.
 
+[ADR-0002](../decisions/0002-keep-argus-in-a-single-product-repository.md)
+defines the evidence and migration required before an adapter, contract,
+analysis component, or deployment asset moves to another repository or service.
+
 ## Security and operational boundaries
 
 - Webhook authenticity, replay protection, and delivery identity are ingress
@@ -244,14 +252,15 @@ diagnosis without leaking provider types into the core.
 
 ## Deliberately deferred decisions
 
-The control-plane language and cross-project reuse boundary are no longer
-deferred: ADR-0001 selects Go and an evidence-based extraction policy. The
-proposal contained other useful candidates, but the following are not decisions
-until their ADR or implementation milestone is accepted:
+The control-plane language, cross-project reuse boundary, and initial repository
+topology are no longer deferred: ADR-0001 selects Go and an evidence-based
+extraction policy, while ADR-0002 selects a single Argus product repository and
+explicit split triggers. The proposal contained other useful candidates, but
+the following are not decisions until their ADR or implementation milestone is
+accepted:
 
 | Decision | Candidate direction | Authority |
 |:--|:--|:--|
-| Repository topology | Modular monorepo initially; split independently released contracts/intelligence/adapters only when needed | M01 ADR |
 | Contract representation | JSON Schema, OpenAPI, Protobuf, or a justified combination | M02 work and ADR if required |
 | Metadata persistence | PostgreSQL with relational impact edges before a graph database | M03 migration/tooling ADRs |
 | Durable asynchronous work | CI callbacks plus a queue or database-backed work ownership | ADR when required by first workflow |
