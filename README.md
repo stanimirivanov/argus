@@ -107,9 +107,7 @@ settings from creating formatter-only differences. Windows batch and command
 scripts retain CRLF line endings.
 
 The workflow grants only read access to repository contents and does not retain
-checkout credentials. Its GitHub-authored actions are pinned to immutable
-release commits. Pull requests also receive a dependency-delta review that
-rejects newly introduced moderate-or-higher advisories in runtime, development,
-or unknown scope. CI requires network access for the Go toolchain, pinned
-quality tools, vulnerability database, dependency-review service, and the
-Windows GNU Make package.
+checkout credentials. GitHub Actions references use major semantic release
+tags so routine patch and minor maintenance does not create hash-management
+work. CI requires network access for the Go toolchain, pinned quality tools,
+vulnerability database, and the Windows GNU Make package.

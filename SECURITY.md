@@ -34,10 +34,10 @@ Maintainers MUST assess the selected and fixed versions, reachability, exposure,
 available mitigations, and whether coordinated disclosure is required. Scanner
 severity alone does not replace that assessment.
 
-Repository owners SHOULD enable and monitor the dependency graph, Dependabot
-alerts and security updates, private vulnerability reporting, and available
-secret scanning. Checked-in configuration cannot enable every repository-level
-security setting.
+Repository-hosted dependency graph and advisory integrations are deferred to
+M10 production readiness, where their plan support and operational ownership
+can be assessed deliberately. Private vulnerability reporting and available
+secret scanning remain recommended repository settings.
 
 ## Reporting a vulnerability
 

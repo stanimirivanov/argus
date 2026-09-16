@@ -5,15 +5,15 @@
 - Application, test, build-tool, and GitHub Actions dependencies MUST be pinned,
   necessary, maintained, license-compatible, and reviewed before admission.
 - Go tools use native `tool` directives and checksum files; incompatible build
-  graphs use a checked-in isolated tool module. GitHub Actions use immutable
-  commit SHAs. Ambient global binaries are not authoritative.
+  graphs use a checked-in isolated tool module. GitHub Actions use major
+  semantic release tags. Ambient global binaries are not authoritative.
 - Dependabot proposes grouped non-major and security updates for Go modules and
   GitHub Actions. Updates are reviewed and validated; they are never implicitly
   trusted or auto-merged by repository policy.
 - `make license` permits a narrow runtime license allowlist and separately checks
   development tools with named, non-distributed exceptions.
-- `make vuln` checks reachable Go vulnerabilities, while pull requests receive
-  dependency-delta review for moderate-or-higher advisories in every scope.
+- `make vuln` checks reachable Go vulnerabilities without requiring an
+  optional repository-hosted dependency graph.
 - Novel or exploitable findings follow [SECURITY.md](../../SECURITY.md), not a
   public issue. Exceptions require an owner, rationale, scope, expiry, and
   compensating controls.
@@ -30,9 +30,8 @@ supported public API.
 | Go version and application module | Root [`go.mod`](../../go.mod) and [`go.sum`](../../go.sum) |
 | Isolated tool graphs | [`tools`](../../tools) module and checksum files |
 | Executable local checks and license exceptions | Root [`Makefile`](../../Makefile) |
-| GitHub Actions versions | Immutable `uses` commits in [workflow files](../../.github/workflows) |
+| GitHub Actions versions | Major semantic `uses` tags in [workflow files](../../.github/workflows) |
 | Automated update grouping and cadence | [`.github/dependabot.yml`](../../.github/dependabot.yml) |
-| Pull-request vulnerability threshold | [Dependency-review configuration](../../.github/dependency-review-config.yml) |
 | Private vulnerability reporting | [`SECURITY.md`](../../SECURITY.md) |
 | Review ownership | [`.github/CODEOWNERS`](../../.github/CODEOWNERS) |
 
@@ -58,9 +57,8 @@ request MUST document:
 
 Application and domain packages MUST NOT import a development tool. Tool
 dependencies MUST be declared with Go's `tool` directive rather than installed
-implicitly or resolved with `@latest`. GitHub Actions MUST be pinned to the full
-commit of a reviewed release; a human-readable release comment SHOULD remain
-next to the pin.
+implicitly or resolved with `@latest`. GitHub Actions MUST reference only the
+major semantic tag of a reviewed action, such as `actions/checkout@v7`.
 
 Tools SHOULD share the root tool graph when their selected versions compile
 together. A tool MUST move to a dedicated module when minimal-version selection
@@ -84,12 +82,11 @@ grouped separately and take priority over routine version updates.
 
 Every update pull request MUST:
 
-1. retain exact versions, checksums, and immutable action commits;
+1. retain exact Go versions and checksums, and major semantic action tags;
 2. review release notes and relevant upstream security or compatibility notes;
 3. explain material transitive, license, configuration, or generated changes;
 4. run `make fmt` and `make validate` on the resulting graph;
-5. pass dependency-delta review when the GitHub service supports it; and
-6. avoid unrelated source or broad dependency churn.
+5. avoid unrelated source or broad dependency churn.
 
 Automated pull requests MUST NOT be auto-merged solely because checks are green.
 A green update can still introduce changed semantics, excessive privilege,
@@ -98,11 +95,10 @@ failed grouped update SHOULD be narrowed only enough to identify and review the
 incompatible dependency; the remaining safe updates MAY proceed together.
 
 Dependabot version updates are enabled by the checked-in configuration.
-Dependency graph, Dependabot alerts, Dependabot security updates, and private
-vulnerability reporting are repository settings. An owner MUST enable them
-where the GitHub plan supports them and periodically verify that scheduled jobs
-are active. The security-update groups in `dependabot.yml` take effect only
-when Dependabot security updates are enabled.
+Dependabot alerts and security updates depend on repository settings and plan
+support. Evaluation and ownership of repository-hosted dependency graph and
+advisory integrations are deferred to M10 production readiness; the current CI
+MUST remain usable without them.
 
 ## License policy
 
@@ -149,11 +145,10 @@ current policy prevents incompatible dependencies from entering unnoticed.
 ## Vulnerability policy
 
 `make vuln` uses the pinned `govulncheck` tool to fail on vulnerabilities
-reachable from Argus packages. Pull requests also run GitHub dependency review
-and fail when a changed dependency introduces a moderate, high, or critical
-advisory in runtime, development, or unknown scope. These checks complement one
-another: reachability reduces noise in the complete graph, while delta review
-catches newly introduced advisory exposure before merge.
+reachable from Argus packages and the isolated actionlint graph. It is the
+current executable vulnerability gate and does not depend on optional GitHub
+dependency-graph features. Repository-hosted advisory review may be evaluated
+as part of M10 production readiness.
 
 A maintainer reviewing an alert MUST establish the affected version, scope,
 reachability, exploit preconditions, available fix, and operational exposure.
@@ -175,7 +170,7 @@ as they do not disclose additional exploit information.
 
 CODEOWNERS identifies the current reviewer for manifests, workflows, security
 policy, and development standards. Ownership MUST be updated before it becomes
-stale; an absent reviewer is not permission to bypass dependency review.
+stale; an absent reviewer is not permission to bypass dependency governance.
 
 At least when beginning a milestone or preparing a release, maintainers SHOULD
 review:
@@ -185,7 +180,7 @@ review:
 - vulnerability and secret-scanning alerts;
 - license exceptions and their continued development-only scope;
 - inactive, archived, transferred, or unexpectedly republished upstreams; and
-- action permissions and immutable pins.
+- action permissions and selected major semantic tags.
 
 This review is evidence for dependency health, not a mandate to upgrade every
 package. Stability, compatibility, and security determine update priority.

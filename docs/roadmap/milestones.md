@@ -62,7 +62,7 @@ schema-only phase.
 
 | Milestone | Delivery slice | Bundled outcome |
 |:--|:--|:--|
-| M01 | Foundation governance closeout | Automate dependency updates and vulnerability review; enforce licensing; define security ownership and the larger-slice delivery policy. |
+| M01 | Foundation governance closeout | Automate dependency updates; enforce local vulnerability and licensing checks; define security ownership and the larger-slice delivery policy. |
 | M02 | Contract and identity kernel | Establish the versioned workspace, compatibility harness, shared identities and provenance values, representative fixtures, and reproducible Go/Python generation. |
 | M03 | Catalog persistence and descriptor ingestion | Establish PostgreSQL migrations and persist the core catalog while validating and ingesting repository descriptors. |
 | M03 | Design-partner mapping and catalog query | Ingest source/test mappings, detect conflicts and staleness, and expose deterministic versioned reads. |
@@ -313,6 +313,8 @@ Acceptance ingredients:
   adaptation failure.
 - Complete threat modeling, dependency/licensing review, and production
   readiness assessment.
+- Evaluate repository-hosted dependency graph and advisory integrations against
+  the selected GitHub plan, then enable only the checks with explicit ownership.
 
 Completion means Argus can be deployed with explicit security, reliability,
 recovery, cost, and ownership controls.
