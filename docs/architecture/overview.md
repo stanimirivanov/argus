@@ -15,16 +15,21 @@
   evidence remains visible.
 - Argus does not execute or analyze performance workloads directly. Perfeng
   retains that authority behind versioned asynchronous contracts.
-- Languages, process boundaries, storage technology, queues, and repository
-  splits are deliberately deferred to ADRs and evidence from vertical slices.
+- [ADR-0001](../decisions/0001-use-go-and-evidence-based-cross-project-reuse.md)
+  selects Go for the operational control plane, permits a later versioned
+  Python analysis boundary, and requires evidence before cross-project code
+  extraction.
+- Storage technology, queues, deployment topology, and repository splits remain
+  deferred to ADRs and evidence from vertical slices.
 
 ## Purpose and authority
 
 This document defines system responsibilities, logical boundaries, information
 flow, and non-negotiable architectural constraints. It does not select a
-language, database, queue, deployment topology, repository split, or model
-provider. Those durable choices MUST be recorded in
-[architecture decision records](../decisions/README.md).
+database, queue, deployment topology, repository split, or model provider.
+Those durable choices MUST be recorded in
+[architecture decision records](../decisions/README.md). ADR-0001 selects the
+control-plane language and cross-project reuse policy.
 
 The [product definition](../product/product-definition.md) governs product
 behavior and safety. The [implementation milestones](../roadmap/milestones.md)
@@ -194,6 +199,13 @@ NOT parse raw k6 output, duplicate performance statistics, create or approve
 baselines, or silently edit performance workloads. Perfeng MUST NOT be required
 to understand every functional test family to fulfill a performance request.
 
+Argus MUST NOT import or copy Perfeng control-plane internals, share private
+tables, or depend on Perfeng deployment layout. Reuse begins with published
+contracts, conformance fixtures, and proven design approaches. A shared library
+or service requires the semantic, ownership, compatibility, and operational
+evidence defined by
+[ADR-0001](../decisions/0001-use-go-and-evidence-based-cross-project-reuse.md).
+
 ## External adapters
 
 Adapters MAY exist in this repository initially and split only when independent
@@ -232,12 +244,13 @@ diagnosis without leaking provider types into the core.
 
 ## Deliberately deferred decisions
 
-The proposal contained useful candidates, but the following are not decisions
+The control-plane language and cross-project reuse boundary are no longer
+deferred: ADR-0001 selects Go and an evidence-based extraction policy. The
+proposal contained other useful candidates, but the following are not decisions
 until their ADR or implementation milestone is accepted:
 
 | Decision | Candidate direction | Authority |
 |:--|:--|:--|
-| Control-plane language and component boundary | Go control plane with a replaceable Python analysis boundary | M01 ADR |
 | Repository topology | Modular monorepo initially; split independently released contracts/intelligence/adapters only when needed | M01 ADR |
 | Contract representation | JSON Schema, OpenAPI, Protobuf, or a justified combination | M02 work and ADR if required |
 | Metadata persistence | PostgreSQL with relational impact edges before a graph database | M03 migration/tooling ADRs |
