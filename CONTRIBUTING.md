@@ -248,10 +248,11 @@ difference. A failing check MUST be reported as failed, even when the failure
 appears unrelated. If an unrelated pre-existing failure is verified, identify
 it separately with evidence.
 
-Until the executable scaffold defines real tooling, `make fmt`, `make check`,
-and `make test` are intentional fail-closed placeholders. Their non-zero result
-means “not configured,” not that validation passed. Documentation structure and
-link checks remain manual evidence until replaced by checked-in automation.
+The executable scaffold defines `make build`, `make fmt`, `make check`, and
+`make test` as the current required Go command surface. Documentation structure
+and link checks remain manual evidence until replaced by checked-in automation.
+Additional language workspaces MUST extend the aggregate repository commands
+instead of requiring contributors to discover hidden verification steps.
 
 ## Documentation
 

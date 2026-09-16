@@ -66,8 +66,9 @@ Work items:
   [ADR-0001](../decisions/0001-use-go-and-evidence-based-cross-project-reuse.md).
 - Record the initial repository topology in
   [ADR-0002](../decisions/0002-keep-argus-in-a-single-product-repository.md).
-- Scaffold the Go module and a minimal control-plane command with graceful
-  startup and shutdown.
+- Scaffold the [Go module](../../go.mod) and a minimal
+  [control-plane command](../../cmd/control-plane/main.go) with graceful startup
+  and shutdown.
 - Add pinned formatting, linting, static analysis, test, race, and vulnerability
   checks.
 - Add a cross-platform CI workflow that runs the same checked-in commands.
