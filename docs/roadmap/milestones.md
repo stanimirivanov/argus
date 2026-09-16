@@ -34,6 +34,8 @@
 Work items:
 
 - Establish the contributor and engineering harness.
+- Harden the harness for autonomous contributors and add baseline open-source
+  governance.
 - Import the product proposal and split product, architecture, and roadmap
   sources of truth.
 - Record the control-plane language and component-boundary ADR.

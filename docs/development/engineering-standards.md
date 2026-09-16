@@ -16,16 +16,26 @@
 - Pin tools and dependencies in repository configuration and run the same checks
   locally and in CI.
 
+## Policy strength
+
+Normative terms use the meanings defined in
+[CONTRIBUTING.md](../../CONTRIBUTING.md#policy-language-and-sources-of-truth).
+MUST and MUST NOT are reviewable requirements; SHOULD and SHOULD NOT are strong
+defaults that require a recorded reason to deviate; MAY is optional. Other
+imperative or advisory wording explains recommended design practice and becomes
+mandatory only when an issue, ADR, or language-specific checked-in tool makes it
+an explicit requirement.
+
 ## Purpose and applicability
 
 These standards apply to production code, tests, scripts, generated bindings,
 and operational tooling. They intentionally avoid project-specific domain
-rules and exact tool versions. A repository may add stricter local rules but
-must not silently weaken these principles.
+rules and exact tool versions. A repository MAY add stricter local rules but
+MUST NOT silently weaken an explicit requirement.
 
-The goal is maintainable correctness, not ceremonial compliance. A deviation is
-acceptable when its trade-off is explicit, tested, and recorded in an ADR when
-it affects more than a local implementation.
+The goal is maintainable correctness, not ceremonial compliance. A deviation
+from a strong default MAY be accepted when its trade-off is explicit and tested;
+it MUST be recorded in an ADR when it affects more than a local implementation.
 
 ## Architecture
 

@@ -14,7 +14,10 @@ not been scaffolded yet.
 - [SQL migration criteria](docs/development/sql-migrations.md)
 - [Architecture decisions](docs/decisions/README.md)
 - [Implementation milestones](docs/roadmap/milestones.md)
+- [Security policy](SECURITY.md)
+- [Code of conduct](CODE_OF_CONDUCT.md)
 
 Exact build, test, and local environment commands will be added with the first
-control-plane scaffold. Until then, documentation and Markdown structure are
-the only project artifacts.
+control-plane scaffold. Until then, `make fmt`, `make check`, and `make test`
+are fail-closed placeholders: they explain that executable verification is not
+configured and exit non-zero. Do not report that result as a passing check.

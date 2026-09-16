@@ -12,6 +12,16 @@
 - Verify the complete chain from an empty database and from every supported
   released schema.
 
+## Policy strength
+
+Normative terms use the meanings defined in
+[CONTRIBUTING.md](../../CONTRIBUTING.md#policy-language-and-sources-of-truth).
+MUST and MUST NOT are reviewable requirements; SHOULD and SHOULD NOT are strong
+defaults that require a recorded reason to deviate; MAY is optional. Other
+wording provides design and review guidance. The checks under
+[Required verification](#required-verification) are mandatory as specified in
+that section.
+
 ## Ownership and tooling
 
 PostgreSQL migration files own production schema evolution. Application
@@ -23,6 +33,15 @@ migration. Pin its version and run the same validation in development and CI.
 Use versioned SQL migrations with UTC timestamp identifiers and descriptive
 lower_snake_case names in the exact syntax required by that runner. Timestamp
 versions avoid collisions across concurrent branches.
+
+Immediately before creating a migration, refresh the branch as the current
+workflow allows and inspect the migration directory and runner history. Generate
+the UTC timestamp from that fresh state; do not copy a timestamp from an example
+or stale plan. If concurrent work still produces a duplicate version, rebase or
+otherwise refresh, assign the later unshared migration a new timestamp, and
+update references and checksums. Do not combine unrelated migrations or force a
+numbering conflict through merge resolution. Once a migration reaches a shared
+persistent environment, the immutability rule below takes precedence.
 
 Never edit, rename, reorder, or delete a versioned migration after it reaches a
 persistent shared environment. Correct it with a new forward migration.
@@ -165,7 +184,10 @@ tested or explicitly unsupported according to repository policy.
 
 ## Required verification
 
-Every schema change:
+Every schema change MUST satisfy all applicable checks below. A check that
+cannot run follows the constrained-environment protocol in
+[CONTRIBUTING.md](../../CONTRIBUTING.md#verification-and-constrained-environments)
+and MUST NOT be reported as passed.
 
 - applies the complete migration chain to an empty database on the supported
   PostgreSQL version;

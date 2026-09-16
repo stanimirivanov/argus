@@ -18,7 +18,8 @@ Describe the problem and observable result.
 
 ## Design decisions
 
-- Important choices, constraints, compatibility effects, and ADR links.
+- Important choices, assumptions, constraints, compatibility effects, and ADR
+  links.
 
 ## Acceptance criteria
 
