@@ -34,10 +34,13 @@ not silently create another level of normative strength.
 |:--|:--|
 | Contributor workflow, issue timing, escalation, and completion | This document |
 | Concise contributor and agent entry point | [AGENTS.md](AGENTS.md) |
+| Product scope, taxonomy, decision outcomes, and safety | [docs/product/product-definition.md](docs/product/product-definition.md) |
+| Conceptual architecture and system boundaries | [docs/architecture/overview.md](docs/architecture/overview.md) |
 | Engineering and language standards | [docs/development/engineering-standards.md](docs/development/engineering-standards.md) |
 | PostgreSQL schema and migration rules | [docs/development/sql-migrations.md](docs/development/sql-migrations.md) |
 | Architecture decisions | [docs/decisions](docs/decisions/README.md) |
 | Milestones and planned work | [docs/roadmap/milestones.md](docs/roadmap/milestones.md) |
+| Research and market evidence | [docs/research/landscape.md](docs/research/landscape.md) |
 | Exact local and CI commands | Root README and checked-in tool configuration |
 
 When sources conflict, the narrower source governs its stated concern. An

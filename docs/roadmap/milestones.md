@@ -27,6 +27,30 @@
 | M09 - Perfeng integration | Request and consume trustworthy performance evidence without duplicating Perfeng. |
 | M10 - Production readiness | Operate Argus securely, observably, recoverably, and at scale. |
 
+## Sequencing and promotion
+
+This document is the canonical delivery sequence. The
+[product definition](../product/product-definition.md) owns scope and safety;
+the [architecture overview](../architecture/overview.md) owns logical
+boundaries. GitHub owns live milestone and issue state.
+
+The proposal's calendar phases are represented as outcome milestones:
+
+| Product stage | Milestones | Promotion evidence |
+|:--|:--|:--|
+| Engineering and identity foundation | M01–M03 | Reproducible build, versioned contracts, stable identities, and a queryable design-partner catalog |
+| Deterministic functional API selection | M04–M05 | Explainable change impact, stable test discovery, shadow/full-run comparison, and published misses |
+| Validated functional API adaptation | M06 | Original failure, minimal repair, repaired success, negative control, and review evidence |
+| UI intelligence | M07 | Reliable UI identity/mapping and measured locator-repair precision without assertion weakening |
+| Predictive optimization | M08 | Chronological replay and shadow mode beat baselines within an owner-approved missed-failure envelope |
+| Performance evidence | M09 | Versioned Argus–Perfeng flow preserves authority, identity, quality, and provenance |
+| Production operation | M10 | Security, reliability, recovery, observability, cost, and ownership controls are verified |
+
+Completing implementation tasks is necessary but not sufficient for promotion.
+Autonomy MUST advance independently per repository, test family, and adaptation
+class. When evidence is below the agreed gate, the capability remains in
+recommendation or shadow mode and the milestone records that limitation.
+
 ## M01 - Engineering foundation
 
 **Message:** Make every change repeatable, reviewable, and safe.
@@ -251,6 +275,8 @@ recovery, cost, and ownership controls.
 - GitHub owns live issue state, assignee, labels, and milestone assignment.
 - This document owns intended sequencing and scope boundaries until an issue is
   created.
+- Promotion targets are set from design-partner baselines; research or vendor
+  results MUST NOT be copied as local acceptance thresholds.
 - Every issue names one exact milestone.
 - Move an issue between milestones only when its outcome dependency changes;
   update this roadmap in the same planning change.
