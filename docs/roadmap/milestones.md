@@ -72,7 +72,8 @@ Work items:
 - Add pinned formatting, linting, static analysis, test, race, and vulnerability
   checks through the root [Makefile](../../Makefile) and
   [golangci-lint configuration](../../.golangci.yml).
-- Add a cross-platform CI workflow that runs the same checked-in commands.
+- Add a cross-platform [CI workflow](../../.github/workflows/validate.yml) that
+  runs the same checked-in commands.
 - Add the developer quickstart and supported local environment contract.
 - Establish dependency update, licensing, and security-reporting policy.
 
