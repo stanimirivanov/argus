@@ -248,11 +248,20 @@ difference. A failing check MUST be reported as failed, even when the failure
 appears unrelated. If an unrelated pre-existing failure is verified, identify
 it separately with evidence.
 
-The executable scaffold defines `make build`, `make fmt`, `make check`, and
-`make test` as the current required Go command surface. Documentation structure
-and link checks remain manual evidence until replaced by checked-in automation.
-Additional language workspaces MUST extend the aggregate repository commands
-instead of requiring contributors to discover hidden verification steps.
+Run `make fmt` before final verification and review its diff. `make validate`
+is the required non-mutating Go acceptance suite; it builds the command, checks
+formatting, runs pinned lint and static analysis, verifies module state, runs
+ordinary and race-enabled tests, and scans reachable vulnerabilities. A
+narrower target MAY provide interim feedback but MUST NOT be reported as the
+complete suite.
+
+The pinned tools and exact targets are defined in the root Makefile. Their first
+run and the vulnerability database may require network access. When that access
+is unavailable, follow the constrained-environment protocol above and report
+the affected target as not run rather than weakening or silently omitting it.
+Documentation structure and link checks remain manual evidence until replaced
+by checked-in automation. Additional language workspaces MUST extend
+`make validate` instead of requiring contributors to discover hidden checks.
 
 ## Documentation
 

@@ -1,0 +1,60 @@
+version: "2"
+
+run:
+  timeout: 5m
+  modules-download-mode: readonly
+
+linters:
+  default: none
+  enable:
+    - errcheck
+    - errorlint
+    - gocognit
+    - govet
+    - ineffassign
+    - nolintlint
+    - revive
+    - staticcheck
+    - unused
+    - wsl_v5
+  settings:
+    staticcheck:
+      checks: [all, "-QF*"]
+    errcheck:
+      check-blank: true
+    revive:
+      rules:
+        - name: context-as-argument
+        - name: error-naming
+        - name: error-strings
+        - name: error-return
+        - name: receiver-naming
+        - name: exported
+        - name: package-comments
+    wsl_v5:
+      default: none
+      enable:
+        - branch
+        - err
+        - leading-whitespace
+        - return
+        - trailing-whitespace
+      branch-max-lines: 4
+      allow-first-in-block: true
+      allow-whole-block: false
+    gocognit:
+      min-complexity: 20
+  exclusions:
+    presets: []
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
+severity:
+  default: warning

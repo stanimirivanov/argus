@@ -68,6 +68,7 @@ func waitForLogEntry(t *testing.T, entries <-chan []byte) map[string]any {
 		if err := json.Unmarshal(entry, &decoded); err != nil {
 			t.Fatalf("decode structured log: %v", err)
 		}
+
 		return decoded
 	case <-time.After(testTimeout):
 		t.Fatal("timed out waiting for lifecycle log")

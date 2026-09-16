@@ -70,7 +70,8 @@ Work items:
   [control-plane command](../../cmd/control-plane/main.go) with graceful startup
   and shutdown.
 - Add pinned formatting, linting, static analysis, test, race, and vulnerability
-  checks.
+  checks through the root [Makefile](../../Makefile) and
+  [golangci-lint configuration](../../.golangci.yml).
 - Add a cross-platform CI workflow that runs the same checked-in commands.
 - Add the developer quickstart and supported local environment contract.
 - Establish dependency update, licensing, and security-reporting policy.
