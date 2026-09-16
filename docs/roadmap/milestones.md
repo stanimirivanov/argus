@@ -74,7 +74,8 @@ Work items:
   [golangci-lint configuration](../../.golangci.yml).
 - Add a cross-platform [CI workflow](../../.github/workflows/validate.yml) that
   runs the same checked-in commands.
-- Add the developer quickstart and supported local environment contract.
+- Add the [developer quickstart and supported local environment
+  contract](../development/developer-quickstart.md).
 - Establish dependency update, licensing, and security-reporting policy.
 
 Completion means a new contributor can build, verify, and understand the empty
