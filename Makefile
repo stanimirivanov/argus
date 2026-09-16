@@ -1,9 +1,12 @@
 GOLANGCI_LINT_VERSION := v2.13.2
 GOVULNCHECK_VERSION := v1.7.0
+ACTIONLINT_VERSION := v1.7.12
 GOLANGCI_LINT_MODULE := github.com/golangci/golangci-lint/v2/cmd/golangci-lint
 GOVULNCHECK_MODULE := golang.org/x/vuln/cmd/govulncheck
+ACTIONLINT_MODULE := github.com/rhysd/actionlint/cmd/actionlint
 GOLANGCI_LINT := go run $(GOLANGCI_LINT_MODULE)@$(GOLANGCI_LINT_VERSION)
 GOVULNCHECK := go run $(GOVULNCHECK_MODULE)@$(GOVULNCHECK_VERSION)
+ACTIONLINT := go run $(ACTIONLINT_MODULE)@$(ACTIONLINT_VERSION)
 
 .PHONY: help build fmt fmt-check check test race vuln validate
 
@@ -30,6 +33,7 @@ fmt-check:
 check: fmt-check
 	$(GOLANGCI_LINT) config verify
 	$(GOLANGCI_LINT) run ./...
+	$(ACTIONLINT)
 	go mod tidy -diff
 	go mod verify
 

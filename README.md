@@ -69,10 +69,25 @@ binaries:
 ~~~sh
 go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.13.2
 go run golang.org/x/vuln/cmd/govulncheck@v1.7.0
+go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
 ~~~
 
 The build writes the platform-native executable under the ignored `bin`
 directory. `make fmt` updates Go source formatting; review its diff before
-committing. `make check` includes `govet` and `staticcheck`, so the test targets
-disable the duplicate implicit `go test` vet pass. CI integration is a separate
-M01 work item and will call the same checked-in targets.
+committing. `make check` includes `govet`, `staticcheck`, and GitHub Actions
+workflow validation, so the test targets disable the duplicate implicit
+`go test` vet pass.
+
+## Continuous integration
+
+The [validation workflow](.github/workflows/validate.yml) runs `make validate`
+on Ubuntu 24.04 and Windows Server 2025 for every pull request and every push to
+`main`; it can also be run manually. The Windows job installs the pinned GNU
+Make 4.4.1 package because GNU Make is not part of the hosted Windows image.
+Both jobs read the exact Go version from `go.mod` and execute the repository's
+same checked-in, non-mutating acceptance suite.
+
+The workflow grants only read access to repository contents and does not retain
+checkout credentials. Its GitHub-authored actions are pinned to immutable
+release commits. CI requires network access for the Go toolchain, pinned quality
+tools, vulnerability database, and the Windows GNU Make package.
