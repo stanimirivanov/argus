@@ -1,0 +1,12 @@
+# Default ownership. Owners must have write access for GitHub to request review.
+* @stanimirivanov
+
+# Governance and compatibility-sensitive policy.
+/AGENTS.md @stanimirivanov
+/CONTRIBUTING.md @stanimirivanov
+/SECURITY.md @stanimirivanov
+/CODE_OF_CONDUCT.md @stanimirivanov
+/.github/ @stanimirivanov
+/docs/decisions/ @stanimirivanov
+/docs/development/ @stanimirivanov
+/docs/roadmap/ @stanimirivanov

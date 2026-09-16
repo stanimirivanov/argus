@@ -9,6 +9,8 @@ Problem and resulting behavior:
 
 Boundaries and deliberate exclusions:
 
+Assumptions and unresolved questions:
+
 ## Design, compatibility, and operations
 
 - ADRs:
@@ -27,6 +29,8 @@ Boundaries and deliberate exclusions:
 - [ ] Vulnerability/dependency checks
 
 Commands and evidence:
+
+Checks not run, blocking conditions, and residual risk:
 
 ## Limitations and review
 
