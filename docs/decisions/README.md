@@ -97,4 +97,6 @@ How will the assumptions and consequences be verified?
 
 ## Index
 
-No ADRs have been accepted yet.
+| ADR | Decision | Status | Date |
+|:--|:--|:--|:--|
+| [ADR-0001](0001-use-go-and-evidence-based-cross-project-reuse.md) | Use Go and evidence-based cross-project reuse | Accepted | 2026-09-16 |

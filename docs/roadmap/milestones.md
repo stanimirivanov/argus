@@ -62,7 +62,8 @@ Work items:
   governance.
 - Import the product proposal and split product, architecture, and roadmap
   sources of truth.
-- Record the control-plane language and component-boundary ADR.
+- Record the control-plane language and cross-project reuse boundary in
+  [ADR-0001](../decisions/0001-use-go-and-evidence-based-cross-project-reuse.md).
 - Record the initial repository topology ADR.
 - Scaffold the Go module and a minimal control-plane command with graceful
   startup and shutdown.
