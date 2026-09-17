@@ -7,6 +7,8 @@
   input; do not edit it by hand.
 - The first real contract is a repository descriptor ingested by the Go catalog
   at a separately verified immutable revision.
+- The test-catalog page contract exposes stable test identities and capability
+  mappings through deterministic keyset pagination.
 - Structural validity and domain validity are distinct and share one fixture
   corpus.
 - Generate language stubs only when a real producer or consumer needs them.
@@ -32,18 +34,22 @@ actually fetched.
 | Path | Responsibility |
 |:--|:--|
 | `source/repository-descriptor-v1.ts` | Authoritative Effect Schema and inferred TypeScript type. |
+| `source/test-catalog-page-v1.ts` | Authoritative versioned test-catalog result contract. |
 | `source/repository-descriptor-v1.test.ts` | Structural fixture tests through Effect Schema. |
+| `source/test-catalog-page-v1.test.ts` | Test-catalog result compatibility tests through Effect Schema. |
 | `scripts/generate.ts` | Deterministic JSON Schema compiler and drift check. |
-| `generated/repository-descriptor/v1/` | Checked-in JSON Schema Draft 2020-12 artifact. |
+| `generated/` | Checked-in JSON Schema Draft 2020-12 artifacts. |
 | `fixtures/repository-descriptor/v1/manifest.json` | Shared structural and domain expectations. |
 | `fixtures/repository-descriptor/v1/` | Positive and negative compatibility documents. |
+| `fixtures/test-catalog-page/v1/` | Positive and negative result-contract documents. |
 | `repository_descriptor.go` | Go schema-validation boundary and transport DTO. |
+| `test_catalog_page.go` | Go test-catalog transport DTO and generated-schema validation boundary. |
 | `../internal/catalog/descriptor/` | Repository-descriptor-to-domain conversion and semantic validation. |
 | `../internal/catalog/` | Catalog domain vocabulary, use cases, errors, and persistence port. |
 
 Only the Effect source is edited to change wire structure. `make
-generate-contracts` updates the generated JSON Schema; `make check` fails if
-the checked-in artifact is stale.
+generate-contracts` updates the generated JSON Schemas; `make check` fails if
+the checked-in artifacts are stale.
 
 ## Identity and scope
 
@@ -71,6 +77,32 @@ The family vocabulary is descriptive, not an implementation claim:
 | Security, resilience, other | Yes | Policy-dependent later | No committed scope |
 
 Cataloging a family therefore does not authorize Argus to execute or modify it.
+
+## Test catalog query contract
+
+`argus.dev/test-catalog-page/v1` returns tests from one immutable repository
+descriptor snapshot. Stable test identity is the combination of test repository
+provider identity, suite key, and test key. Owner, repository name, test name,
+family, adapter, and capability names are descriptive metadata from that
+snapshot rather than identity.
+
+Pages use the following canonical ordering:
+
+1. test repository provider;
+2. test repository host;
+3. provider repository ID;
+4. suite key; and
+5. test key.
+
+Text ordering uses PostgreSQL's `C` collation so results do not depend on the
+database cluster locale. A non-null `nextCursor` is an opaque continuation
+token bound to the source snapshot, capability filter, and cursor contract
+version. Consumers must not decode, modify, persist as a permanent identifier,
+or reuse it with a different query.
+
+An empty `items` array is a successful result when the snapshot exists but no
+test matches the optional capability filter. A missing snapshot remains a
+distinct not-found outcome before a page document is produced.
 
 ## Structural and domain validation
 

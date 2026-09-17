@@ -48,6 +48,8 @@ func run(ctx context.Context, arguments []string, databaseURL string, output io.
 		return runImport(ctx, arguments[1:], databaseURL, output)
 	case "get":
 		return runGet(ctx, arguments[1:], databaseURL, output)
+	case "list-tests":
+		return runListTests(ctx, arguments[1:], databaseURL, output)
 	default:
 		return errors.New(usageText)
 	}
@@ -141,6 +143,66 @@ func runGet(ctx context.Context, arguments []string, databaseURL string, output 
 	}
 
 	return encodeJSON(output, newSnapshotOutput(snapshot))
+}
+
+func runListTests(ctx context.Context, arguments []string, databaseURL string, output io.Writer) error {
+	flags := flag.NewFlagSet("catalog list-tests", flag.ContinueOnError)
+	flags.SetOutput(io.Discard)
+	provider := flags.String("provider", "", "source repository provider")
+	host := flags.String("host", "", "source repository host")
+	repositoryID := flags.String("repository-id", "", "opaque source repository identity")
+	algorithm := flags.String("algorithm", string(catalog.RevisionGitSHA1), "revision algorithm")
+	digest := flags.String("revision", "", "immutable source revision digest")
+	apiVersion := flags.String("api-version", contracts.RepositoryDescriptorV1APIVersion, "descriptor API version")
+	capability := flags.String("capability", "", "optional source capability key")
+	pageSize := flags.Int("page-size", catalog.DefaultTestCatalogPageSize, "maximum entries in this page")
+	cursor := flags.String("cursor", "", "opaque continuation cursor")
+	if err := flags.Parse(arguments); err != nil {
+		return fmt.Errorf("catalog list-tests: %w", err)
+	}
+	if *provider == "" || *host == "" || *repositoryID == "" || *digest == "" || flags.NArg() != 0 {
+		return errors.New("usage: catalog list-tests -provider <provider> -host <host> -repository-id <id> -revision <digest> [options]")
+	}
+	revision, err := catalog.NewRevision(catalog.RevisionAlgorithm(*algorithm), *digest)
+	if err != nil {
+		return fmt.Errorf("validate revision: %w", err)
+	}
+	query := catalog.TestCatalogQuery{
+		Snapshot: catalog.SnapshotKey{
+			Repository: catalog.RepositoryIdentity{
+				Provider:             catalog.Provider(*provider),
+				Host:                 *host,
+				ProviderRepositoryID: *repositoryID,
+			},
+			Revision:   revision,
+			APIVersion: *apiVersion,
+		},
+		CapabilityKey: *capability,
+		PageSize:      *pageSize,
+		Cursor:        *cursor,
+	}
+	if err := catalog.ValidateTestCatalogQuery(query); err != nil {
+		return fmt.Errorf("validate catalog test query: %w", err)
+	}
+
+	store, err := openStore(ctx, databaseURL)
+	if err != nil {
+		return err
+	}
+	defer store.Close()
+
+	service := catalog.NewTestCatalogService(store)
+	page, err := service.ListTests(ctx, query)
+	if err != nil {
+		return fmt.Errorf("list catalog tests: %w", err)
+	}
+
+	result := newTestCatalogPageOutput(page)
+	if err := contracts.ValidateTestCatalogPageV1(result); err != nil {
+		return fmt.Errorf("validate catalog test page output: %w", err)
+	}
+
+	return encodeJSON(output, result)
 }
 
 func openStore(ctx context.Context, databaseURL string) (*postgres.Store, error) {

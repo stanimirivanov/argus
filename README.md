@@ -6,9 +6,11 @@ coverage, and produces evidence-backed maintenance proposals.
 
 The repository has completed its engineering foundation and now includes a
 real repository-descriptor ingestion boundary and its first durable catalog
-slice. Effect Schema authors the wire contract, generated JSON Schema validates
-it, Go converts it into catalog domain state at a verified immutable revision,
-and PostgreSQL stores and reconstructs immutable snapshots.
+slice. Effect Schema authors the wire contracts, generated JSON Schemas validate
+them, Go converts repository input into catalog state at a verified immutable revision,
+and PostgreSQL stores and reconstructs immutable snapshots. A versioned catalog
+query now enumerates stable tests with capability filtering and deterministic
+keyset pagination.
 
 ## Start here
 
@@ -97,6 +99,30 @@ go run ./cmd/catalog import \
 host, opaque provider ID, revision, and descriptor API version. See the
 [PostgreSQL guide](docs/development/postgresql.md) for local setup, grants,
 idempotency, recovery, and complete command examples.
+
+## Query catalog tests
+
+List a bounded page of tests from one explicitly identified immutable snapshot:
+
+~~~sh
+go run ./cmd/catalog list-tests \
+  -provider github \
+  -host github.com \
+  -repository-id R_orders_source_01 \
+  -revision 0123456789abcdef0123456789abcdef01234567 \
+  -page-size 50
+~~~
+
+The command emits `argus.dev/test-catalog-page/v1`. Each item includes stable
+test repository, suite, and test keys together with display metadata and
+capability mappings. Pass `-capability create-order` to restrict the page to
+tests explicitly mapped to that source capability. If `nextCursor` is not
+`null`, pass its value unchanged through `-cursor` to read the next page.
+
+Cursors are opaque, versioned, and bound to the snapshot and capability filter.
+A cursor cannot be reused for a different query. Page sizes range from 1 to
+200 and may change between pages. The command never resolves an implicit
+“latest” snapshot.
 
 ## Build and verify
 

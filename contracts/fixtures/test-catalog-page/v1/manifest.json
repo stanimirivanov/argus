@@ -1,0 +1,16 @@
+{
+  "fixtures": [
+    {
+      "path": "fixtures/test-catalog-page/v1/valid/page.json",
+      "schemaValid": true
+    },
+    {
+      "path": "fixtures/test-catalog-page/v1/invalid/wrong-api-version.json",
+      "schemaValid": false
+    },
+    {
+      "path": "fixtures/test-catalog-page/v1/invalid/invalid-cursor.json",
+      "schemaValid": false
+    }
+  ]
+}

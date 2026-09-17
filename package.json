@@ -13,7 +13,7 @@
     "format": "biome check --write contracts/source contracts/scripts contracts/fixtures package.json tsconfig.json biome.json",
     "format:check": "biome check contracts/source contracts/scripts contracts/fixtures package.json tsconfig.json biome.json",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test contracts/source/repository-descriptor-v1.test.ts",
+    "test": "tsx --test contracts/source/repository-descriptor-v1.test.ts contracts/source/test-catalog-page-v1.test.ts",
     "licenses:check": "tsx contracts/scripts/check-licenses.ts"
   },
   "dependencies": {
