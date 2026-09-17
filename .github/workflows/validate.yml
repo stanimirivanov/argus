@@ -72,3 +72,46 @@ jobs:
 
       - name: Run acceptance suite
         run: make validate
+
+  postgres:
+    name: PostgreSQL integration
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    env:
+      GOTOOLCHAIN: local
+      ARGUS_TEST_POSTGRES_URL: postgres://postgres:argus_test@127.0.0.1:5432/postgres?sslmode=disable
+
+    services:
+      postgres:
+        image: postgres:17.11
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: argus_test
+          POSTGRES_USER: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          check-latest: false
+          cache: true
+          cache-dependency-path: |
+            go.mod
+            go.sum
+
+      - name: Run PostgreSQL integration suite
+        run: make db-validate

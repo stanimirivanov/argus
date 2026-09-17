@@ -49,6 +49,11 @@
       "path": "fixtures/repository-descriptor/v1/invalid/duplicate-test.json",
       "schemaValid": true,
       "domainValid": false
+    },
+    {
+      "path": "fixtures/repository-descriptor/v1/invalid/conflicting-repository-coordinates.json",
+      "schemaValid": true,
+      "domainValid": false
     }
   ]
 }

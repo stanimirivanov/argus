@@ -167,6 +167,12 @@ Acceptance ingredients:
 - Expose catalog read APIs with deterministic pagination and versioning.
 - Detect and report conflicting or stale mappings without overwriting them.
 
+The first delivered slice records the PostgreSQL and migration decision,
+creates stable repository/component/capability/suite/test storage, and proves
+explicit migration plus immutable descriptor snapshot write/read behavior.
+Impact-edge contracts and storage, conflict/staleness reporting, and paginated
+catalog APIs remain subsequent M03 slices.
+
 Completion means one source repository and one separate functional-test
 repository are represented with stable, queryable identities.
 

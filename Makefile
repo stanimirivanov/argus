@@ -30,7 +30,7 @@ TOOL_LICENSE_EXCEPTIONS := \
 	--ignore github.com/leonklingele/grouper \
 	--ignore github.com/xen0n/gosmopolitan
 
-.PHONY: help doctor build generate-contracts fmt fmt-check check test race vuln license validate
+.PHONY: help doctor build generate-contracts fmt fmt-check check test race db-validate vuln license validate
 
 help:
 	@echo Argus engineering-foundation command surface
@@ -42,6 +42,7 @@ help:
 	@echo   make check  Run format, lint, static-analysis, and module checks
 	@echo   make test   Run ordinary tests without cached results
 	@echo   make race   Run all tests with the race detector
+	@echo   make db-validate  Run PostgreSQL integration tests against a disposable local server
 	@echo   make vuln   Scan reachable dependencies for known vulnerabilities
 	@echo   make license  Enforce runtime and development-tool license policy
 	@echo   make validate  Run all non-mutating acceptance checks
@@ -85,6 +86,9 @@ test:
 
 race:
 	go test -vet=off -race -count=1 ./...
+
+db-validate:
+	go test -vet=off -tags=integration -race -count=1 -timeout=5m ./internal/catalog/postgres
 
 vuln:
 	$(GOVULNCHECK) ./...
