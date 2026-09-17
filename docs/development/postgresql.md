@@ -21,6 +21,13 @@ backups, recovery, high availability, monitoring, and major-version lifecycle.
 PostgreSQL 17 is the supported major for this slice; CI uses the exact 17.11
 container image.
 
+The Go adapter exposes two deliberately separate capabilities. `postgres.Store`
+implements the runtime `catalog.SnapshotStore` port and owns bounded read/write
+connections; opening it never changes schema state. `postgres.Migrator` owns a
+single privileged connection pool and can only apply the embedded migration
+chain. Commands compose one capability or the other, so a runtime dependency
+cannot acquire DDL authority through the same object.
+
 [ADR-0004](../decisions/0004-use-postgresql-and-embedded-forward-migrations.md)
 records the database, migration, transaction, identity, and Perfeng-reuse
 decisions. The general migration policy remains

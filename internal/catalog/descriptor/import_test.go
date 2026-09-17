@@ -1,4 +1,4 @@
-package catalog_test
+package descriptor_test
 
 import (
 	"encoding/json"
@@ -9,6 +9,7 @@ import (
 
 	"github.com/stanimirivanov/argus/contracts"
 	"github.com/stanimirivanov/argus/internal/catalog"
+	"github.com/stanimirivanov/argus/internal/catalog/descriptor"
 )
 
 const testSHA1 = "0123456789abcdef0123456789abcdef01234567"
@@ -26,8 +27,14 @@ type fixtureExpectation struct {
 func TestRepositoryDescriptorDomainCorpus(t *testing.T) {
 	t.Parallel()
 
-	manifestPath := filepath.Join("..", "..", "contracts", "fixtures", "repository-descriptor", "v1", "manifest.json")
-	manifestData, err := os.ReadFile(manifestPath)
+	contractsRoot := filepath.Join("..", "..", "..", "contracts")
+	manifestData, err := os.ReadFile(filepath.Join(
+		contractsRoot,
+		"fixtures",
+		"repository-descriptor",
+		"v1",
+		"manifest.json",
+	))
 	if err != nil {
 		t.Fatalf("read fixture manifest: %v", err)
 	}
@@ -42,7 +49,6 @@ func TestRepositoryDescriptorDomainCorpus(t *testing.T) {
 		t.Fatalf("create test revision: %v", err)
 	}
 
-	contractsRoot := filepath.Join("..", "..", "contracts")
 	for _, fixture := range manifest.Fixtures {
 		if !fixture.SchemaValid {
 			continue
@@ -75,7 +81,7 @@ func assertDomainFixture(
 		t.Fatalf("decode schema-valid descriptor: %v", err)
 	}
 
-	snapshot, importErr := catalog.ImportRepositoryDescriptor(document, revision)
+	snapshot, importErr := descriptor.Import(document, revision)
 	if fixture.DomainValid && importErr != nil {
 		t.Fatalf("expected domain-valid descriptor: %v", importErr)
 	}
@@ -87,35 +93,11 @@ func assertDomainFixture(
 	}
 }
 
-func TestNewRevisionRejectsMalformedDigests(t *testing.T) {
-	t.Parallel()
-
-	for _, test := range []struct {
-		name      string
-		algorithm catalog.RevisionAlgorithm
-		digest    string
-	}{
-		{name: "unknown algorithm", algorithm: "md5", digest: "0123456789abcdef0123456789abcdef"},
-		{name: "wrong length", algorithm: catalog.RevisionGitSHA1, digest: "0123"},
-		{name: "not hexadecimal", algorithm: catalog.RevisionGitSHA1, digest: "zz23456789abcdef0123456789abcdef01234567"},
-	} {
-		test := test
-		t.Run(test.name, func(t *testing.T) {
-			t.Parallel()
-
-			_, err := catalog.NewRevision(test.algorithm, test.digest)
-			if err == nil {
-				t.Fatal("expected invalid revision to be rejected")
-			}
-		})
-	}
-}
-
 func TestValidationErrorSupportsErrorsAs(t *testing.T) {
 	t.Parallel()
 
 	data, err := os.ReadFile(filepath.Join(
-		"..", "..", "contracts", "fixtures", "repository-descriptor", "v1", "invalid", "duplicate-capability.json",
+		"..", "..", "..", "contracts", "fixtures", "repository-descriptor", "v1", "invalid", "duplicate-capability.json",
 	))
 	if err != nil {
 		t.Fatalf("read fixture: %v", err)
@@ -129,8 +111,8 @@ func TestValidationErrorSupportsErrorsAs(t *testing.T) {
 		t.Fatalf("create revision: %v", err)
 	}
 
-	_, err = catalog.ImportRepositoryDescriptor(document, revision)
-	var validationError *catalog.ValidationError
+	_, err = descriptor.Import(document, revision)
+	var validationError *descriptor.ValidationError
 	if !errors.As(err, &validationError) {
 		t.Fatalf("error %v is not a ValidationError", err)
 	}
@@ -143,7 +125,7 @@ func TestSuiteKeyIsScopedToTestRepository(t *testing.T) {
 	t.Parallel()
 
 	data, err := os.ReadFile(filepath.Join(
-		"..", "..", "contracts", "fixtures", "repository-descriptor", "v1", "invalid", "duplicate-test-suite.json",
+		"..", "..", "..", "contracts", "fixtures", "repository-descriptor", "v1", "invalid", "duplicate-test-suite.json",
 	))
 	if err != nil {
 		t.Fatalf("read fixture: %v", err)
@@ -158,7 +140,7 @@ func TestSuiteKeyIsScopedToTestRepository(t *testing.T) {
 		t.Fatalf("create revision: %v", err)
 	}
 
-	if _, err := catalog.ImportRepositoryDescriptor(document, revision); err != nil {
+	if _, err := descriptor.Import(document, revision); err != nil {
 		t.Fatalf("same suite key in another repository should be valid: %v", err)
 	}
 }

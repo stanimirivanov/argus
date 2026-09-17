@@ -23,6 +23,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/stanimirivanov/argus/contracts"
 	"github.com/stanimirivanov/argus/internal/catalog"
+	"github.com/stanimirivanov/argus/internal/catalog/descriptor"
 )
 
 const testDatabaseURLEnvironment = "ARGUS_TEST_POSTGRES_URL"
@@ -62,17 +63,17 @@ func TestDatabaseURLRejectsNonURLConfiguration(t *testing.T) {
 
 func TestMigrateEmptyDatabaseAndRepeat(t *testing.T) {
 	databaseURL := newTestDatabase(t)
-	store := openTestStore(t, databaseURL)
+	migrator := openTestMigrator(t, databaseURL)
 
-	if err := store.Migrate(t.Context()); err != nil {
+	if err := migrator.Migrate(t.Context()); err != nil {
 		t.Fatalf("migrate empty database: %v", err)
 	}
-	if err := store.Migrate(t.Context()); err != nil {
+	if err := migrator.Migrate(t.Context()); err != nil {
 		t.Fatalf("repeat migration: %v", err)
 	}
 
 	var count int
-	if err := store.pool.QueryRow(
+	if err := migrator.pool.QueryRow(
 		t.Context(),
 		"SELECT count(*) FROM argus_catalog.schema_migrations",
 	).Scan(&count); err != nil {
@@ -85,20 +86,20 @@ func TestMigrateEmptyDatabaseAndRepeat(t *testing.T) {
 
 func TestConcurrentMigrationsSerialize(t *testing.T) {
 	databaseURL := newTestDatabase(t)
-	stores := []*Store{openTestStore(t, databaseURL), openTestStore(t, databaseURL)}
+	migrators := []*Migrator{openTestMigrator(t, databaseURL), openTestMigrator(t, databaseURL)}
 
-	errorsByStore := make([]error, len(stores))
+	errorsByMigrator := make([]error, len(migrators))
 	var waitGroup sync.WaitGroup
-	for index, store := range stores {
+	for index, migrator := range migrators {
 		waitGroup.Add(1)
 		go func() {
 			defer waitGroup.Done()
-			errorsByStore[index] = store.Migrate(t.Context())
+			errorsByMigrator[index] = migrator.Migrate(t.Context())
 		}()
 	}
 	waitGroup.Wait()
 
-	for index, err := range errorsByStore {
+	for index, err := range errorsByMigrator {
 		if err != nil {
 			t.Fatalf("concurrent migration %d: %v", index, err)
 		}
@@ -106,7 +107,9 @@ func TestConcurrentMigrationsSerialize(t *testing.T) {
 }
 
 func TestMigrationRejectsChangedChecksum(t *testing.T) {
-	store := migratedTestStore(t)
+	databaseURL := newTestDatabase(t)
+	migrator := migrateTestDatabase(t, databaseURL)
+	store := openTestStore(t, databaseURL)
 
 	if _, err := store.pool.Exec(t.Context(), `
 		UPDATE argus_catalog.schema_migrations
@@ -114,13 +117,15 @@ func TestMigrationRejectsChangedChecksum(t *testing.T) {
 	`, strings.Repeat("0", 64)); err != nil {
 		t.Fatalf("tamper migration checksum: %v", err)
 	}
-	if err := store.Migrate(t.Context()); !errors.Is(err, ErrMigrationDrift) {
+	if err := migrator.Migrate(t.Context()); !errors.Is(err, ErrMigrationDrift) {
 		t.Fatalf("migrate after checksum drift = %v, want ErrMigrationDrift", err)
 	}
 }
 
 func TestMigrationRejectsUnknownLedgerVersion(t *testing.T) {
-	store := migratedTestStore(t)
+	databaseURL := newTestDatabase(t)
+	migrator := migrateTestDatabase(t, databaseURL)
+	store := openTestStore(t, databaseURL)
 
 	if _, err := store.pool.Exec(t.Context(), `
 		INSERT INTO argus_catalog.schema_migrations (version, sha256)
@@ -128,14 +133,14 @@ func TestMigrationRejectsUnknownLedgerVersion(t *testing.T) {
 	`, "20260917052719_unknown.sql", strings.Repeat("0", 64)); err != nil {
 		t.Fatalf("insert unknown migration version: %v", err)
 	}
-	if err := store.Migrate(t.Context()); !errors.Is(err, ErrMigrationDrift) {
+	if err := migrator.Migrate(t.Context()); !errors.Is(err, ErrMigrationDrift) {
 		t.Fatalf("migrate with unknown ledger version = %v, want ErrMigrationDrift", err)
 	}
 }
 
 func TestMigrationChainRollsBackAtomically(t *testing.T) {
 	databaseURL := newTestDatabase(t)
-	store := openTestStore(t, databaseURL)
+	migrator := openTestMigrator(t, databaseURL)
 	firstMigration, err := fs.ReadFile(
 		embeddedMigrations,
 		"migrations/20260917052718_create_catalog.sql",
@@ -150,12 +155,12 @@ func TestMigrationChainRollsBackAtomically(t *testing.T) {
 		},
 	}
 
-	if err := migrate(t.Context(), store, migrationFS); err == nil {
+	if err := applyMigrationChain(t.Context(), migrator, migrationFS); err == nil {
 		t.Fatal("expected invalid migration chain to fail")
 	}
 
 	var schemaMissing bool
-	if err := store.pool.QueryRow(
+	if err := migrator.pool.QueryRow(
 		t.Context(),
 		"SELECT to_regnamespace('argus_catalog') IS NULL",
 	).Scan(&schemaMissing); err != nil {
@@ -168,12 +173,10 @@ func TestMigrationChainRollsBackAtomically(t *testing.T) {
 
 func TestSnapshotRoundTripRetryConflictAndRestart(t *testing.T) {
 	databaseURL := newTestDatabase(t)
+	migrateTestDatabase(t, databaseURL)
 	store := openTestStore(t, databaseURL)
-	if err := store.Migrate(t.Context()); err != nil {
-		t.Fatalf("migrate test database: %v", err)
-	}
 	snapshot := loadTestSnapshot(t)
-	if _, err := store.GetSnapshot(t.Context(), snapshot.Key()); !errors.Is(err, ErrNotFound) {
+	if _, err := store.GetSnapshot(t.Context(), snapshot.Key()); !errors.Is(err, catalog.ErrNotFound) {
 		t.Fatalf("get missing snapshot = %v, want ErrNotFound", err)
 	}
 
@@ -186,7 +189,7 @@ func TestSnapshotRoundTripRetryConflictAndRestart(t *testing.T) {
 		t.Fatalf("retry reordered snapshot: created=%t err=%v", created, err)
 	}
 
-	want := canonicalSnapshot(snapshot)
+	want := catalog.CanonicalSnapshot(snapshot)
 	got, err := store.GetSnapshot(t.Context(), snapshot.Key())
 	if err != nil {
 		t.Fatalf("get snapshot: %v", err)
@@ -197,12 +200,12 @@ func TestSnapshotRoundTripRetryConflictAndRestart(t *testing.T) {
 
 	conflict := cloneSnapshotForIntegration(snapshot)
 	conflict.Capabilities[0].Name = "Changed immutable content"
-	if _, err := store.SaveSnapshot(t.Context(), conflict); !errors.Is(err, ErrConflict) {
+	if _, err := store.SaveSnapshot(t.Context(), conflict); !errors.Is(err, catalog.ErrConflict) {
 		t.Fatalf("save conflicting snapshot = %v, want ErrConflict", err)
 	}
 
 	store.Close()
-	reopened, err := Open(t.Context(), databaseURL)
+	reopened, err := OpenStore(t.Context(), databaseURL)
 	if err != nil {
 		t.Fatalf("reopen catalog store: %v", err)
 	}
@@ -218,10 +221,8 @@ func TestSnapshotRoundTripRetryConflictAndRestart(t *testing.T) {
 
 func TestConcurrentSnapshotRetryCreatesOnce(t *testing.T) {
 	databaseURL := newTestDatabase(t)
+	migrateTestDatabase(t, databaseURL)
 	stores := []*Store{openTestStore(t, databaseURL), openTestStore(t, databaseURL)}
-	if err := stores[0].Migrate(t.Context()); err != nil {
-		t.Fatalf("migrate test database: %v", err)
-	}
 	snapshot := loadTestSnapshot(t)
 
 	createdByStore := make([]bool, len(stores))
@@ -281,24 +282,45 @@ func TestDatabaseConstraintsProtectCapabilityMappings(t *testing.T) {
 func migratedTestStore(t *testing.T) *Store {
 	t.Helper()
 
-	store := openTestStore(t, newTestDatabase(t))
-	if err := store.Migrate(t.Context()); err != nil {
+	databaseURL := newTestDatabase(t)
+	migrateTestDatabase(t, databaseURL)
+
+	return openTestStore(t, databaseURL)
+}
+
+func migrateTestDatabase(t *testing.T, databaseURL string) *Migrator {
+	t.Helper()
+
+	migrator := openTestMigrator(t, databaseURL)
+	if err := migrator.Migrate(t.Context()); err != nil {
 		t.Fatalf("migrate test database: %v", err)
 	}
 
-	return store
+	return migrator
 }
 
 func openTestStore(t *testing.T, databaseURL string) *Store {
 	t.Helper()
 
-	store, err := Open(t.Context(), databaseURL)
+	store, err := OpenStore(t.Context(), databaseURL)
 	if err != nil {
 		t.Fatalf("open test store: %v", err)
 	}
 	t.Cleanup(store.Close)
 
 	return store
+}
+
+func openTestMigrator(t *testing.T, databaseURL string) *Migrator {
+	t.Helper()
+
+	migrator, err := OpenMigrator(t.Context(), databaseURL)
+	if err != nil {
+		t.Fatalf("open test migrator: %v", err)
+	}
+	t.Cleanup(migrator.Close)
+
+	return migrator
 }
 
 func newTestDatabase(t *testing.T) string {
@@ -412,7 +434,7 @@ func loadTestSnapshot(t *testing.T) catalog.Snapshot {
 	if err != nil {
 		t.Fatalf("create test revision: %v", err)
 	}
-	snapshot, err := catalog.ImportRepositoryDescriptor(document, revision)
+	snapshot, err := descriptor.Import(document, revision)
 	if err != nil {
 		t.Fatalf("import descriptor fixture: %v", err)
 	}

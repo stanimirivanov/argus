@@ -1,86 +1,128 @@
 package postgres
 
 import (
-	"cmp"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"slices"
-	"strings"
 
 	"github.com/stanimirivanov/argus/internal/catalog"
 )
 
-func canonicalSnapshot(snapshot catalog.Snapshot) catalog.Snapshot {
-	canonical := snapshot
-	canonical.Capabilities = append([]catalog.Capability(nil), snapshot.Capabilities...)
-	canonical.Components = cloneComponents(snapshot.Components)
-	canonical.TestSuites = cloneTestSuites(snapshot.TestSuites)
-
-	slices.SortFunc(canonical.Capabilities, func(left, right catalog.Capability) int {
-		return cmp.Compare(left.Key, right.Key)
-	})
-	slices.SortFunc(canonical.Components, func(left, right catalog.Component) int {
-		return cmp.Compare(left.Key, right.Key)
-	})
-	slices.SortFunc(canonical.TestSuites, compareTestSuites)
-
-	return canonical
+// Fingerprint documents are a private persistence encoding. They preserve the
+// original field names and order independently of domain structs or public
+// transport contracts, because existing snapshot hashes are immutable data.
+type fingerprintSnapshot struct {
+	APIVersion   string                  `json:"apiVersion"`
+	Repository   fingerprintRepository   `json:"repository"`
+	Revision     fingerprintRevision     `json:"revision"`
+	Capabilities []fingerprintCapability `json:"capabilities"`
+	Components   []fingerprintComponent  `json:"components"`
+	TestSuites   []fingerprintTestSuite  `json:"testSuites"`
 }
 
-func cloneComponents(components []catalog.Component) []catalog.Component {
-	cloned := make([]catalog.Component, len(components))
-	for index, component := range components {
-		cloned[index] = component
-		cloned[index].Capabilities = append([]string(nil), component.Capabilities...)
-		slices.Sort(cloned[index].Capabilities)
-	}
-
-	return cloned
+type fingerprintRevision struct {
+	Algorithm catalog.RevisionAlgorithm `json:"algorithm"`
+	Digest    string                    `json:"digest"`
 }
 
-func cloneTestSuites(suites []catalog.TestSuite) []catalog.TestSuite {
-	cloned := make([]catalog.TestSuite, len(suites))
-	for suiteIndex, suite := range suites {
-		cloned[suiteIndex] = suite
-		cloned[suiteIndex].Tests = make([]catalog.Test, len(suite.Tests))
-		for testIndex, test := range suite.Tests {
-			cloned[suiteIndex].Tests[testIndex] = test
-			cloned[suiteIndex].Tests[testIndex].Capabilities = append(
-				[]string(nil),
-				test.Capabilities...,
-			)
-			slices.Sort(cloned[suiteIndex].Tests[testIndex].Capabilities)
-		}
-		slices.SortFunc(cloned[suiteIndex].Tests, func(left, right catalog.Test) int {
-			return cmp.Compare(left.Key, right.Key)
-		})
-	}
-
-	return cloned
+type fingerprintRepositoryIdentity struct {
+	Provider             catalog.Provider `json:"provider"`
+	Host                 string           `json:"host"`
+	ProviderRepositoryID string           `json:"providerRepositoryId"`
 }
 
-func compareTestSuites(left, right catalog.TestSuite) int {
-	if compared := cmp.Compare(repositorySortKey(left.Repository.Identity), repositorySortKey(right.Repository.Identity)); compared != 0 {
-		return compared
-	}
-
-	return cmp.Compare(left.Key, right.Key)
+type fingerprintRepository struct {
+	Identity fingerprintRepositoryIdentity `json:"identity"`
+	Owner    string                        `json:"owner"`
+	Name     string                        `json:"name"`
 }
 
-func repositorySortKey(identity catalog.RepositoryIdentity) string {
-	return strings.Join(
-		[]string{string(identity.Provider), identity.Host, identity.ProviderRepositoryID},
-		"\x00",
-	)
+type fingerprintCapability struct {
+	Key  string `json:"key"`
+	Name string `json:"name"`
+}
+
+type fingerprintComponent struct {
+	Key          string   `json:"key"`
+	Root         string   `json:"root"`
+	Capabilities []string `json:"capabilities"`
+}
+
+type fingerprintTest struct {
+	Key          string   `json:"key"`
+	Name         string   `json:"name"`
+	Capabilities []string `json:"capabilities"`
+}
+
+type fingerprintTestSuite struct {
+	Key        string                `json:"key"`
+	Repository fingerprintRepository `json:"repository"`
+	Family     catalog.TestFamily    `json:"family"`
+	Adapter    string                `json:"adapter"`
+	Tests      []fingerprintTest     `json:"tests"`
 }
 
 func snapshotFingerprint(snapshot catalog.Snapshot) (string, error) {
-	encoded, err := json.Marshal(snapshot)
+	encoded, err := json.Marshal(newFingerprintSnapshot(snapshot))
 	if err != nil {
 		return "", err
 	}
 	digest := sha256.Sum256(encoded)
 
 	return hex.EncodeToString(digest[:]), nil
+}
+
+func newFingerprintSnapshot(snapshot catalog.Snapshot) fingerprintSnapshot {
+	var capabilities []fingerprintCapability
+	if snapshot.Capabilities != nil {
+		capabilities = make([]fingerprintCapability, len(snapshot.Capabilities))
+		for index, capability := range snapshot.Capabilities {
+			capabilities[index] = fingerprintCapability{Key: capability.Key, Name: capability.Name}
+		}
+	}
+
+	components := make([]fingerprintComponent, len(snapshot.Components))
+	for index, component := range snapshot.Components {
+		components[index] = fingerprintComponent{
+			Key:          component.Key,
+			Root:         component.Root,
+			Capabilities: append([]string(nil), component.Capabilities...),
+		}
+	}
+
+	testSuites := make([]fingerprintTestSuite, len(snapshot.TestSuites))
+	for suiteIndex, suite := range snapshot.TestSuites {
+		tests := make([]fingerprintTest, len(suite.Tests))
+		for testIndex, test := range suite.Tests {
+			tests[testIndex] = fingerprintTest{
+				Key:          test.Key,
+				Name:         test.Name,
+				Capabilities: append([]string(nil), test.Capabilities...),
+			}
+		}
+		testSuites[suiteIndex] = fingerprintTestSuite{
+			Key:        suite.Key,
+			Repository: fingerprintRepositoryFrom(suite.Repository),
+			Family:     suite.Family,
+			Adapter:    suite.Adapter,
+			Tests:      tests,
+		}
+	}
+
+	return fingerprintSnapshot{
+		APIVersion:   snapshot.APIVersion,
+		Repository:   fingerprintRepositoryFrom(snapshot.Repository),
+		Revision:     fingerprintRevision(snapshot.Revision),
+		Capabilities: capabilities,
+		Components:   components,
+		TestSuites:   testSuites,
+	}
+}
+
+func fingerprintRepositoryFrom(repository catalog.Repository) fingerprintRepository {
+	return fingerprintRepository{
+		Identity: fingerprintRepositoryIdentity(repository.Identity),
+		Owner:    repository.Owner,
+		Name:     repository.Name,
+	}
 }

@@ -1,16 +1,20 @@
-package catalog
+// Package descriptor translates the versioned repository-descriptor transport
+// contract into validated catalog domain values. JSON paths and transport DTOs
+// stop at this boundary.
+package descriptor
 
 import (
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"path"
 	"strings"
 
 	"github.com/stanimirivanov/argus/contracts"
+	"github.com/stanimirivanov/argus/internal/catalog"
 )
 
-// ValidationError identifies a domain invariant violation in a descriptor.
+// ValidationError identifies a semantic violation at a repository-descriptor
+// JSON path.
 type ValidationError struct {
 	Path    string
 	Code    string
@@ -22,55 +26,32 @@ func (err *ValidationError) Error() string {
 	return fmt.Sprintf("%s: %s (%s)", err.Path, err.Message, err.Code)
 }
 
-// NewRevision validates and normalizes an immutable Git revision supplied by
-// a trusted ingestion context.
-func NewRevision(algorithm RevisionAlgorithm, digest string) (Revision, error) {
-	digest = strings.ToLower(digest)
-	expectedBytes, ok := map[RevisionAlgorithm]int{
-		RevisionGitSHA1:   20,
-		RevisionGitSHA256: 32,
-	}[algorithm]
-	if !ok {
-		return Revision{}, fmt.Errorf("unsupported revision algorithm %q", algorithm)
-	}
-
-	decoded, err := hex.DecodeString(digest)
-	if err != nil || len(decoded) != expectedBytes {
-		return Revision{}, fmt.Errorf("invalid %s revision digest", algorithm)
-	}
-
-	return Revision{Algorithm: algorithm, Digest: digest}, nil
-}
-
-// ImportRepositoryDescriptor converts a structurally validated transport
-// document into catalog state and enforces cross-field domain invariants.
-func ImportRepositoryDescriptor(
-	document contracts.RepositoryDescriptorV1,
-	revision Revision,
-) (Snapshot, error) {
+// Import converts a structurally validated repository descriptor into catalog
+// state and enforces cross-field semantic invariants.
+func Import(document contracts.RepositoryDescriptorV1, revision catalog.Revision) (catalog.Snapshot, error) {
 	if err := validateRevision(revision); err != nil {
-		return Snapshot{}, fmt.Errorf("validate ingestion revision: %w", err)
+		return catalog.Snapshot{}, fmt.Errorf("validate ingestion revision: %w", err)
 	}
 	if err := validateRepositoryCoordinates(document); err != nil {
-		return Snapshot{}, err
+		return catalog.Snapshot{}, err
 	}
 
 	capabilities, capabilityKeys, err := importCapabilities(document.Capabilities)
 	if err != nil {
-		return Snapshot{}, err
+		return catalog.Snapshot{}, err
 	}
 
 	components, err := importComponents(document.Components, capabilityKeys)
 	if err != nil {
-		return Snapshot{}, err
+		return catalog.Snapshot{}, err
 	}
 
 	testSuites, err := importTestSuites(document.TestSuites, capabilityKeys)
 	if err != nil {
-		return Snapshot{}, err
+		return catalog.Snapshot{}, err
 	}
 
-	return Snapshot{
+	return catalog.Snapshot{
 		APIVersion:   document.APIVersion,
 		Repository:   importRepository(document.Repository),
 		Revision:     revision,
@@ -80,20 +61,22 @@ func ImportRepositoryDescriptor(
 	}, nil
 }
 
+// A provider identity may acquire new display coordinates over time, but it
+// cannot mean two different owner/name pairs inside one immutable observation.
 func validateRepositoryCoordinates(document contracts.RepositoryDescriptorV1) error {
 	type coordinates struct {
 		owner string
 		name  string
 	}
 
-	repositories := map[string]coordinates{
-		repositoryIdentityKey(document.Repository): {
+	repositories := map[repositoryIdentity]coordinates{
+		repositoryIdentityFrom(document.Repository): {
 			owner: document.Repository.Owner,
 			name:  document.Repository.Name,
 		},
 	}
 	for index, suite := range document.TestSuites {
-		identity := repositoryIdentityKey(suite.Repository)
+		identity := repositoryIdentityFrom(suite.Repository)
 		observed := coordinates{owner: suite.Repository.Owner, name: suite.Repository.Name}
 		if existing, ok := repositories[identity]; ok && existing != observed {
 			return &ValidationError{
@@ -108,8 +91,8 @@ func validateRepositoryCoordinates(document contracts.RepositoryDescriptorV1) er
 	return nil
 }
 
-func validateRevision(revision Revision) error {
-	validated, err := NewRevision(revision.Algorithm, revision.Digest)
+func validateRevision(revision catalog.Revision) error {
+	validated, err := catalog.NewRevision(revision.Algorithm, revision.Digest)
 	if err != nil {
 		return err
 	}
@@ -120,10 +103,10 @@ func validateRevision(revision Revision) error {
 	return nil
 }
 
-func importRepository(reference contracts.RepositoryReference) Repository {
-	return Repository{
-		Identity: RepositoryIdentity{
-			Provider:             Provider(reference.Provider),
+func importRepository(reference contracts.RepositoryReference) catalog.Repository {
+	return catalog.Repository{
+		Identity: catalog.RepositoryIdentity{
+			Provider:             catalog.Provider(reference.Provider),
 			Host:                 reference.Host,
 			ProviderRepositoryID: reference.ProviderRepositoryID,
 		},
@@ -134,8 +117,8 @@ func importRepository(reference contracts.RepositoryReference) Repository {
 
 func importCapabilities(
 	declarations []contracts.CapabilityDeclaration,
-) ([]Capability, map[string]struct{}, error) {
-	capabilities := make([]Capability, 0, len(declarations))
+) ([]catalog.Capability, map[string]struct{}, error) {
+	capabilities := make([]catalog.Capability, 0, len(declarations))
 	keys := make(map[string]struct{}, len(declarations))
 	for index, declaration := range declarations {
 		keyPath := fmt.Sprintf("/capabilities/%d/key", index)
@@ -143,7 +126,7 @@ func importCapabilities(
 			return nil, nil, err
 		}
 
-		capabilities = append(capabilities, Capability{Key: declaration.Key, Name: declaration.Name})
+		capabilities = append(capabilities, catalog.Capability{Key: declaration.Key, Name: declaration.Name})
 	}
 
 	return capabilities, keys, nil
@@ -152,8 +135,8 @@ func importCapabilities(
 func importComponents(
 	declarations []contracts.ComponentDeclaration,
 	capabilities map[string]struct{},
-) ([]Component, error) {
-	components := make([]Component, 0, len(declarations))
+) ([]catalog.Component, error) {
+	components := make([]catalog.Component, 0, len(declarations))
 	keys := make(map[string]struct{}, len(declarations))
 	for index, declaration := range declarations {
 		basePath := fmt.Sprintf("/components/%d", index)
@@ -171,7 +154,7 @@ func importComponents(
 			return nil, err
 		}
 
-		components = append(components, Component{
+		components = append(components, catalog.Component{
 			Key:          declaration.Key,
 			Root:         declaration.Root,
 			Capabilities: append([]string(nil), declaration.Capabilities...),
@@ -184,13 +167,16 @@ func importComponents(
 func importTestSuites(
 	declarations []contracts.TestSuiteDeclaration,
 	capabilities map[string]struct{},
-) ([]TestSuite, error) {
-	suites := make([]TestSuite, 0, len(declarations))
-	suiteKeys := make(map[string]struct{}, len(declarations))
+) ([]catalog.TestSuite, error) {
+	suites := make([]catalog.TestSuite, 0, len(declarations))
+	suiteKeys := make(map[suiteIdentity]struct{}, len(declarations))
 	for suiteIndex, declaration := range declarations {
 		basePath := fmt.Sprintf("/testSuites/%d", suiteIndex)
-		suiteIdentity := repositoryScopedKey(declaration.Repository, declaration.Key)
-		if _, ok := suiteKeys[suiteIdentity]; ok {
+		identity := suiteIdentity{
+			Repository: repositoryIdentityFrom(declaration.Repository),
+			Key:        declaration.Key,
+		}
+		if _, ok := suiteKeys[identity]; ok {
 			return nil, &ValidationError{
 				Path: basePath + "/key",
 				Code: "duplicate-test-suite",
@@ -200,17 +186,17 @@ func importTestSuites(
 				),
 			}
 		}
-		suiteKeys[suiteIdentity] = struct{}{}
+		suiteKeys[identity] = struct{}{}
 
 		tests, err := importTests(declaration.Tests, capabilities, basePath+"/tests")
 		if err != nil {
 			return nil, err
 		}
 
-		suites = append(suites, TestSuite{
+		suites = append(suites, catalog.TestSuite{
 			Key:        declaration.Key,
 			Repository: importRepository(declaration.Repository),
-			Family:     TestFamily(declaration.Family),
+			Family:     catalog.TestFamily(declaration.Family),
 			Adapter:    declaration.Adapter,
 			Tests:      tests,
 		})
@@ -219,23 +205,31 @@ func importTestSuites(
 	return suites, nil
 }
 
-func repositoryScopedKey(repository contracts.RepositoryReference, localKey string) string {
-	return repositoryIdentityKey(repository) + "\x00" + localKey
+type repositoryIdentity struct {
+	Provider             string
+	Host                 string
+	ProviderRepositoryID string
 }
 
-func repositoryIdentityKey(repository contracts.RepositoryReference) string {
-	return strings.Join(
-		[]string{repository.Provider, repository.Host, repository.ProviderRepositoryID},
-		"\x00",
-	)
+type suiteIdentity struct {
+	Repository repositoryIdentity
+	Key        string
+}
+
+func repositoryIdentityFrom(repository contracts.RepositoryReference) repositoryIdentity {
+	return repositoryIdentity{
+		Provider:             repository.Provider,
+		Host:                 repository.Host,
+		ProviderRepositoryID: repository.ProviderRepositoryID,
+	}
 }
 
 func importTests(
 	declarations []contracts.TestDeclaration,
 	capabilities map[string]struct{},
 	basePath string,
-) ([]Test, error) {
-	tests := make([]Test, 0, len(declarations))
+) ([]catalog.Test, error) {
+	tests := make([]catalog.Test, 0, len(declarations))
 	keys := make(map[string]struct{}, len(declarations))
 	for index, declaration := range declarations {
 		testPath := fmt.Sprintf("%s/%d", basePath, index)
@@ -250,7 +244,7 @@ func importTests(
 			return nil, err
 		}
 
-		tests = append(tests, Test{
+		tests = append(tests, catalog.Test{
 			Key:          declaration.Key,
 			Name:         declaration.Name,
 			Capabilities: append([]string(nil), declaration.Capabilities...),

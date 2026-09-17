@@ -30,6 +30,31 @@ func TestRunReportsNormalizedDescriptorSummary(t *testing.T) {
 	if result.SourceRepository.ProviderRepositoryID != "R_orders_source_01" {
 		t.Fatalf("source repository id = %q", result.SourceRepository.ProviderRepositoryID)
 	}
+
+	var document map[string]any
+	if err := json.Unmarshal(output.Bytes(), &document); err != nil {
+		t.Fatalf("decode command output keys: %v", err)
+	}
+	for _, key := range []string{
+		"apiVersion",
+		"sourceRepository",
+		"revision",
+		"capabilityCount",
+		"componentCount",
+		"testSuiteCount",
+		"testCount",
+	} {
+		if _, ok := document[key]; !ok {
+			t.Fatalf("command output is missing JSON key %q", key)
+		}
+	}
+	repository, ok := document["sourceRepository"].(map[string]any)
+	if !ok {
+		t.Fatal("sourceRepository is not a JSON object")
+	}
+	if _, ok := repository["providerRepositoryId"]; !ok {
+		t.Fatal("sourceRepository is missing JSON key \"providerRepositoryId\"")
+	}
 }
 
 func TestRunRejectsDomainInvalidDescriptor(t *testing.T) {
