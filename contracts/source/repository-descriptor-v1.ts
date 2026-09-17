@@ -1,6 +1,6 @@
 import { Schema } from "effect";
 
-const LocalKey = Schema.String.pipe(
+export const LocalKey = Schema.String.pipe(
   Schema.minLength(1),
   Schema.maxLength(63),
   Schema.pattern(/^[a-z][a-z0-9._-]*$/),
@@ -10,9 +10,9 @@ const LocalKey = Schema.String.pipe(
     "A stable, repository-declared key. It is scoped by its containing repository or parent declaration.",
 });
 
-const DisplayName = Schema.String.pipe(Schema.minLength(1), Schema.maxLength(255));
+export const DisplayName = Schema.String.pipe(Schema.minLength(1), Schema.maxLength(255));
 
-const RepositoryReference = Schema.Struct({
+export const RepositoryIdentity = Schema.Struct({
   provider: Schema.Literal("github", "gitlab", "azure-devops", "other"),
   host: Schema.String.pipe(
     Schema.minLength(1),
@@ -20,6 +20,13 @@ const RepositoryReference = Schema.Struct({
     Schema.pattern(/^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$/),
   ),
   providerRepositoryId: Schema.String.pipe(Schema.minLength(1), Schema.maxLength(255)),
+}).annotations({
+  identifier: "RepositoryIdentity",
+  description: "A repository identity that remains stable across ordinary renames and transfers.",
+});
+
+export const RepositoryReference = Schema.Struct({
+  ...RepositoryIdentity.fields,
   owner: DisplayName,
   name: DisplayName,
 }).annotations({
@@ -45,22 +52,24 @@ const TestDeclaration = Schema.Struct({
   capabilities: Schema.Array(LocalKey).pipe(Schema.minItems(1)),
 }).annotations({ identifier: "TestDeclaration" });
 
+export const TestFamily = Schema.Literal(
+  "unit",
+  "component",
+  "contract",
+  "integration",
+  "functional-api",
+  "functional-ui",
+  "end-to-end",
+  "performance",
+  "security",
+  "resilience",
+  "other",
+).annotations({ identifier: "TestFamily" });
+
 const TestSuiteDeclaration = Schema.Struct({
   key: LocalKey,
   repository: RepositoryReference,
-  family: Schema.Literal(
-    "unit",
-    "component",
-    "contract",
-    "integration",
-    "functional-api",
-    "functional-ui",
-    "end-to-end",
-    "performance",
-    "security",
-    "resilience",
-    "other",
-  ),
+  family: TestFamily,
   adapter: Schema.String.pipe(Schema.minLength(1), Schema.maxLength(127)),
   tests: Schema.Array(TestDeclaration).pipe(Schema.minItems(1)),
 }).annotations({ identifier: "TestSuiteDeclaration" });
@@ -70,8 +79,12 @@ const TestSuiteDeclaration = Schema.Struct({
  * immutable source revision is supplied by the verified ingestion context and
  * deliberately does not live in the repository-controlled document.
  */
+export const RepositoryDescriptorV1APIVersion = Schema.Literal(
+  "argus.dev/repository-descriptor/v1",
+);
+
 export const RepositoryDescriptorV1 = Schema.Struct({
-  apiVersion: Schema.Literal("argus.dev/repository-descriptor/v1"),
+  apiVersion: RepositoryDescriptorV1APIVersion,
   repository: RepositoryReference,
   capabilities: Schema.Array(CapabilityDeclaration).pipe(Schema.minItems(1)),
   components: Schema.Array(ComponentDeclaration).pipe(Schema.minItems(1)),

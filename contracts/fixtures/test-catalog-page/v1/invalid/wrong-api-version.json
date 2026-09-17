@@ -1,0 +1,19 @@
+{
+  "apiVersion": "argus.dev/test-catalog-page/v2",
+  "snapshot": {
+    "sourceRepository": {
+      "provider": "github",
+      "host": "github.com",
+      "providerRepositoryId": "R_orders_source_01",
+      "owner": "example",
+      "name": "orders"
+    },
+    "revision": {
+      "algorithm": "git-sha1",
+      "digest": "0123456789abcdef0123456789abcdef01234567"
+    },
+    "descriptorApiVersion": "argus.dev/repository-descriptor/v1"
+  },
+  "items": [],
+  "nextCursor": null
+}

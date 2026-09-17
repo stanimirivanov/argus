@@ -149,7 +149,7 @@ topology:
 | `internal/catalog` | Domain vocabulary, canonical ordering, catalog use cases, stable outcome errors, and consumer-owned persistence ports | JSON field names, SQL, driver errors, connection pools, or migration authority |
 | `internal/catalog/descriptor` | Conversion from the versioned repository-descriptor transport and JSON-path semantic errors | Persistence, orchestration, or reusable catalog policy unrelated to that transport |
 | `internal/catalog/postgres` | PostgreSQL transactions, relational mapping, private fingerprint encoding, error classification, and explicit migrations | Public wire formats or catalog policy that another storage adapter would need |
-| `cmd/catalog` | CLI argument and JSON output adapters plus dependency composition | Domain rules or direct SQL orchestration |
+| `cmd/catalog` | CLI argument and JSON output adapters, versioned test-catalog pages, and dependency composition | Domain rules, cursor policy, or direct SQL orchestration |
 | `cmd/migrate` | Explicit composition of the privileged migration capability | Runtime catalog reads or writes |
 
 Runtime catalog code depends on the narrow `catalog.SnapshotStore` port. The
@@ -157,6 +157,13 @@ PostgreSQL `Store` implements that port, while the separately opened
 `Migrator` owns schema administration. Domain structs intentionally have no
 JSON tags: the descriptor DTO, command output DTO, and persisted fingerprint
 are distinct compatibility boundaries and evolve independently.
+
+The first catalog query is an application use case behind the
+`catalog.TestCatalogReader` port. It owns bounded-page and cursor policy, while
+the PostgreSQL adapter owns the keyset SQL and the CLI adapter owns conversion
+to `argus.dev/test-catalog-page/v1`. This query boundary is reusable by a later
+authenticated network API without moving transport concerns into catalog
+policy.
 
 ## End-to-end decision flow
 

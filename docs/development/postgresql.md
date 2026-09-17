@@ -8,6 +8,8 @@
   never changes the schema.
 - Use `go run ./cmd/catalog import ...` to idempotently persist a validated
   descriptor snapshot and `catalog get ...` to reconstruct it.
+- Use `catalog list-tests` to query stable tests with capability filtering and
+  deterministic keyset pagination.
 - Database-changing work runs `make db-validate` against a disposable loopback
   PostgreSQL server configured by `ARGUS_TEST_POSTGRES_URL`.
 - Migration files are immutable after merge. A checksum mismatch, unknown
@@ -92,6 +94,41 @@ identity returns a conflict. Reads use a repeatable-read transaction and stable
 key order. Callers may safely retry the exact same identity and content after
 an ambiguous database failure.
 
+## Query test catalog entries
+
+Query one immutable snapshot without loading its complete component graph:
+
+~~~sh
+go run ./cmd/catalog list-tests \
+  -provider github \
+  -host github.com \
+  -repository-id R_orders_source_01 \
+  -revision 0123456789abcdef0123456789abcdef01234567 \
+  -capability create-order \
+  -page-size 50
+~~~
+
+The optional `-capability` value matches explicit test-to-capability mappings.
+Omit it to include every cataloged test. Page size defaults to 50 and is bounded
+to 1–200 entries. When the response contains a non-null `nextCursor`, pass the
+value unchanged to `-cursor`; the page size may change on the continuation
+request.
+
+Pagination uses the stable natural identity `(test repository provider, host,
+provider repository ID, suite key, test key)` and an exclusive keyset position.
+It does not use mutable owner/name coordinates, database IDs, or offsets. SQL
+comparison and ordering use the `C` collation so database locale cannot reorder
+pages. The query runs in a read-only repeatable-read transaction, returning
+snapshot metadata and entries from one consistent observation.
+
+Cursors contain no database identifiers or credentials. They are versioned and
+bound to the immutable snapshot and capability filter. Malformed, unsupported,
+or query-incompatible cursors fail before the storage query. Cursors are
+continuation tokens, not permanent test identifiers or authorization tokens.
+
+A missing snapshot returns the catalog not-found outcome. An existing snapshot
+with no matching capability mapping returns a successful empty page.
+
 ## Least-privilege roles
 
 The migration role owns the schema and ledger. The runtime role does not need
@@ -142,9 +179,10 @@ at a shared or production server.
 The suite verifies empty and repeated migration, advisory-lock serialization,
 checksum drift rejection, transactional rollback, relational constraints,
 snapshot round trip, order-independent retry, immutable-content conflict,
-concurrent ingestion, and read-after-restart. Ordinary `make validate` remains
-database-independent; CI runs `make db-validate` in a separate Ubuntu job with
-an isolated PostgreSQL 17.11 service.
+concurrent ingestion, deterministic multi-page catalog queries, capability
+filtering, empty/missing distinction, and read-after-restart. Ordinary `make
+validate` remains database-independent; CI runs `make db-validate` in a
+separate Ubuntu job with an isolated PostgreSQL 17.11 service.
 
 ## Recovery and current limits
 
@@ -155,5 +193,6 @@ the expected binary/migration chain or deliver a reviewed forward repair.
 A catalog import is append-only at the snapshot boundary. There is no delete
 or in-place snapshot repair command in this slice. Backup/restore exercises,
 retention, HA, production SLOs, impact edges, mapping provenance and expiry,
-conflict reporting across observations, and paginated public APIs remain later
-M03 or M10 work as recorded in the roadmap.
+conflict reporting across observations, latest-snapshot resolution, and an
+authenticated network API remain later M03 or M10 work as recorded in the
+roadmap.

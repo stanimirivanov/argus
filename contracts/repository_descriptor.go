@@ -3,12 +3,9 @@
 package contracts
 
 import (
-	"bytes"
 	_ "embed"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"io"
 	"sync"
 
 	"github.com/santhosh-tekuri/jsonschema/v6"
@@ -25,23 +22,11 @@ const (
 var repositoryDescriptorV1SchemaJSON []byte
 
 var loadRepositoryDescriptorV1Schema = sync.OnceValues(func() (*jsonschema.Schema, error) {
-	var schemaDocument any
-	if err := json.Unmarshal(repositoryDescriptorV1SchemaJSON, &schemaDocument); err != nil {
-		return nil, fmt.Errorf("decode embedded repository descriptor schema: %w", err)
-	}
-
-	compiler := jsonschema.NewCompiler()
-	compiler.AssertFormat()
-	if err := compiler.AddResource(repositoryDescriptorV1SchemaID, schemaDocument); err != nil {
-		return nil, fmt.Errorf("add embedded repository descriptor schema: %w", err)
-	}
-
-	schema, err := compiler.Compile(repositoryDescriptorV1SchemaID)
-	if err != nil {
-		return nil, fmt.Errorf("compile embedded repository descriptor schema: %w", err)
-	}
-
-	return schema, nil
+	return compileEmbeddedSchema(
+		repositoryDescriptorV1SchemaJSON,
+		repositoryDescriptorV1SchemaID,
+		"repository descriptor",
+	)
 })
 
 // RepositoryDescriptorV1 is the transport representation of a validated v1
@@ -106,7 +91,7 @@ func DecodeRepositoryDescriptorV1(data []byte) (RepositoryDescriptorV1, error) {
 		return document, err
 	}
 
-	untyped, err := decodeSingleJSONValue(data)
+	untyped, err := decodeSingleJSONValue(data, "repository descriptor")
 	if err != nil {
 		return document, err
 	}
@@ -115,28 +100,6 @@ func DecodeRepositoryDescriptorV1(data []byte) (RepositoryDescriptorV1, error) {
 	}
 	if err := json.Unmarshal(data, &document); err != nil {
 		return document, fmt.Errorf("decode repository descriptor: %w", err)
-	}
-
-	return document, nil
-}
-
-func decodeSingleJSONValue(data []byte) (any, error) {
-	decoder := json.NewDecoder(bytes.NewReader(data))
-	decoder.UseNumber()
-
-	var document any
-	if err := decoder.Decode(&document); err != nil {
-		return nil, fmt.Errorf("decode repository descriptor JSON: %w", err)
-	}
-
-	var trailing any
-	err := decoder.Decode(&trailing)
-	if !errors.Is(err, io.EOF) {
-		if err == nil {
-			return nil, errors.New("decode repository descriptor JSON: multiple JSON values")
-		}
-
-		return nil, fmt.Errorf("decode repository descriptor JSON trailer: %w", err)
 	}
 
 	return document, nil

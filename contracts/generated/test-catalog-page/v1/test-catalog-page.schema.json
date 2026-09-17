@@ -1,0 +1,290 @@
+{
+  "$id": "https://argus.dev/contracts/test-catalog-page/v1/schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "TestCatalogPageV1": {
+      "type": "object",
+      "required": [
+        "apiVersion",
+        "snapshot",
+        "items",
+        "nextCursor"
+      ],
+      "properties": {
+        "apiVersion": {
+          "type": "string",
+          "enum": [
+            "argus.dev/test-catalog-page/v1"
+          ]
+        },
+        "snapshot": {
+          "$ref": "#/$defs/CatalogSnapshotReference"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TestCatalogEntry"
+          }
+        },
+        "nextCursor": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ContinuationCursor"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "description": "A deterministic page of tests from one immutable catalog snapshot, ordered by stable test identity.",
+      "title": "Argus test catalog page v1"
+    },
+    "CatalogSnapshotReference": {
+      "type": "object",
+      "required": [
+        "sourceRepository",
+        "revision",
+        "descriptorApiVersion"
+      ],
+      "properties": {
+        "sourceRepository": {
+          "$ref": "#/$defs/RepositoryReference"
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "descriptorApiVersion": {
+          "type": "string",
+          "enum": [
+            "argus.dev/repository-descriptor/v1"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "description": "The immutable repository descriptor observation queried by this result page."
+    },
+    "RepositoryReference": {
+      "type": "object",
+      "required": [
+        "provider",
+        "host",
+        "providerRepositoryId",
+        "owner",
+        "name"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": [
+            "github",
+            "gitlab",
+            "azure-devops",
+            "other"
+          ]
+        },
+        "host": {
+          "type": "string",
+          "description": "a string matching the pattern ^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$",
+          "title": "maxLength(255)",
+          "minLength": 1,
+          "maxLength": 255,
+          "pattern": "^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$"
+        },
+        "providerRepositoryId": {
+          "type": "string",
+          "description": "a string at most 255 character(s) long",
+          "title": "maxLength(255)",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "owner": {
+          "type": "string",
+          "description": "a string at most 255 character(s) long",
+          "title": "maxLength(255)",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "name": {
+          "type": "string",
+          "description": "a string at most 255 character(s) long",
+          "title": "maxLength(255)",
+          "minLength": 1,
+          "maxLength": 255
+        }
+      },
+      "additionalProperties": false,
+      "description": "A repository reference anchored by the provider-assigned identity; owner and name are mutable display coordinates."
+    },
+    "Revision": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "algorithm",
+            "digest"
+          ],
+          "properties": {
+            "algorithm": {
+              "type": "string",
+              "enum": [
+                "git-sha1"
+              ]
+            },
+            "digest": {
+              "type": "string",
+              "description": "a string matching the pattern ^[0-9a-f]{40}$",
+              "pattern": "^[0-9a-f]{40}$"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "algorithm",
+            "digest"
+          ],
+          "properties": {
+            "algorithm": {
+              "type": "string",
+              "enum": [
+                "git-sha256"
+              ]
+            },
+            "digest": {
+              "type": "string",
+              "description": "a string matching the pattern ^[0-9a-f]{64}$",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          "additionalProperties": false
+        }
+      ],
+      "description": "An immutable, normalized Git object revision."
+    },
+    "TestCatalogEntry": {
+      "type": "object",
+      "required": [
+        "testRepository",
+        "suite",
+        "test",
+        "capabilities"
+      ],
+      "properties": {
+        "testRepository": {
+          "$ref": "#/$defs/RepositoryReference"
+        },
+        "suite": {
+          "type": "object",
+          "required": [
+            "key",
+            "family",
+            "adapter"
+          ],
+          "properties": {
+            "key": {
+              "$ref": "#/$defs/LocalKey"
+            },
+            "family": {
+              "$ref": "#/$defs/TestFamily"
+            },
+            "adapter": {
+              "type": "string",
+              "description": "a string at most 127 character(s) long",
+              "title": "maxLength(127)",
+              "minLength": 1,
+              "maxLength": 127
+            }
+          },
+          "additionalProperties": false
+        },
+        "test": {
+          "type": "object",
+          "required": [
+            "key",
+            "name"
+          ],
+          "properties": {
+            "key": {
+              "$ref": "#/$defs/LocalKey"
+            },
+            "name": {
+              "type": "string",
+              "description": "a string at most 255 character(s) long",
+              "title": "maxLength(255)",
+              "minLength": 1,
+              "maxLength": 255
+            }
+          },
+          "additionalProperties": false
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CapabilityReference"
+          },
+          "description": "an array of at least 1 item(s)",
+          "title": "minItems(1)",
+          "minItems": 1
+        }
+      },
+      "additionalProperties": false,
+      "description": "A stable test identity and its immutable catalog metadata. Identity is testRepository identity plus suite.key plus test.key."
+    },
+    "LocalKey": {
+      "type": "string",
+      "description": "A stable, repository-declared key. It is scoped by its containing repository or parent declaration.",
+      "title": "maxLength(63)",
+      "minLength": 1,
+      "maxLength": 63,
+      "pattern": "^[a-z][a-z0-9._-]*$"
+    },
+    "TestFamily": {
+      "type": "string",
+      "enum": [
+        "unit",
+        "component",
+        "contract",
+        "integration",
+        "functional-api",
+        "functional-ui",
+        "end-to-end",
+        "performance",
+        "security",
+        "resilience",
+        "other"
+      ]
+    },
+    "CapabilityReference": {
+      "type": "object",
+      "required": [
+        "key",
+        "name"
+      ],
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/LocalKey"
+        },
+        "name": {
+          "type": "string",
+          "description": "a string at most 255 character(s) long",
+          "title": "maxLength(255)",
+          "minLength": 1,
+          "maxLength": 255
+        }
+      },
+      "additionalProperties": false
+    },
+    "ContinuationCursor": {
+      "type": "string",
+      "description": "An opaque, versioned continuation token bound to the originating query.",
+      "title": "maxLength(4096)",
+      "minLength": 1,
+      "maxLength": 4096,
+      "pattern": "^[A-Za-z0-9_-]+$"
+    }
+  },
+  "$ref": "#/$defs/TestCatalogPageV1"
+}

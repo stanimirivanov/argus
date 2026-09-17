@@ -3,6 +3,7 @@
 package postgres
 
 import (
+	"cmp"
 	"context"
 	"crypto/rand"
 	"encoding/hex"
@@ -279,6 +280,120 @@ func TestDatabaseConstraintsProtectCapabilityMappings(t *testing.T) {
 	}
 }
 
+func TestTestCatalogQueryPaginatesFiltersAndSurvivesRestart(t *testing.T) {
+	databaseURL := newTestDatabase(t)
+	migrateTestDatabase(t, databaseURL)
+	store := openTestStore(t, databaseURL)
+	snapshot := queryableTestSnapshot(t)
+	if _, err := store.SaveSnapshot(t.Context(), snapshot); err != nil {
+		t.Fatalf("save queryable snapshot: %v", err)
+	}
+
+	query := catalog.TestCatalogQuery{Snapshot: snapshot.Key(), PageSize: 2}
+	items := collectTestCatalogPages(t, catalog.NewTestCatalogService(store), query)
+	if len(items) != 4 {
+		t.Fatalf("catalog entry count = %d, want 4", len(items))
+	}
+	for index := 1; index < len(items); index++ {
+		if compareTestCatalogIdentities(items[index-1].Identity(), items[index].Identity()) >= 0 {
+			t.Fatalf("catalog entries are not strictly ordered at index %d", index)
+		}
+	}
+
+	query.CapabilityKey = "cancel-order"
+	query.PageSize = 1
+	filtered := collectTestCatalogPages(t, catalog.NewTestCatalogService(store), query)
+	if len(filtered) != 2 {
+		t.Fatalf("filtered catalog entry count = %d, want 2", len(filtered))
+	}
+	for _, entry := range filtered {
+		if !entryHasCapability(entry, query.CapabilityKey) {
+			t.Fatalf("filtered entry %#v does not contain %q", entry.Identity(), query.CapabilityKey)
+		}
+	}
+
+	empty, err := catalog.NewTestCatalogService(store).ListTests(t.Context(), catalog.TestCatalogQuery{
+		Snapshot:      snapshot.Key(),
+		CapabilityKey: "missing-capability",
+		PageSize:      10,
+	})
+	if err != nil {
+		t.Fatalf("list empty capability result: %v", err)
+	}
+	if len(empty.Items) != 0 || empty.Snapshot.SourceRepository.Identity != snapshot.Repository.Identity {
+		t.Fatalf("empty catalog page = %#v", empty)
+	}
+
+	missing := snapshot.Key()
+	missing.Revision.Digest = "1123456789abcdef0123456789abcdef01234567"
+	if _, err := catalog.NewTestCatalogService(store).ListTests(t.Context(), catalog.TestCatalogQuery{
+		Snapshot: missing,
+		PageSize: 10,
+	}); !errors.Is(err, catalog.ErrNotFound) {
+		t.Fatalf("list missing snapshot = %v, want ErrNotFound", err)
+	}
+
+	store.Close()
+	reopened, err := OpenStore(t.Context(), databaseURL)
+	if err != nil {
+		t.Fatalf("reopen catalog store: %v", err)
+	}
+	t.Cleanup(reopened.Close)
+	afterRestart := collectTestCatalogPages(t, catalog.NewTestCatalogService(reopened), catalog.TestCatalogQuery{
+		Snapshot: snapshot.Key(),
+		PageSize: 3,
+	})
+	if !reflect.DeepEqual(afterRestart, items) {
+		t.Fatal("catalog query changed after store restart")
+	}
+}
+
+func collectTestCatalogPages(
+	t *testing.T,
+	service *catalog.TestCatalogService,
+	query catalog.TestCatalogQuery,
+) []catalog.TestCatalogEntry {
+	t.Helper()
+
+	var collected []catalog.TestCatalogEntry
+	for pageNumber := 0; pageNumber < 10; pageNumber++ {
+		page, err := service.ListTests(t.Context(), query)
+		if err != nil {
+			t.Fatalf("list catalog page %d: %v", pageNumber, err)
+		}
+		collected = append(collected, page.Items...)
+		if page.NextCursor == "" {
+			return collected
+		}
+		query.Cursor = page.NextCursor
+	}
+
+	t.Fatal("catalog pagination did not terminate")
+
+	return nil
+}
+
+func compareTestCatalogIdentities(left, right catalog.TestCatalogIdentity) int {
+	if compared := compareRepositoryIdentities(left.TestRepository, right.TestRepository); compared != 0 {
+		return compared
+	}
+	if compared := cmp.Compare(left.SuiteKey, right.SuiteKey); compared != 0 {
+		return compared
+	}
+
+	return cmp.Compare(left.TestKey, right.TestKey)
+}
+
+func entryHasCapability(entry catalog.TestCatalogEntry, key string) bool {
+	for _, capability := range entry.Capabilities {
+		if capability.Key == key {
+			return true
+		}
+	}
+
+	return false
+}
+
 func migratedTestStore(t *testing.T) *Store {
 	t.Helper()
 
@@ -438,6 +553,48 @@ func loadTestSnapshot(t *testing.T) catalog.Snapshot {
 	if err != nil {
 		t.Fatalf("import descriptor fixture: %v", err)
 	}
+
+	return snapshot
+}
+
+func queryableTestSnapshot(t *testing.T) catalog.Snapshot {
+	t.Helper()
+
+	snapshot := loadTestSnapshot(t)
+	snapshot.TestSuites[0].Tests = append(
+		snapshot.TestSuites[0].Tests,
+		catalog.Test{
+			Key:          "cancel-order-valid",
+			Name:         "cancel an existing order",
+			Capabilities: []string{"cancel-order"},
+		},
+		catalog.Test{
+			Key:          "create-and-cancel-order",
+			Name:         "create and cancel an order",
+			Capabilities: []string{"create-order", "cancel-order"},
+		},
+	)
+	snapshot.TestSuites = append(snapshot.TestSuites, catalog.TestSuite{
+		Key: "orders-browser",
+		Repository: catalog.Repository{
+			Identity: catalog.RepositoryIdentity{
+				Provider:             catalog.ProviderGitHub,
+				Host:                 "github.com",
+				ProviderRepositoryID: "R_orders_browser_01",
+			},
+			Owner: "example",
+			Name:  "orders-browser-tests",
+		},
+		Family:  catalog.TestFamilyFunctionalUI,
+		Adapter: "playwright",
+		Tests: []catalog.Test{
+			{
+				Key:          "create-order-browser",
+				Name:         "create an order in the browser",
+				Capabilities: []string{"create-order"},
+			},
+		},
+	})
 
 	return snapshot
 }

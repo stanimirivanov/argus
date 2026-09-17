@@ -170,8 +170,11 @@ Acceptance ingredients:
 The first delivered slice records the PostgreSQL and migration decision,
 creates stable repository/component/capability/suite/test storage, and proves
 explicit migration plus immutable descriptor snapshot write/read behavior.
-Impact-edge contracts and storage, conflict/staleness reporting, and paginated
-catalog APIs remain subsequent M03 slices.
+A second slice exposes Effect-authored, versioned test-catalog pages through a
+CLI adapter with capability filtering and deterministic keyset pagination.
+Impact-edge contracts and storage, conflict/staleness reporting,
+design-partner ingestion, and an authenticated network API remain subsequent
+M03 slices.
 
 Completion means one source repository and one separate functional-test
 repository are represented with stable, queryable identities.

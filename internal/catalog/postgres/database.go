@@ -24,6 +24,7 @@ type Store struct {
 }
 
 var _ catalog.SnapshotStore = (*Store)(nil)
+var _ catalog.TestCatalogReader = (*Store)(nil)
 
 // OpenStore validates the secret database configuration, establishes a bounded
 // connection pool, and verifies connectivity without changing schema state.

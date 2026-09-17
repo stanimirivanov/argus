@@ -11,4 +11,10 @@ var (
 	// ErrUnavailable means a transient or ambiguous dependency failure prevented
 	// a trustworthy catalog outcome.
 	ErrUnavailable = errors.New("catalog dependency unavailable")
+	// ErrInvalidQuery means catalog query parameters violate the use-case
+	// contract.
+	ErrInvalidQuery = errors.New("invalid catalog query")
+	// ErrInvalidCursor means a continuation token is malformed, unsupported, or
+	// belongs to a different catalog query.
+	ErrInvalidCursor = errors.New("invalid catalog continuation cursor")
 )

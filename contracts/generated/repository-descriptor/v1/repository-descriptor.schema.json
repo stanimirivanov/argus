@@ -177,20 +177,7 @@
           "$ref": "#/$defs/RepositoryReference"
         },
         "family": {
-          "type": "string",
-          "enum": [
-            "unit",
-            "component",
-            "contract",
-            "integration",
-            "functional-api",
-            "functional-ui",
-            "end-to-end",
-            "performance",
-            "security",
-            "resilience",
-            "other"
-          ]
+          "$ref": "#/$defs/TestFamily"
         },
         "adapter": {
           "type": "string",
@@ -210,6 +197,22 @@
         }
       },
       "additionalProperties": false
+    },
+    "TestFamily": {
+      "type": "string",
+      "enum": [
+        "unit",
+        "component",
+        "contract",
+        "integration",
+        "functional-api",
+        "functional-ui",
+        "end-to-end",
+        "performance",
+        "security",
+        "resilience",
+        "other"
+      ]
     },
     "TestDeclaration": {
       "type": "object",
