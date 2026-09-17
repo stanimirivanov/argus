@@ -114,3 +114,19 @@ type Snapshot struct {
 	Components   []Component  `json:"components"`
 	TestSuites   []TestSuite  `json:"testSuites"`
 }
+
+// SnapshotKey identifies one immutable descriptor observation.
+type SnapshotKey struct {
+	Repository RepositoryIdentity `json:"repository"`
+	Revision   Revision           `json:"revision"`
+	APIVersion string             `json:"apiVersion"`
+}
+
+// Key returns the immutable identity used to persist and retrieve the snapshot.
+func (snapshot Snapshot) Key() SnapshotKey {
+	return SnapshotKey{
+		Repository: snapshot.Repository.Identity,
+		Revision:   snapshot.Revision,
+		APIVersion: snapshot.APIVersion,
+	}
+}

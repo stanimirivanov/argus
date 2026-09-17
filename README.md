@@ -5,16 +5,17 @@ which tests should run for a software change, identifies stale or missing test
 coverage, and produces evidence-backed maintenance proposals.
 
 The repository has completed its engineering foundation and now includes a
-real repository-descriptor ingestion boundary: Effect Schema authors the wire
-contract, generated JSON Schema validates it, and Go converts it into catalog
-domain state at a verified immutable revision. PostgreSQL persistence and
-query behavior follow in M03.
+real repository-descriptor ingestion boundary and its first durable catalog
+slice. Effect Schema authors the wire contract, generated JSON Schema validates
+it, Go converts it into catalog domain state at a verified immutable revision,
+and PostgreSQL stores and reconstructs immutable snapshots.
 
 ## Start here
 
 - [Product definition](docs/product/product-definition.md)
 - [Architecture overview](docs/architecture/overview.md)
 - [Contract workspace](contracts/README.md)
+- [PostgreSQL catalog operations](docs/development/postgresql.md)
 - [Proposal decomposition and provenance](docs/proposal.md)
 - [Developer quickstart](docs/development/developer-quickstart.md)
 - [Dependency and license policy](docs/development/dependency-policy.md)
@@ -43,7 +44,11 @@ are declared in the root [go.mod](go.mod) and the isolated
 [actionlint module](tools/actionlint/go.mod), while their invocations remain
 visible in the [Makefile](Makefile).
 
-No external service is required for the current scaffold and descriptor path.
+No external service is required for ordinary builds, contract validation, or
+`make validate`. Catalog persistence requires PostgreSQL 17; the dedicated
+`make db-validate` target creates and removes random databases on an explicitly
+configured loopback test server.
+
 The first quality-tool run requires network access to download the versions
 pinned in the Go module and pnpm lock files; later runs reuse local caches.
 Vulnerability scans also require access to the Go vulnerability database
@@ -73,6 +78,26 @@ Schema, applies catalog-domain invariants, and prints a normalized summary. The
 revision argument represents trusted ingestion context and is deliberately not
 read from the repository-owned document.
 
+## Persist and read catalog snapshots
+
+Apply migrations explicitly before starting a writer. Database URLs are
+secrets and are accepted only through environment configuration:
+
+~~~sh
+export ARGUS_DATABASE_URL='postgres://argus_migrator:...@db.example/argus'
+go run ./cmd/migrate
+
+export ARGUS_DATABASE_URL='postgres://argus_runtime:...@db.example/argus'
+go run ./cmd/catalog import \
+  -revision 0123456789abcdef0123456789abcdef01234567 \
+  contracts/fixtures/repository-descriptor/v1/valid/source-and-test-repositories.json
+~~~
+
+`catalog get` retrieves the same immutable snapshot by repository provider,
+host, opaque provider ID, revision, and descriptor API version. See the
+[PostgreSQL guide](docs/development/postgresql.md) for local setup, grants,
+idempotency, recovery, and complete command examples.
+
 ## Build and verify
 
 ~~~sh
@@ -84,17 +109,22 @@ make fmt-check
 make check
 make test
 make race
+make db-validate
 make vuln
 make license
 make validate
 ~~~
 
-`make validate` is the required non-mutating acceptance suite. It builds both
+`make validate` is the required non-mutating acceptance suite. It builds all
 commands, proves Effect-to-JSON-Schema regeneration, validates the shared
 structural and domain fixture corpus, verifies Go and TypeScript formatting and
 static analysis, checks module integrity, runs ordinary and race-enabled tests
 without cached results, scans Go and production Node dependencies for known
 vulnerabilities, and enforces runtime dependency license policy.
+
+Database-changing pull requests additionally run `make db-validate`. That
+target is intentionally separate from `make validate` so normal development
+does not silently depend on a local database.
 
 The tools are declared through Go's versioned `tool` directives in the root
 module and the isolated actionlint module, protected by their checksum files,
@@ -117,12 +147,14 @@ disable the duplicate implicit `go test` vet pass.
 ## Continuous integration
 
 The [validation workflow](.github/workflows/validate.yml) runs `make validate`
-on Ubuntu 24.04 and Windows Server 2025 for every pull request and every push to
+on Ubuntu 24.04 and Windows Server 2025, plus the PostgreSQL integration suite
+against PostgreSQL 17.11 on Ubuntu, for every pull request and every push to
 `main`; it can also be run manually. The Windows job installs the pinned GNU
 Make 4.4.1 package because GNU Make is not part of the hosted Windows image.
-Both jobs read the exact Go and Node versions from repository files, install
-pnpm from the exact `packageManager` declaration, restore the frozen lockfile,
-and execute the same checked-in acceptance suite.
+The cross-platform matrix reads the exact Go and Node versions from repository
+files, installs pnpm from the exact `packageManager` declaration, restores the
+frozen lockfile, and executes the checked-in acceptance suite. The PostgreSQL
+job needs only the exact Go toolchain and database image.
 
 The root [.gitattributes](.gitattributes) enforces LF line endings for text
 files on every checkout, matching `.editorconfig` and preventing Windows Git

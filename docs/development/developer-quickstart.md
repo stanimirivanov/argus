@@ -9,9 +9,10 @@
   or PowerShell 7.
 - Run `make doctor` to report the effective toolchain, then run `make fmt` and
   `make validate` before review.
-- The current scaffold needs no database, container runtime, cloud account,
-  credentials, or external service. Initial tool and vulnerability checks need
-  network access.
+- Ordinary validation needs no database, container runtime, cloud account, or
+  credentials. Catalog persistence development additionally needs a local
+  PostgreSQL 17 server; database integration tests create disposable databases
+  only on an explicitly configured loopback server.
 - Other operating systems, architectures, shells, and mixed Windows/WSL setups
   are best-effort until they have a CI lane; required checks are never weakened
   to accommodate an unverified environment.
@@ -24,7 +25,7 @@ editor, terminal, package manager, or host customization.
 
 | Tier | Environment | Contract |
 |:--|:--|:--|
-| Verified CI | Ubuntu 24.04 x86-64 with Bash; Windows Server 2025 x86-64 with PowerShell 7 | Every pull request MUST pass `make validate` on both. A failure blocks merge unless the check itself is deliberately changed and reviewed. |
+| Verified CI | Ubuntu 24.04 x86-64 with Bash; Windows Server 2025 x86-64 with PowerShell 7 | Every pull request MUST pass `make validate` on both. Database changes additionally pass `make db-validate` against PostgreSQL 17.11 on Ubuntu. A failure blocks merge unless the check itself is deliberately changed and reviewed. |
 | Supported local | Ubuntu 24.04 x86-64 with Bash; Windows 11 x86-64 with PowerShell 7 | Contributors SHOULD be able to run the complete workflow. Reproducible platform defects are project defects. |
 | Best-effort | Other maintained Linux distributions, macOS, WSL2, ARM64, Git Bash, and other shells | The project accepts fixes that preserve the verified lanes, but does not promise platform-specific diagnosis or make these environments release gates. |
 | Outside the contract | End-of-life operating systems or toolchains, 32-bit hosts, and environments that cannot execute the required checks | Contributors MAY use them for editing, but MUST verify through a supported environment or report checks as not run. |
@@ -46,6 +47,7 @@ an ADR unless it also changes a foundational technology or deployment boundary.
 | GNU Make | 4.3 or newer; CI uses 4.4.1 on Windows | Provide the canonical command surface in the root [`Makefile`](../../Makefile). `nmake` is not a substitute. |
 | Shell | Bash on Linux or PowerShell 7 on Windows | Run setup and Git commands. Make recipes intentionally avoid shell-specific syntax. |
 | Network | Required for initial tool resolution and fresh vulnerability data | Download dependencies pinned by Go and pnpm lock files, and query vulnerability databases. |
+| PostgreSQL | Major version 17 for catalog persistence work | Run explicit migrations and the isolated `make db-validate` integration suite. |
 
 Globally installed `golangci-lint`, `actionlint`, `govulncheck`, `go-licenses`,
 `biome`, `tsx`, and `typescript` binaries are neither required nor
@@ -167,15 +169,18 @@ git status --short
 
 `make check` and `make test` provide useful intermediate feedback.
 `make validate` remains the required complete, non-mutating acceptance suite.
+Database or persistence changes MUST also run `make db-validate` with
+`ARGUS_TEST_POSTGRES_URL` pointing to a disposable loopback PostgreSQL server.
 Run `make doctor` again after changing Go, Git, Make, the host OS, architecture,
 shell, or CI image.
 
 ## Network, credentials, and services
 
-Building and validating the current repository requires no credentials and no
-local database, Kubernetes cluster, container runtime, object store, message
-broker, or GitHub token. Do not add placeholder infrastructure merely to
-anticipate roadmap work.
+Ordinary builds and `make validate` require no credentials, local database,
+Kubernetes cluster, container runtime, object store, message broker, or GitHub
+token. Catalog integration work uses the PostgreSQL setup documented in
+[the database guide](postgresql.md). Do not add placeholder infrastructure
+merely to anticipate later roadmap work.
 
 The first validation run needs access to Go module sources, checksum services,
 and the package registry used by pnpm. Vulnerability checks need the Go and npm

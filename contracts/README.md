@@ -78,6 +78,8 @@ fields, limits, enumerations, and unknown-field rejection. Go then enforces
 semantic invariants:
 
 - keys are unique in their declared scope;
+- one stable repository identity has one owner/name coordinate pair per
+  descriptor;
 - component and test capability references resolve;
 - repeated capability references are rejected;
 - component roots are normalized repository-relative paths; and

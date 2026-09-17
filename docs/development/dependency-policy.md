@@ -62,6 +62,18 @@ dependencies MUST be declared with Go's `tool` directive rather than installed
 implicitly or resolved with `@latest`. GitHub Actions MUST reference only the
 major semantic tag of a reviewed action, such as `actions/checkout@v7`.
 
+The catalog PostgreSQL adapter admits `github.com/jackc/pgx/v5` v5.11.0 as a
+runtime dependency. It provides the native protocol, bounded connection pool,
+transactions, bulk copy, and PostgreSQL error typing needed by the M03 vertical
+slice; reproducing these correctly with the standard library would require a
+driver and protocol implementation. The module is actively maintained,
+requires no process execution, receives a database URL supplied by the
+operator, and is isolated behind `internal/catalog/postgres`. Its upstream MIT
+license and the compatible licenses of reachable runtime dependencies fit the
+runtime allowlist. Removal means replacing this adapter and its connection,
+transaction, copy, and error-classification behavior behind the catalog domain
+boundary.
+
 Tools SHOULD share the root tool graph when their selected versions compile
 together. A tool MUST move to a dedicated module when minimal-version selection
 would otherwise make one pinned tool fail to build. The isolated module remains

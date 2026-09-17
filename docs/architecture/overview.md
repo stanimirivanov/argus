@@ -25,8 +25,11 @@
 - [ADR-0003](../decisions/0003-use-effect-schema-at-contract-boundaries.md)
   selects Effect Schema as the contract source, generated JSON Schema as the
   portable artifact, and consumer-owned domain conversion.
-- Storage technology, queues, and deployment topology remain deferred to ADRs
-  and evidence from vertical slices.
+- [ADR-0004](../decisions/0004-use-postgresql-and-embedded-forward-migrations.md)
+  selects PostgreSQL and explicit embedded forward migrations for catalog
+  persistence.
+- Queues and deployment topology remain deferred to ADRs and evidence from
+  vertical slices.
 
 ## Purpose and authority
 
@@ -37,7 +40,8 @@ MUST be recorded in
 [architecture decision records](../decisions/README.md). ADR-0001 selects the
 control-plane language and cross-project reuse policy; ADR-0002 selects the
 initial repository topology and split criteria; ADR-0003 selects the contract
-authoring and interoperability boundary.
+authoring and interoperability boundary; ADR-0004 selects the catalog database
+and migration policy.
 
 The [product definition](../product/product-definition.md) governs product
 behavior and safety. The [implementation milestones](../roadmap/milestones.md)
@@ -265,7 +269,6 @@ accepted:
 
 | Decision | Candidate direction | Authority |
 |:--|:--|:--|
-| Metadata persistence | PostgreSQL with relational impact edges before a graph database | M03 migration/tooling ADRs |
 | Durable asynchronous work | CI callbacks plus a queue or database-backed work ownership | ADR when required by first workflow |
 | Model provider | Hosted or self-hosted model behind a gateway | Decision after bounded use case and evaluation |
 | Deployment packaging | Local composition first; Kubernetes packaging only when runtime exists | M10 or earlier operational need |

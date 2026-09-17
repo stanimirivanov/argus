@@ -51,6 +51,9 @@ func ImportRepositoryDescriptor(
 	if err := validateRevision(revision); err != nil {
 		return Snapshot{}, fmt.Errorf("validate ingestion revision: %w", err)
 	}
+	if err := validateRepositoryCoordinates(document); err != nil {
+		return Snapshot{}, err
+	}
 
 	capabilities, capabilityKeys, err := importCapabilities(document.Capabilities)
 	if err != nil {
@@ -75,6 +78,34 @@ func ImportRepositoryDescriptor(
 		Components:   components,
 		TestSuites:   testSuites,
 	}, nil
+}
+
+func validateRepositoryCoordinates(document contracts.RepositoryDescriptorV1) error {
+	type coordinates struct {
+		owner string
+		name  string
+	}
+
+	repositories := map[string]coordinates{
+		repositoryIdentityKey(document.Repository): {
+			owner: document.Repository.Owner,
+			name:  document.Repository.Name,
+		},
+	}
+	for index, suite := range document.TestSuites {
+		identity := repositoryIdentityKey(suite.Repository)
+		observed := coordinates{owner: suite.Repository.Owner, name: suite.Repository.Name}
+		if existing, ok := repositories[identity]; ok && existing != observed {
+			return &ValidationError{
+				Path:    fmt.Sprintf("/testSuites/%d/repository", index),
+				Code:    "repository-coordinate-conflict",
+				Message: "one repository identity has conflicting owner or name coordinates",
+			}
+		}
+		repositories[identity] = observed
+	}
+
+	return nil
 }
 
 func validateRevision(revision Revision) error {
@@ -189,8 +220,12 @@ func importTestSuites(
 }
 
 func repositoryScopedKey(repository contracts.RepositoryReference, localKey string) string {
+	return repositoryIdentityKey(repository) + "\x00" + localKey
+}
+
+func repositoryIdentityKey(repository contracts.RepositoryReference) string {
 	return strings.Join(
-		[]string{repository.Provider, repository.Host, repository.ProviderRepositoryID, localKey},
+		[]string{repository.Provider, repository.Host, repository.ProviderRepositoryID},
 		"\x00",
 	)
 }
