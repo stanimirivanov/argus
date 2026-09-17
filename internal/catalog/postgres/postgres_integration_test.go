@@ -7,8 +7,10 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"io/fs"
 	"net"
+	"net/url"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -24,6 +26,39 @@ import (
 )
 
 const testDatabaseURLEnvironment = "ARGUS_TEST_POSTGRES_URL"
+
+func TestDatabaseURLTargetsDisposableDatabase(t *testing.T) {
+	t.Parallel()
+
+	databaseURL, err := databaseURLForName(
+		"postgres://postgres:test@127.0.0.1:5432/postgres?sslmode=disable",
+		"argus_test_0123456789abcdef",
+	)
+	if err != nil {
+		t.Fatalf("derive disposable database URL: %v", err)
+	}
+	config, err := pgx.ParseConfig(databaseURL)
+	if err != nil {
+		t.Fatalf("parse disposable database URL: %v", err)
+	}
+	if config.Database != "argus_test_0123456789abcdef" {
+		t.Fatalf("database = %q, want disposable database", config.Database)
+	}
+	if config.Host != "127.0.0.1" || config.Port != 5432 {
+		t.Fatalf("server address changed: host=%q port=%d", config.Host, config.Port)
+	}
+	if config.Config.TLSConfig != nil {
+		t.Fatal("sslmode query parameter was not preserved")
+	}
+}
+
+func TestDatabaseURLRejectsNonURLConfiguration(t *testing.T) {
+	t.Parallel()
+
+	if _, err := databaseURLForName("host=localhost dbname=postgres", "argus_test_01"); err == nil {
+		t.Fatal("expected keyword connection configuration to be rejected")
+	}
+}
 
 func TestMigrateEmptyDatabaseAndRepeat(t *testing.T) {
 	databaseURL := newTestDatabase(t)
@@ -303,10 +338,30 @@ func newTestDatabase(t *testing.T) string {
 		}
 	})
 
-	testConfig := adminConfig.Copy()
-	testConfig.Database = databaseName
+	testDatabaseURL, err := databaseURLForName(databaseURL, databaseName)
+	if err != nil {
+		t.Fatalf("derive disposable database URL: %v", err)
+	}
 
-	return testConfig.ConnString()
+	return testDatabaseURL
+}
+
+func databaseURLForName(databaseURL, databaseName string) (string, error) {
+	parsed, err := url.Parse(databaseURL)
+	if err != nil {
+		return "", fmt.Errorf("parse PostgreSQL URL: %w", err)
+	}
+	if parsed.Scheme != "postgres" && parsed.Scheme != "postgresql" {
+		return "", errors.New("test database configuration must be a PostgreSQL URL")
+	}
+	if parsed.Host == "" {
+		return "", errors.New("test database URL must include a server address")
+	}
+
+	parsed.Path = "/" + databaseName
+	parsed.RawPath = ""
+
+	return parsed.String(), nil
 }
 
 func isLoopbackHost(host string) bool {

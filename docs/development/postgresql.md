@@ -127,7 +127,10 @@ make db-validate
 The integration suite refuses non-loopback hosts. It creates randomized
 databases through the supplied administrative connection, exercises migration
 and persistence behavior, closes all pools, and drops each database with
-`FORCE`. Never point it at a shared or production server.
+`FORCE`. `ARGUS_TEST_POSTGRES_URL` must use a `postgres://` or
+`postgresql://` URL so the suite can retarget the connection to each generated
+database; PostgreSQL keyword connection strings are rejected. Never point it
+at a shared or production server.
 
 The suite verifies empty and repeated migration, advisory-lock serialization,
 checksum drift rejection, transactional rollback, relational constraints,
