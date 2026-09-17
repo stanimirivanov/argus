@@ -11,11 +11,16 @@ import (
 	"regexp"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 const migrationAdvisoryLock int64 = 418531940723
 
 var migrationNamePattern = regexp.MustCompile(`^[0-9]{14}_[a-z][a-z0-9_]*\.sql$`)
+
+// ErrMigrationDrift means the applied migration ledger is not an exact prefix
+// of the migrations embedded in this binary.
+var ErrMigrationDrift = errors.New("catalog migration history drift")
 
 //go:embed migrations/*.sql
 var embeddedMigrations embed.FS
@@ -26,13 +31,35 @@ type migration struct {
 	sha256   string
 }
 
-// Migrate applies the complete embedded forward migration chain explicitly.
-// The chain and checksum ledger commit atomically under an advisory lock.
-func (store *Store) Migrate(ctx context.Context) error {
-	return migrate(ctx, store, embeddedMigrations)
+// Migrator owns the privileged schema-administration connection pool. It does
+// not expose runtime catalog reads or writes.
+type Migrator struct {
+	pool *pgxpool.Pool
 }
 
-func migrate(ctx context.Context, store *Store, migrationFS fs.FS) error {
+// OpenMigrator validates the secret database configuration and opens a
+// single-connection pool for explicit schema administration.
+func OpenMigrator(ctx context.Context, databaseURL string) (*Migrator, error) {
+	pool, err := openPool(ctx, databaseURL, "argus-migrator", migratorMaxConnections)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Migrator{pool: pool}, nil
+}
+
+// Close releases the schema-administration connection pool.
+func (migrator *Migrator) Close() {
+	migrator.pool.Close()
+}
+
+// Migrate applies the complete embedded forward migration chain explicitly.
+// The chain and checksum ledger commit atomically under an advisory lock.
+func (migrator *Migrator) Migrate(ctx context.Context) error {
+	return applyMigrationChain(ctx, migrator, embeddedMigrations)
+}
+
+func applyMigrationChain(ctx context.Context, migrator *Migrator, migrationFS fs.FS) error {
 	migrations, err := loadMigrations(migrationFS)
 	if err != nil {
 		return err
@@ -41,7 +68,7 @@ func migrate(ctx context.Context, store *Store, migrationFS fs.FS) error {
 	operationContext, cancel := context.WithTimeout(ctx, operationTimeout)
 	defer cancel()
 
-	tx, err := store.pool.BeginTx(operationContext, pgx.TxOptions{IsoLevel: pgx.ReadCommitted})
+	tx, err := migrator.pool.BeginTx(operationContext, pgx.TxOptions{IsoLevel: pgx.ReadCommitted})
 	if err != nil {
 		return classifyDatabaseError(err)
 	}
@@ -49,11 +76,11 @@ func migrate(ctx context.Context, store *Store, migrationFS fs.FS) error {
 		_ = tx.Rollback(operationContext) //nolint:errcheck // Best effort after commit or failure.
 	}()
 
-	if err := prepareMigrationLedger(operationContext, tx); err != nil {
+	if err := lockAndEnsureMigrationLedger(operationContext, tx); err != nil {
 		return err
 	}
 
-	appliedCount, err := validateMigrationLedger(operationContext, tx, migrations)
+	appliedCount, err := verifiedAppliedMigrationCount(operationContext, tx, migrations)
 	if err != nil {
 		return err
 	}
@@ -104,7 +131,9 @@ func loadMigrations(migrationFS fs.FS) ([]migration, error) {
 	return migrations, nil
 }
 
-func prepareMigrationLedger(ctx context.Context, tx pgx.Tx) error {
+// lockAndEnsureMigrationLedger serializes competing migration commands before
+// bootstrapping the only conditional DDL allowed by the migration policy.
+func lockAndEnsureMigrationLedger(ctx context.Context, tx pgx.Tx) error {
 	if _, err := tx.Exec(ctx, "SET LOCAL synchronous_commit = on; SET LOCAL lock_timeout = '15s'"); err != nil {
 		return classifyDatabaseError(err)
 	}
@@ -130,7 +159,9 @@ func prepareMigrationLedger(ctx context.Context, tx pgx.Tx) error {
 	return nil
 }
 
-func validateMigrationLedger(ctx context.Context, tx pgx.Tx, expected []migration) (int, error) {
+// verifiedAppliedMigrationCount requires the ledger to be an exact prefix of
+// the embedded chain and returns the first migration that remains to apply.
+func verifiedAppliedMigrationCount(ctx context.Context, tx pgx.Tx, expected []migration) (int, error) {
 	rows, err := tx.Query(
 		ctx,
 		"SELECT version, sha256 FROM argus_catalog.schema_migrations ORDER BY version",

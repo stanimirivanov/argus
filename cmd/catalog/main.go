@@ -14,6 +14,7 @@ import (
 
 	"github.com/stanimirivanov/argus/contracts"
 	"github.com/stanimirivanov/argus/internal/catalog"
+	"github.com/stanimirivanov/argus/internal/catalog/descriptor"
 	"github.com/stanimirivanov/argus/internal/catalog/postgres"
 )
 
@@ -33,8 +34,8 @@ func main() {
 }
 
 type importResult struct {
-	Created  bool             `json:"created"`
-	Snapshot catalog.Snapshot `json:"snapshot"`
+	Created  bool           `json:"created"`
+	Snapshot snapshotOutput `json:"snapshot"`
 }
 
 func run(ctx context.Context, arguments []string, databaseURL string, output io.Writer) error {
@@ -76,7 +77,7 @@ func runImport(ctx context.Context, arguments []string, databaseURL string, outp
 	if err != nil {
 		return err
 	}
-	snapshot, err := catalog.ImportRepositoryDescriptor(document, revision)
+	snapshot, err := descriptor.Import(document, revision)
 	if err != nil {
 		return fmt.Errorf("import descriptor: %w", err)
 	}
@@ -87,16 +88,16 @@ func runImport(ctx context.Context, arguments []string, databaseURL string, outp
 	}
 	defer store.Close()
 
-	created, err := store.SaveSnapshot(ctx, snapshot)
+	service := catalog.NewSnapshotService(store)
+	result, err := service.IngestSnapshot(ctx, snapshot)
 	if err != nil {
 		return fmt.Errorf("persist catalog snapshot: %w", err)
 	}
-	persisted, err := store.GetSnapshot(ctx, snapshot.Key())
-	if err != nil {
-		return fmt.Errorf("read persisted catalog snapshot: %w", err)
-	}
 
-	return encodeJSON(output, importResult{Created: created, Snapshot: persisted})
+	return encodeJSON(output, importResult{
+		Created:  result.Created,
+		Snapshot: newSnapshotOutput(result.Snapshot),
+	})
 }
 
 func runGet(ctx context.Context, arguments []string, databaseURL string, output io.Writer) error {
@@ -125,7 +126,8 @@ func runGet(ctx context.Context, arguments []string, databaseURL string, output 
 	}
 	defer store.Close()
 
-	snapshot, err := store.GetSnapshot(ctx, catalog.SnapshotKey{
+	service := catalog.NewSnapshotService(store)
+	snapshot, err := service.GetSnapshot(ctx, catalog.SnapshotKey{
 		Repository: catalog.RepositoryIdentity{
 			Provider:             catalog.Provider(*provider),
 			Host:                 *host,
@@ -138,14 +140,14 @@ func runGet(ctx context.Context, arguments []string, databaseURL string, output 
 		return fmt.Errorf("read catalog snapshot: %w", err)
 	}
 
-	return encodeJSON(output, snapshot)
+	return encodeJSON(output, newSnapshotOutput(snapshot))
 }
 
 func openStore(ctx context.Context, databaseURL string) (*postgres.Store, error) {
 	if databaseURL == "" {
 		return nil, errors.New("ARGUS_DATABASE_URL is required")
 	}
-	store, err := postgres.Open(ctx, databaseURL)
+	store, err := postgres.OpenStore(ctx, databaseURL)
 	if err != nil {
 		return nil, fmt.Errorf("open catalog store: %w", err)
 	}

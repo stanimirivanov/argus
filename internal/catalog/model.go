@@ -1,4 +1,3 @@
-// Package catalog defines the normalized repository and test catalog model.
 package catalog
 
 // Provider identifies a supported source-code hosting provider.
@@ -28,36 +27,36 @@ const (
 
 // Revision is an immutable, ingestion-verified source revision.
 type Revision struct {
-	Algorithm RevisionAlgorithm `json:"algorithm"`
-	Digest    string            `json:"digest"`
+	Algorithm RevisionAlgorithm
+	Digest    string
 }
 
 // RepositoryIdentity is stable across repository renames and ownership
 // transfers. ProviderRepositoryID is deliberately opaque.
 type RepositoryIdentity struct {
-	Provider             Provider `json:"provider"`
-	Host                 string   `json:"host"`
-	ProviderRepositoryID string   `json:"providerRepositoryId"`
+	Provider             Provider
+	Host                 string
+	ProviderRepositoryID string
 }
 
 // Repository combines stable identity with mutable display coordinates.
 type Repository struct {
-	Identity RepositoryIdentity `json:"identity"`
-	Owner    string             `json:"owner"`
-	Name     string             `json:"name"`
+	Identity RepositoryIdentity
+	Owner    string
+	Name     string
 }
 
 // Capability is a repository-scoped product behavior.
 type Capability struct {
-	Key  string `json:"key"`
-	Name string `json:"name"`
+	Key  string
+	Name string
 }
 
 // Component is a repository-scoped source tree root mapped to capabilities.
 type Component struct {
-	Key          string   `json:"key"`
-	Root         string   `json:"root"`
-	Capabilities []string `json:"capabilities"`
+	Key          string
+	Root         string
+	Capabilities []string
 }
 
 // TestFamily classifies the intent and execution boundary of a test suite.
@@ -90,36 +89,37 @@ const (
 
 // Test is a stable suite-scoped test mapped to source capabilities.
 type Test struct {
-	Key          string   `json:"key"`
-	Name         string   `json:"name"`
-	Capabilities []string `json:"capabilities"`
+	Key          string
+	Name         string
+	Capabilities []string
 }
 
 // TestSuite groups tests that share a repository, family, and adapter.
 type TestSuite struct {
-	Key        string     `json:"key"`
-	Repository Repository `json:"repository"`
-	Family     TestFamily `json:"family"`
-	Adapter    string     `json:"adapter"`
-	Tests      []Test     `json:"tests"`
+	Key        string
+	Repository Repository
+	Family     TestFamily
+	Adapter    string
+	Tests      []Test
 }
 
 // Snapshot is the normalized catalog state observed at one immutable source
-// revision.
+// revision. Values crossing a storage boundary must first pass a validated
+// ingress adapter; the exported fields are not an alternative validation API.
 type Snapshot struct {
-	APIVersion   string       `json:"apiVersion"`
-	Repository   Repository   `json:"repository"`
-	Revision     Revision     `json:"revision"`
-	Capabilities []Capability `json:"capabilities"`
-	Components   []Component  `json:"components"`
-	TestSuites   []TestSuite  `json:"testSuites"`
+	APIVersion   string
+	Repository   Repository
+	Revision     Revision
+	Capabilities []Capability
+	Components   []Component
+	TestSuites   []TestSuite
 }
 
 // SnapshotKey identifies one immutable descriptor observation.
 type SnapshotKey struct {
-	Repository RepositoryIdentity `json:"repository"`
-	Revision   Revision           `json:"revision"`
-	APIVersion string             `json:"apiVersion"`
+	Repository RepositoryIdentity
+	Revision   Revision
+	APIVersion string
 }
 
 // Key returns the immutable identity used to persist and retrieve the snapshot.

@@ -11,6 +11,7 @@ import (
 
 	"github.com/stanimirivanov/argus/contracts"
 	"github.com/stanimirivanov/argus/internal/catalog"
+	"github.com/stanimirivanov/argus/internal/catalog/descriptor"
 )
 
 const usageText = "usage: descriptor -revision <digest> [-algorithm git-sha1] <descriptor.json>"
@@ -23,13 +24,24 @@ func main() {
 }
 
 type summary struct {
-	APIVersion       string                     `json:"apiVersion"`
-	SourceRepository catalog.RepositoryIdentity `json:"sourceRepository"`
-	Revision         catalog.Revision           `json:"revision"`
-	CapabilityCount  int                        `json:"capabilityCount"`
-	ComponentCount   int                        `json:"componentCount"`
-	TestSuiteCount   int                        `json:"testSuiteCount"`
-	TestCount        int                        `json:"testCount"`
+	APIVersion       string                   `json:"apiVersion"`
+	SourceRepository repositoryIdentityOutput `json:"sourceRepository"`
+	Revision         revisionOutput           `json:"revision"`
+	CapabilityCount  int                      `json:"capabilityCount"`
+	ComponentCount   int                      `json:"componentCount"`
+	TestSuiteCount   int                      `json:"testSuiteCount"`
+	TestCount        int                      `json:"testCount"`
+}
+
+type repositoryIdentityOutput struct {
+	Provider             catalog.Provider `json:"provider"`
+	Host                 string           `json:"host"`
+	ProviderRepositoryID string           `json:"providerRepositoryId"`
+}
+
+type revisionOutput struct {
+	Algorithm catalog.RevisionAlgorithm `json:"algorithm"`
+	Digest    string                    `json:"digest"`
 }
 
 func run(arguments []string, output io.Writer) error {
@@ -57,15 +69,15 @@ func run(arguments []string, output io.Writer) error {
 	if err != nil {
 		return err
 	}
-	snapshot, err := catalog.ImportRepositoryDescriptor(document, revision)
+	snapshot, err := descriptor.Import(document, revision)
 	if err != nil {
 		return fmt.Errorf("import descriptor: %w", err)
 	}
 
 	result := summary{
 		APIVersion:       snapshot.APIVersion,
-		SourceRepository: snapshot.Repository.Identity,
-		Revision:         snapshot.Revision,
+		SourceRepository: repositoryIdentityOutput(snapshot.Repository.Identity),
+		Revision:         revisionOutput(snapshot.Revision),
 		CapabilityCount:  len(snapshot.Capabilities),
 		ComponentCount:   len(snapshot.Components),
 		TestSuiteCount:   len(snapshot.TestSuites),

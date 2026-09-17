@@ -9,8 +9,8 @@ import (
 )
 
 // GetSnapshot reconstructs one immutable catalog snapshot in deterministic key
-// order. Missing and invalid keys both return ErrNotFound without disclosing
-// other catalog identities.
+// order. Missing and invalid keys both return catalog.ErrNotFound without
+// disclosing other catalog identities.
 func (store *Store) GetSnapshot(ctx context.Context, key catalog.SnapshotKey) (catalog.Snapshot, error) {
 	operationContext, cancel := context.WithTimeout(ctx, operationTimeout)
 	defer cancel()
@@ -26,7 +26,7 @@ func (store *Store) GetSnapshot(ctx context.Context, key catalog.SnapshotKey) (c
 		_ = tx.Rollback(operationContext) //nolint:errcheck // Best effort after commit or failure.
 	}()
 
-	snapshotID, snapshot, err := readSnapshotIdentity(operationContext, tx, key)
+	snapshotID, snapshot, err := readSnapshotHeader(operationContext, tx, key)
 	if err != nil {
 		return catalog.Snapshot{}, err
 	}
@@ -46,7 +46,7 @@ func (store *Store) GetSnapshot(ctx context.Context, key catalog.SnapshotKey) (c
 	return snapshot, nil
 }
 
-func readSnapshotIdentity(
+func readSnapshotHeader(
 	ctx context.Context,
 	tx pgx.Tx,
 	key catalog.SnapshotKey,
@@ -159,8 +159,10 @@ func readComponents(ctx context.Context, tx pgx.Tx, snapshotID int64) ([]catalog
 	return components, nil
 }
 
+// readTestSuites reconstructs nested tests in two phases so suite metadata and
+// repository-scoped composite identities remain explicit and deterministic.
 func readTestSuites(ctx context.Context, tx pgx.Tx, snapshotID int64) ([]catalog.TestSuite, error) {
-	suites, suiteIndexes, err := readSuiteRows(ctx, tx, snapshotID)
+	suites, suiteIndexes, err := readSuiteHeaders(ctx, tx, snapshotID)
 	if err != nil {
 		return nil, err
 	}
@@ -219,7 +221,7 @@ func readTestSuites(ctx context.Context, tx pgx.Tx, snapshotID int64) ([]catalog
 			return nil, classifyDatabaseError(err)
 		}
 
-		index, ok := suiteIndexes[suiteMapKey(identity, suiteKey)]
+		index, ok := suiteIndexes[suiteIdentity{Repository: identity, Key: suiteKey}]
 		if !ok {
 			return nil, fmt.Errorf("reconstruct catalog snapshot: test references missing suite")
 		}
@@ -232,11 +234,11 @@ func readTestSuites(ctx context.Context, tx pgx.Tx, snapshotID int64) ([]catalog
 	return suites, nil
 }
 
-func readSuiteRows(
+func readSuiteHeaders(
 	ctx context.Context,
 	tx pgx.Tx,
 	snapshotID int64,
-) ([]catalog.TestSuite, map[string]int, error) {
+) ([]catalog.TestSuite, map[suiteIdentity]int, error) {
 	rows, err := tx.Query(ctx, `
 		SELECT
 			r.provider,
@@ -259,7 +261,7 @@ func readSuiteRows(
 	defer rows.Close()
 
 	suites := make([]catalog.TestSuite, 0)
-	indexes := make(map[string]int)
+	indexes := make(map[suiteIdentity]int)
 	for rows.Next() {
 		var suite catalog.TestSuite
 		if err := rows.Scan(
@@ -275,7 +277,7 @@ func readSuiteRows(
 			return nil, nil, classifyDatabaseError(err)
 		}
 		suite.Tests = make([]catalog.Test, 0)
-		indexes[suiteMapKey(suite.Repository.Identity, suite.Key)] = len(suites)
+		indexes[suiteIdentity{Repository: suite.Repository.Identity, Key: suite.Key}] = len(suites)
 		suites = append(suites, suite)
 	}
 	if err := rows.Err(); err != nil {
@@ -285,6 +287,7 @@ func readSuiteRows(
 	return suites, indexes, nil
 }
 
-func suiteMapKey(identity catalog.RepositoryIdentity, suiteKey string) string {
-	return repositorySortKey(identity) + "\x00" + suiteKey
+type suiteIdentity struct {
+	Repository catalog.RepositoryIdentity
+	Key        string
 }

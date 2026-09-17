@@ -30,13 +30,13 @@ func run(ctx context.Context, databaseURL string, output io.Writer) error {
 		return errors.New("ARGUS_DATABASE_URL is required")
 	}
 
-	store, err := postgres.Open(ctx, databaseURL)
+	migrator, err := postgres.OpenMigrator(ctx, databaseURL)
 	if err != nil {
-		return fmt.Errorf("open catalog store: %w", err)
+		return fmt.Errorf("open catalog migrator: %w", err)
 	}
-	defer store.Close()
+	defer migrator.Close()
 
-	if err := store.Migrate(ctx); err != nil {
+	if err := migrator.Migrate(ctx); err != nil {
 		return fmt.Errorf("migrate catalog: %w", err)
 	}
 	if _, err := fmt.Fprintln(output, "catalog migrations applied"); err != nil {

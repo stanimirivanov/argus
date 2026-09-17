@@ -38,7 +38,8 @@ actually fetched.
 | `fixtures/repository-descriptor/v1/manifest.json` | Shared structural and domain expectations. |
 | `fixtures/repository-descriptor/v1/` | Positive and negative compatibility documents. |
 | `repository_descriptor.go` | Go schema-validation boundary and transport DTO. |
-| `../internal/catalog/` | Idiomatic Go model and semantic import validation. |
+| `../internal/catalog/descriptor/` | Repository-descriptor-to-domain conversion and semantic validation. |
+| `../internal/catalog/` | Catalog domain vocabulary, use cases, errors, and persistence port. |
 
 Only the Effect source is edited to change wire structure. `make
 generate-contracts` updates the generated JSON Schema; `make check` fails if

@@ -1,7 +1,6 @@
 package postgres
 
 import (
-	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -12,10 +11,10 @@ import (
 )
 
 // SaveSnapshot persists one complete immutable catalog snapshot atomically.
-// It returns false for an exact retry and ErrConflict when the same snapshot
-// identity is already bound to different normalized content.
+// It returns false for an exact retry and catalog.ErrConflict when the same
+// snapshot identity is already bound to different normalized content.
 func (store *Store) SaveSnapshot(ctx context.Context, snapshot catalog.Snapshot) (bool, error) {
-	canonical := canonicalSnapshot(snapshot)
+	canonical := catalog.CanonicalSnapshot(snapshot)
 	fingerprint, err := snapshotFingerprint(canonical)
 	if err != nil {
 		return false, fmt.Errorf("fingerprint catalog snapshot: %w", err)
@@ -30,12 +29,12 @@ func (store *Store) SaveSnapshot(ctx context.Context, snapshot catalog.Snapshot)
 		_ = tx.Rollback(operationContext) //nolint:errcheck // Best effort after commit or failure.
 	}()
 
-	sourceRepositoryID, err := ensureRepository(operationContext, tx, canonical.Repository)
+	sourceRepositoryID, err := findOrCreateRepositoryIdentity(operationContext, tx, canonical.Repository)
 	if err != nil {
 		return false, err
 	}
 
-	snapshotID, created, err := insertSnapshot(
+	snapshotID, created, err := claimSnapshotIdentity(
 		operationContext,
 		tx,
 		canonical,
@@ -46,11 +45,11 @@ func (store *Store) SaveSnapshot(ctx context.Context, snapshot catalog.Snapshot)
 		return created, err
 	}
 
-	repositoryIDs, err := ensureSnapshotRepositories(operationContext, tx, canonical)
+	repositoryIDs, err := resolveSnapshotRepositoryIDs(operationContext, tx, canonical)
 	if err != nil {
 		return false, err
 	}
-	if err := copySnapshotRows(operationContext, tx, snapshotID, canonical, repositoryIDs); err != nil {
+	if err := insertSnapshotGraph(operationContext, tx, snapshotID, canonical, repositoryIDs); err != nil {
 		return false, err
 	}
 	if err := tx.Commit(operationContext); err != nil {
@@ -60,7 +59,9 @@ func (store *Store) SaveSnapshot(ctx context.Context, snapshot catalog.Snapshot)
 	return true, nil
 }
 
-func ensureRepository(ctx context.Context, tx pgx.Tx, repository catalog.Repository) (int64, error) {
+// findOrCreateRepositoryIdentity resolves the provider identity without
+// treating mutable owner/name coordinates as part of uniqueness.
+func findOrCreateRepositoryIdentity(ctx context.Context, tx pgx.Tx, repository catalog.Repository) (int64, error) {
 	if _, err := tx.Exec(ctx, `
 		INSERT INTO argus_catalog.repositories (
 			provider,
@@ -98,7 +99,9 @@ func ensureRepository(ctx context.Context, tx pgx.Tx, repository catalog.Reposit
 	return repositoryID, nil
 }
 
-func insertSnapshot(
+// claimSnapshotIdentity uses insert-then-read so concurrent writers agree on
+// one immutable identity and exact retries can be distinguished from conflicts.
+func claimSnapshotIdentity(
 	ctx context.Context,
 	tx pgx.Tx,
 	snapshot catalog.Snapshot,
@@ -156,13 +159,16 @@ func insertSnapshot(
 		return 0, false, classifyDatabaseError(err)
 	}
 	if existingFingerprint != fingerprint {
-		return 0, false, ErrConflict
+		return 0, false, catalog.ErrConflict
 	}
 
 	return snapshotID, false, nil
 }
 
-func ensureSnapshotRepositories(
+// resolveSnapshotRepositoryIDs sorts identities to keep concurrent lock order
+// stable, then refreshes only the repository table's latest display coordinates.
+// Historical coordinates remain stored on the immutable snapshot and suites.
+func resolveSnapshotRepositoryIDs(
 	ctx context.Context,
 	tx pgx.Tx,
 	snapshot catalog.Snapshot,
@@ -178,14 +184,12 @@ func ensureSnapshotRepositories(
 	for identity := range repositories {
 		identities = append(identities, identity)
 	}
-	slices.SortFunc(identities, func(left, right catalog.RepositoryIdentity) int {
-		return cmp.Compare(repositorySortKey(left), repositorySortKey(right))
-	})
+	slices.SortFunc(identities, compareRepositoryIdentities)
 
 	repositoryIDs := make(map[catalog.RepositoryIdentity]int64, len(repositories))
 	for _, identity := range identities {
 		repository := repositories[identity]
-		repositoryID, err := ensureRepository(ctx, tx, repository)
+		repositoryID, err := findOrCreateRepositoryIdentity(ctx, tx, repository)
 		if err != nil {
 			return nil, err
 		}
@@ -202,193 +206,4 @@ func ensureSnapshotRepositories(
 	}
 
 	return repositoryIDs, nil
-}
-
-func copySnapshotRows(
-	ctx context.Context,
-	tx pgx.Tx,
-	snapshotID int64,
-	snapshot catalog.Snapshot,
-	repositoryIDs map[catalog.RepositoryIdentity]int64,
-) error {
-	copyOperations := []struct {
-		table   pgx.Identifier
-		columns []string
-		rows    [][]any
-	}{
-		{
-			table:   pgx.Identifier{"argus_catalog", "capabilities"},
-			columns: []string{"snapshot_id", "capability_key", "capability_name"},
-			rows:    capabilityRows(snapshotID, snapshot.Capabilities),
-		},
-		{
-			table:   pgx.Identifier{"argus_catalog", "components"},
-			columns: []string{"snapshot_id", "component_key", "component_root"},
-			rows:    componentRows(snapshotID, snapshot.Components),
-		},
-		{
-			table:   pgx.Identifier{"argus_catalog", "component_capabilities"},
-			columns: []string{"snapshot_id", "component_key", "capability_key"},
-			rows:    componentCapabilityRows(snapshotID, snapshot.Components),
-		},
-		{
-			table: pgx.Identifier{"argus_catalog", "test_suites"},
-			columns: []string{
-				"snapshot_id",
-				"test_repository_id",
-				"suite_key",
-				"test_repository_owner_name",
-				"test_repository_name",
-				"test_family",
-				"adapter_name",
-			},
-			rows: testSuiteRows(snapshotID, snapshot.TestSuites, repositoryIDs),
-		},
-		{
-			table: pgx.Identifier{"argus_catalog", "tests"},
-			columns: []string{
-				"snapshot_id",
-				"test_repository_id",
-				"suite_key",
-				"test_key",
-				"test_name",
-			},
-			rows: testRows(snapshotID, snapshot.TestSuites, repositoryIDs),
-		},
-		{
-			table: pgx.Identifier{"argus_catalog", "test_capabilities"},
-			columns: []string{
-				"snapshot_id",
-				"test_repository_id",
-				"suite_key",
-				"test_key",
-				"capability_key",
-			},
-			rows: testCapabilityRows(snapshotID, snapshot.TestSuites, repositoryIDs),
-		},
-	}
-
-	for _, operation := range copyOperations {
-		if err := copyRows(ctx, tx, operation.table, operation.columns, operation.rows); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func copyRows(
-	ctx context.Context,
-	tx pgx.Tx,
-	table pgx.Identifier,
-	columns []string,
-	rows [][]any,
-) error {
-	if len(rows) == 0 {
-		return nil
-	}
-
-	copied, err := tx.CopyFrom(ctx, table, columns, pgx.CopyFromRows(rows))
-	if err != nil {
-		return classifyDatabaseError(err)
-	}
-	if copied != int64(len(rows)) {
-		return ErrUnavailable
-	}
-
-	return nil
-}
-
-func capabilityRows(snapshotID int64, capabilities []catalog.Capability) [][]any {
-	rows := make([][]any, 0, len(capabilities))
-	for _, capability := range capabilities {
-		rows = append(rows, []any{snapshotID, capability.Key, capability.Name})
-	}
-
-	return rows
-}
-
-func componentRows(snapshotID int64, components []catalog.Component) [][]any {
-	rows := make([][]any, 0, len(components))
-	for _, component := range components {
-		rows = append(rows, []any{snapshotID, component.Key, component.Root})
-	}
-
-	return rows
-}
-
-func componentCapabilityRows(snapshotID int64, components []catalog.Component) [][]any {
-	var rows [][]any
-	for _, component := range components {
-		for _, capability := range component.Capabilities {
-			rows = append(rows, []any{snapshotID, component.Key, capability})
-		}
-	}
-
-	return rows
-}
-
-func testSuiteRows(
-	snapshotID int64,
-	suites []catalog.TestSuite,
-	repositoryIDs map[catalog.RepositoryIdentity]int64,
-) [][]any {
-	rows := make([][]any, 0, len(suites))
-	for _, suite := range suites {
-		rows = append(rows, []any{
-			snapshotID,
-			repositoryIDs[suite.Repository.Identity],
-			suite.Key,
-			suite.Repository.Owner,
-			suite.Repository.Name,
-			suite.Family,
-			suite.Adapter,
-		})
-	}
-
-	return rows
-}
-
-func testRows(
-	snapshotID int64,
-	suites []catalog.TestSuite,
-	repositoryIDs map[catalog.RepositoryIdentity]int64,
-) [][]any {
-	var rows [][]any
-	for _, suite := range suites {
-		for _, test := range suite.Tests {
-			rows = append(rows, []any{
-				snapshotID,
-				repositoryIDs[suite.Repository.Identity],
-				suite.Key,
-				test.Key,
-				test.Name,
-			})
-		}
-	}
-
-	return rows
-}
-
-func testCapabilityRows(
-	snapshotID int64,
-	suites []catalog.TestSuite,
-	repositoryIDs map[catalog.RepositoryIdentity]int64,
-) [][]any {
-	var rows [][]any
-	for _, suite := range suites {
-		for _, test := range suite.Tests {
-			for _, capability := range test.Capabilities {
-				rows = append(rows, []any{
-					snapshotID,
-					repositoryIDs[suite.Repository.Identity],
-					suite.Key,
-					test.Key,
-					capability,
-				})
-			}
-		}
-	}
-
-	return rows
 }
