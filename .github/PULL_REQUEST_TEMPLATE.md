@@ -24,6 +24,7 @@ Assumptions and unresolved questions:
 - [ ] Static analysis and type checking
 - [ ] Unit/application tests
 - [ ] Integration/contract tests where applicable
+- [ ] Generated contract artifacts are reproducible where applicable
 - [ ] Race/concurrency/fuzz checks where applicable
 - [ ] Migration empty-database and upgrade checks where applicable
 - [ ] Vulnerability, dependency, and license checks

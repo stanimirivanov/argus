@@ -30,13 +30,14 @@ TOOL_LICENSE_EXCEPTIONS := \
 	--ignore github.com/leonklingele/grouper \
 	--ignore github.com/xen0n/gosmopolitan
 
-.PHONY: help doctor build fmt fmt-check check test race vuln license validate
+.PHONY: help doctor build generate-contracts fmt fmt-check check test race vuln license validate
 
 help:
 	@echo Argus engineering-foundation command surface
 	@echo   make doctor  Report the effective local development toolchain
 	@echo   make build  Compile all Go packages
-	@echo   make fmt    Format Go sources and imports
+	@echo   make generate-contracts  Regenerate JSON Schema from Effect Schema
+	@echo   make fmt    Format Go and TypeScript sources
 	@echo   make fmt-check  Verify formatting without changes
 	@echo   make check  Run format, lint, static-analysis, and module checks
 	@echo   make test   Run ordinary tests without cached results
@@ -49,18 +50,27 @@ doctor:
 	@git --version
 	@go version
 	@go env -json GOVERSION GOOS GOARCH GOTOOLCHAIN CGO_ENABLED
+	@node --version
+	@pnpm --version
 	@$(MAKE) --version
 
 build:
-	go build -o bin/ ./cmd/control-plane
+	go build -o bin/ ./cmd/...
+
+generate-contracts:
+	pnpm contracts:generate
 
 fmt:
 	$(GOLANGCI_LINT) fmt
+	pnpm format
 
 fmt-check:
 	$(GOLANGCI_LINT) fmt --diff
+	pnpm format:check
 
 check: fmt-check
+	pnpm contracts:check
+	pnpm typecheck
 	$(GOLANGCI_LINT) config verify
 	$(GOLANGCI_LINT) run ./...
 	$(ACTIONLINT)
@@ -71,6 +81,7 @@ check: fmt-check
 
 test:
 	go test -vet=off -count=1 ./...
+	pnpm test
 
 race:
 	go test -vet=off -race -count=1 ./...
@@ -78,10 +89,12 @@ race:
 vuln:
 	$(GOVULNCHECK) ./...
 	go -C tools/actionlint tool govulncheck github.com/rhysd/actionlint/cmd/actionlint
+	pnpm audit --prod --audit-level high
 
 license:
 	$(GO_LICENSES) check --include_tests ./... --allowed_licenses $(RUNTIME_ALLOWED_LICENSES)
 	$(GO_LICENSES) check $(TOOL_PACKAGES) --allowed_licenses $(DEVELOPMENT_ALLOWED_LICENSES) $(TOOL_LICENSE_EXCEPTIONS)
 	go -C tools/actionlint tool go-licenses check github.com/rhysd/actionlint/cmd/actionlint --allowed_licenses $(RUNTIME_ALLOWED_LICENSES)
+	pnpm licenses:check
 
 validate: build check test race vuln license

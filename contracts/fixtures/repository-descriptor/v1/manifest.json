@@ -1,0 +1,54 @@
+{
+  "fixtures": [
+    {
+      "path": "fixtures/repository-descriptor/v1/valid/source-and-test-repositories.json",
+      "schemaValid": true,
+      "domainValid": true
+    },
+    {
+      "path": "fixtures/repository-descriptor/v1/invalid/invalid-key.json",
+      "schemaValid": false,
+      "domainValid": false
+    },
+    {
+      "path": "fixtures/repository-descriptor/v1/invalid/unknown-field.json",
+      "schemaValid": false,
+      "domainValid": false
+    },
+    {
+      "path": "fixtures/repository-descriptor/v1/invalid/duplicate-capability.json",
+      "schemaValid": true,
+      "domainValid": false
+    },
+    {
+      "path": "fixtures/repository-descriptor/v1/invalid/unknown-capability-reference.json",
+      "schemaValid": true,
+      "domainValid": false
+    },
+    {
+      "path": "fixtures/repository-descriptor/v1/invalid/duplicate-component.json",
+      "schemaValid": true,
+      "domainValid": false
+    },
+    {
+      "path": "fixtures/repository-descriptor/v1/invalid/duplicate-capability-reference.json",
+      "schemaValid": true,
+      "domainValid": false
+    },
+    {
+      "path": "fixtures/repository-descriptor/v1/invalid/invalid-component-root.json",
+      "schemaValid": true,
+      "domainValid": false
+    },
+    {
+      "path": "fixtures/repository-descriptor/v1/invalid/duplicate-test-suite.json",
+      "schemaValid": true,
+      "domainValid": false
+    },
+    {
+      "path": "fixtures/repository-descriptor/v1/invalid/duplicate-test.json",
+      "schemaValid": true,
+      "domainValid": false
+    }
+  ]
+}

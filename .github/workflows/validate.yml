@@ -47,6 +47,21 @@ jobs:
             tools/actionlint/go.mod
             tools/actionlint/go.sum
 
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install TypeScript dependencies
+        run: pnpm install --frozen-lockfile
+
       - name: Install GNU Make on Windows
         if: runner.os == 'Windows'
         shell: pwsh

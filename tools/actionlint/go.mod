@@ -1,6 +1,6 @@
 module github.com/stanimirivanov/argus/tools/actionlint
 
-go 1.26.4
+go 1.26.6
 
 tool (
 	github.com/google/go-licenses/v2
