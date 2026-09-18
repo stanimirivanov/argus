@@ -203,6 +203,12 @@ Acceptance ingredients:
 Completion means an API-changing pull request produces a reproducible,
 explainable capability impact result.
 
+The OpenAPI vertical slice now discovers changed OpenAPI 3 documents at
+immutable base/head revisions, persists semantic document and operation
+evidence, maps explicit `x-argus-capabilities`, retains partial and unmapped
+evidence, and exposes a local versioned query. Remaining M04 work broadens
+ChangeSet normalization beyond OpenAPI before M05 consumes this result.
+
 ## M05 - Functional API selection
 
 **Message:** Produce and execute the first cross-repository impacted-test

@@ -74,6 +74,17 @@ runtime allowlist. Removal means replacing this adapter and its connection,
 transaction, copy, and error-classification behavior behind the catalog domain
 boundary.
 
+The OpenAPI impact adapter admits `github.com/pb33f/libopenapi` v0.38.7 as a
+runtime dependency. It supplies OpenAPI 3.0/3.1/3.2 parsing and semantic
+document comparison; reproducing that standards surface locally would create a
+larger and less reviewable parser. The selected release is active and MIT
+licensed, and its reachable runtime dependencies use allowed permissive
+licenses. Argus disables remote and filesystem reference lookup, passes only
+bounded repository bytes, and does not expose credentials or process execution
+to the library. The import is isolated under
+`internal/change/adapters/openapi`; removal means replacing that adapter while
+preserving analyzer conformance and persisted analyzer-version semantics.
+
 Tools SHOULD share the root tool graph when their selected versions compile
 together. A tool MUST move to a dedicated module when minimal-version selection
 would otherwise make one pinned tool fail to build. The isolated module remains

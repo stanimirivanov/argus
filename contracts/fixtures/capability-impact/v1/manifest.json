@@ -1,0 +1,12 @@
+{
+  "fixtures": [
+    {
+      "path": "fixtures/capability-impact/v1/valid/orders-api.json",
+      "schemaValid": true
+    },
+    {
+      "path": "fixtures/capability-impact/v1/invalid/unknown-status.json",
+      "schemaValid": false
+    }
+  ]
+}

@@ -73,12 +73,30 @@ func TestHexagonalImportBoundaries(t *testing.T) {
 				"github.com/jackc/pgx",
 				"github.com/stanimirivanov/argus/contracts",
 				changeImportPath + "/adapters",
+				changeImportPath + "/impact",
+				changeImportPath + "/ingest",
+				changeImportPath + "/workflow",
+			},
+		},
+		{
+			name:      "change application capabilities depend inward",
+			directory: changeRoot,
+			recursive: true,
+			includeDirectories: []string{
+				filepath.Join(changeRoot, "impact"),
+				filepath.Join(changeRoot, "ingest"),
+			},
+			forbidden: []string{
+				"github.com/jackc/pgx",
+				"github.com/stanimirivanov/argus/contracts",
+				changeImportPath + "/adapters",
+				changeImportPath + "/impact",
 				changeImportPath + "/ingest",
 			},
 		},
 		{
-			name:      "change ingestion application depends inward",
-			directory: filepath.Join(changeRoot, "ingest"),
+			name:      "change workflow only composes application capabilities",
+			directory: filepath.Join(changeRoot, "workflow"),
 			recursive: true,
 			forbidden: []string{
 				"github.com/jackc/pgx",

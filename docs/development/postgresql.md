@@ -192,6 +192,25 @@ migration is additive: it creates `change_sets` and `change_files`, performs no
 backfill or table rewrite, and remains compatible with older binaries that do
 not use these tables. Application rollback leaves the unused evidence intact.
 
+Semantic OpenAPI processing adds one immutable assessment per change set plus
+typed document, operation, capability-mapping, and warning rows. A canonical
+impact SHA-256 makes exact retries idempotent and rejects divergent output for
+the same change identity. Provider document reads and semantic analysis finish
+before the short database transaction begins. Reads use repeatable read so the
+assessment and all explainability rows come from one snapshot.
+
+Inspect a completed assessment locally:
+
+~~~sh
+go run ./cmd/catalog get-change-impact \
+  -provider github \
+  -delivery-id 01234567-89ab-cdef-0123-456789abcdef
+~~~
+
+The command emits `argus.dev/capability-impact/v1`. Empty capability arrays
+are deliberate unmapped-operation evidence. A `partial` status and warnings
+require conservative downstream handling.
+
 ## Least-privilege roles
 
 The migration role owns the schema and ledger. The runtime role does not need

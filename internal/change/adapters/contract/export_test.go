@@ -58,4 +58,17 @@ func TestExportV1ProducesValidatedCanonicalDocument(t *testing.T) {
 		document.Files[0].Path != "api/openapi.yaml" || document.Trigger.DeliveryID != "delivery-42" {
 		t.Fatalf("unexpected document: %#v", document)
 	}
+
+	impactDocument, err := contractadapter.ExportCapabilityImpactV1(change.CapabilityImpact{
+		APIVersion:      change.ImpactAPIVersion,
+		AnalyzerVersion: change.OpenAPIAnalyzerVersion,
+		Change:          set.Reference(),
+		Status:          change.ImpactComplete,
+	})
+	if err != nil {
+		t.Fatalf("export empty capability impact: %v", err)
+	}
+	if impactDocument.Documents == nil || impactDocument.Warnings == nil {
+		t.Fatalf("empty arrays encoded as null: %#v", impactDocument)
+	}
 }

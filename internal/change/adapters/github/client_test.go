@@ -64,6 +64,45 @@ func TestClientResolvesBoundedFilesAtDeliveryRevisions(t *testing.T) {
 	}
 }
 
+func TestClientLoadsRawDocumentAtImmutableRevision(t *testing.T) {
+	t.Parallel()
+	const digest = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+	server := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		if request.URL.EscapedPath() != "/repos/octocat/hello-world/contents/api/order%20spec.yaml" ||
+			request.URL.Query().Get("ref") != digest {
+			t.Errorf("unexpected contents request: %s", request.URL.String())
+		}
+		if request.Header.Get("Accept") != "application/vnd.github.raw+json" {
+			t.Errorf("Accept = %q", request.Header.Get("Accept"))
+		}
+		if _, err := io.WriteString(response, "openapi: 3.1.0\n"); err != nil {
+			t.Errorf("write response: %v", err)
+		}
+	}))
+	defer server.Close()
+	client, err := githubadapter.NewClient(githubadapter.ClientOptions{
+		HTTPClient: server.Client(), BaseURL: server.URL, Token: "token",
+	})
+	if err != nil {
+		t.Fatalf("create client: %v", err)
+	}
+	repository := catalog.Repository{
+		Identity: catalog.RepositoryIdentity{
+			Provider: catalog.ProviderGitHub, Host: "github.com", ProviderRepositoryID: "1",
+		},
+		Owner: "octocat", Name: "hello-world",
+	}
+	document, err := client.LoadDocument(t.Context(), repository, catalog.Revision{
+		Algorithm: catalog.RevisionGitSHA1, Digest: digest,
+	}, "api/order spec.yaml")
+	if err != nil {
+		t.Fatalf("load document: %v", err)
+	}
+	if string(document) != "openapi: 3.1.0\n" {
+		t.Fatalf("document = %q", document)
+	}
+}
+
 func TestClientRejectsHeadMovementDuringPagination(t *testing.T) {
 	t.Parallel()
 
