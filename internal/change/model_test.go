@@ -26,6 +26,24 @@ func TestCanonicalSetOrdersFilesWithoutMutatingInput(t *testing.T) {
 	}
 }
 
+func TestReferenceCanonicalizesEquivalentUTCLocation(t *testing.T) {
+	t.Parallel()
+
+	want := validSet().Reference()
+	set := validSet()
+	set.ObservedAt = time.Date(2026, 9, 18, 9, 30, 0, 0, time.FixedZone("database UTC", 0))
+	if got := set.Reference(); got != want {
+		t.Fatalf("reference differs for equivalent UTC instant:\ngot:  %#v\nwant: %#v", got, want)
+	}
+
+	impact := change.CanonicalCapabilityImpact(change.CapabilityImpact{
+		Change: change.Reference{ObservedAt: set.ObservedAt},
+	})
+	if impact.Change.ObservedAt != want.ObservedAt {
+		t.Fatalf("canonical impact time = %#v, want %#v", impact.Change.ObservedAt, want.ObservedAt)
+	}
+}
+
 func TestValidateSetRejectsAmbiguousPartialEvidence(t *testing.T) {
 	t.Parallel()
 

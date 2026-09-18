@@ -66,7 +66,7 @@ func (set Set) Reference() Reference {
 		PullRequestNumber: set.PullRequestNumber,
 		BaseRevision:      set.BaseRevision,
 		HeadRevision:      set.HeadRevision,
-		ObservedAt:        set.ObservedAt,
+		ObservedAt:        set.ObservedAt.UTC(),
 		Trigger:           set.Trigger,
 	}
 }
@@ -107,6 +107,7 @@ type OperationImpact struct {
 // CanonicalCapabilityImpact deep-copies and orders all set-like fields.
 func CanonicalCapabilityImpact(impact CapabilityImpact) CapabilityImpact {
 	canonical := impact
+	canonical.Change.ObservedAt = impact.Change.ObservedAt.UTC()
 	canonical.Warnings = append([]string(nil), impact.Warnings...)
 	slices.Sort(canonical.Warnings)
 	canonical.Warnings = slices.Compact(canonical.Warnings)
