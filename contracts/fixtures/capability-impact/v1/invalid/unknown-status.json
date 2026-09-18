@@ -1,0 +1,32 @@
+{
+  "apiVersion": "argus.dev/capability-impact/v1",
+  "analyzerVersion": "argus-openapi/v1+libopenapi/v0.38.7",
+  "sourceRepository": {
+    "provider": "github",
+    "host": "github.com",
+    "providerRepositoryId": "R_orders_01",
+    "owner": "example",
+    "name": "orders"
+  },
+  "pullRequest": {
+    "number": 42
+  },
+  "baseRevision": {
+    "algorithm": "git-sha1",
+    "digest": "0123456789abcdef0123456789abcdef01234567"
+  },
+  "headRevision": {
+    "algorithm": "git-sha1",
+    "digest": "89abcdef0123456789abcdef0123456789abcdef"
+  },
+  "observedAt": "2026-09-18T09:30:00Z",
+  "trigger": {
+    "provider": "github",
+    "deliveryId": "delivery-42",
+    "event": "pull_request",
+    "action": "synchronize"
+  },
+  "status": "unknown",
+  "documents": [],
+  "warnings": []
+}

@@ -13,6 +13,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/stanimirivanov/argus/internal/catalog"
 	"github.com/stanimirivanov/argus/internal/change"
 	"github.com/stanimirivanov/argus/internal/change/ingest"
 )
@@ -20,6 +21,7 @@ import (
 const (
 	defaultAPIVersion   = "2026-03-10"
 	defaultMaxBodyBytes = 4 * 1024 * 1024
+	maxDocumentBytes    = 5 * 1024 * 1024
 	maxTotalPatchBytes  = 2 * 1024 * 1024
 	filesPerPage        = 100
 )
@@ -182,45 +184,101 @@ func (client *Client) changedFiles(
 }
 
 func (client *Client) getJSON(ctx context.Context, relativePath string, target any) error {
-	endpoint := client.baseURL.ResolveReference(&url.URL{Path: relativePath})
-	if index := strings.Index(relativePath, "?"); index >= 0 {
-		endpoint = client.baseURL.ResolveReference(&url.URL{Path: relativePath[:index], RawQuery: relativePath[index+1:]})
-	}
-	request, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint.String(), nil)
+	data, err := client.get(ctx, relativePath, "application/vnd.github+json", client.maxBodyBytes)
 	if err != nil {
-		return change.ErrUnavailable
-	}
-	request.Header.Set("Accept", "application/vnd.github+json")
-	request.Header.Set("Authorization", "Bearer "+client.token)
-	request.Header.Set("X-GitHub-Api-Version", client.apiVersion)
-
-	response, err := client.httpClient.Do(request)
-	if err != nil {
-		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-			return err
-		}
-		return change.ErrUnavailable
-	}
-	defer func() {
-		_ = response.Body.Close() //nolint:errcheck // The request result is already complete.
-	}()
-	if response.StatusCode == http.StatusNotFound {
-		return change.ErrNotFound
-	}
-	if response.StatusCode < http.StatusOK || response.StatusCode >= http.StatusMultipleChoices {
-		return change.ErrUnavailable
-	}
-
-	limited := io.LimitReader(response.Body, client.maxBodyBytes+1)
-	data, err := io.ReadAll(limited)
-	if err != nil || int64(len(data)) > client.maxBodyBytes {
-		return change.ErrUnavailable
+		return err
 	}
 	if err := json.Unmarshal(data, target); err != nil {
 		return change.ErrUnavailable
 	}
 
 	return nil
+}
+
+// LoadDocument reads a repository file at an immutable revision using the raw
+// contents media type. Path segments are escaped independently so nested
+// repository paths remain nested while reserved characters cannot alter the
+// request URL.
+func (client *Client) LoadDocument(
+	ctx context.Context,
+	repository catalog.Repository,
+	revision catalog.Revision,
+	path string,
+) ([]byte, error) {
+	if repository.Identity.Provider != catalog.ProviderGitHub || repository.Owner == "" || repository.Name == "" {
+		return nil, change.ErrInvalid
+	}
+	validatedRevision, err := catalog.NewRevision(revision.Algorithm, revision.Digest)
+	if err != nil || validatedRevision != revision || !validDocumentPath(path) {
+		return nil, change.ErrInvalid
+	}
+	segments := strings.Split(path, "/")
+	for index := range segments {
+		segments[index] = url.PathEscape(segments[index])
+	}
+	relativePath := fmt.Sprintf(
+		"repos/%s/%s/contents/%s?ref=%s",
+		url.PathEscape(repository.Owner),
+		url.PathEscape(repository.Name),
+		strings.Join(segments, "/"),
+		url.QueryEscape(revision.Digest),
+	)
+
+	return client.get(ctx, relativePath, "application/vnd.github.raw+json", maxDocumentBytes)
+}
+
+func (client *Client) get(ctx context.Context, relativePath, accept string, maxBytes int64) ([]byte, error) {
+	reference, err := url.Parse(relativePath)
+	if err != nil {
+		return nil, change.ErrUnavailable
+	}
+	endpoint := client.baseURL.ResolveReference(reference)
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint.String(), nil)
+	if err != nil {
+		return nil, change.ErrUnavailable
+	}
+	request.Header.Set("Accept", accept)
+	request.Header.Set("Authorization", "Bearer "+client.token)
+	request.Header.Set("X-GitHub-Api-Version", client.apiVersion)
+
+	response, err := client.httpClient.Do(request)
+	if err != nil {
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			return nil, err
+		}
+		return nil, change.ErrUnavailable
+	}
+	defer func() {
+		_ = response.Body.Close() //nolint:errcheck // The request result is already complete.
+	}()
+	if response.StatusCode == http.StatusNotFound {
+		return nil, change.ErrNotFound
+	}
+	if response.StatusCode < http.StatusOK || response.StatusCode >= http.StatusMultipleChoices {
+		return nil, change.ErrUnavailable
+	}
+
+	limited := io.LimitReader(response.Body, maxBytes+1)
+	data, err := io.ReadAll(limited)
+	if err != nil || int64(len(data)) > maxBytes {
+		return nil, change.ErrUnavailable
+	}
+
+	return data, nil
+}
+
+func validDocumentPath(path string) bool {
+	if path == "" || len(path) > 4096 || strings.HasPrefix(path, "/") || strings.HasSuffix(path, "/") ||
+		strings.Contains(path, "\\") || strings.Contains(path, "//") {
+		return false
+	}
+	for _, segment := range strings.Split(path, "/") {
+		if segment == "" || segment == "." || segment == ".." {
+			return false
+		}
+	}
+
+	return true
 }
 
 func matchesDelivery(response pullRequestResponse, delivery ingest.Delivery) error {

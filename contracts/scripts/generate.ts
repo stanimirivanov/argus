@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { JSONSchema } from "effect";
-
+import { CapabilityImpactV1 } from "../source/capability-impact-v1.js";
 import { ChangeSetV1 } from "../source/change-set-v1.js";
 import { ImpactEdgePageV1 } from "../source/impact-edge-page-v1.js";
 import { ImpactEvidenceBundleV1 } from "../source/impact-evidence-bundle-v1.js";
@@ -8,6 +8,17 @@ import { RepositoryDescriptorV1 } from "../source/repository-descriptor-v1.js";
 import { TestCatalogPageV1 } from "../source/test-catalog-page-v1.js";
 
 const artifacts = [
+  {
+    name: "capability impact",
+    outputPath: new URL(
+      "../generated/capability-impact/v1/capability-impact.schema.json",
+      import.meta.url,
+    ),
+    document: {
+      $id: "https://argus.dev/contracts/capability-impact/v1/schema.json",
+      ...JSONSchema.make(CapabilityImpactV1, { target: "jsonSchema2020-12" }),
+    },
+  },
   {
     name: "change set",
     outputPath: new URL("../generated/change-set/v1/change-set.schema.json", import.meta.url),

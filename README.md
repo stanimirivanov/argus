@@ -10,7 +10,9 @@ Effect Schema authors the wire contracts, generated JSON Schemas validate them,
 Go converts repository input into catalog state at a verified immutable
 revision, and PostgreSQL stores immutable snapshots and impact observations.
 The control plane also accepts signed GitHub pull-request webhooks, resolves a
-stable base/head comparison, and retains bounded changed-file evidence.
+stable base/head comparison, retains bounded changed-file evidence, compares
+changed OpenAPI 3 documents at both immutable revisions, and durably maps
+changed operations to explicitly declared capabilities.
 Versioned queries enumerate stable tests and expose supported, refuted, stale,
 or conflicting capability-to-test relationships without discarding evidence.
 
@@ -73,6 +75,10 @@ body, accepts supported `pull_request` actions, resolves files through the
 GitHub API, and returns `argus.dev/change-set/v1`. A new delivery returns `201`;
 an exact retry returns the original result with `200` and does not call GitHub
 again. Reusing a delivery ID with different signed content returns `409`.
+Before success, the workflow also stores an
+`argus.dev/capability-impact/v1` assessment. OpenAPI operations opt into
+mapping with `x-argus-capabilities: [capability-key]`; unmapped operations and
+partial analysis remain explicit evidence rather than being discarded.
 
 Set `ARGUS_HTTP_ADDRESS` to change the listener. GitHub Enterprise deployments
 also set `ARGUS_GITHUB_API_URL` and `ARGUS_GITHUB_HOST`. The token needs only
@@ -113,6 +119,22 @@ go run ./cmd/catalog import \
 host, opaque provider ID, revision, and descriptor API version. See the
 [PostgreSQL guide](docs/development/postgresql.md) for local setup, grants,
 idempotency, recovery, and complete command examples.
+
+## Inspect change impact
+
+After a webhook succeeds, inspect its persisted semantic assessment by verified
+delivery identity:
+
+~~~sh
+go run ./cmd/catalog get-change-impact \
+  -provider github \
+  -delivery-id 01234567-89ab-cdef-0123-456789abcdef
+~~~
+
+The result includes document-level semantic and breaking-change counts, changed
+HTTP operations, explicit capability mappings, potentially-breaking markers,
+and partial-analysis warnings. It is the explainability input for M05 selection,
+not yet an execution decision.
 
 ## Query catalog tests
 

@@ -11,6 +11,7 @@ import (
 	"github.com/stanimirivanov/argus/internal/catalog/impact"
 	"github.com/stanimirivanov/argus/internal/catalog/snapshot"
 	"github.com/stanimirivanov/argus/internal/catalog/testquery"
+	changeimpact "github.com/stanimirivanov/argus/internal/change/impact"
 	"github.com/stanimirivanov/argus/internal/change/ingest"
 )
 
@@ -31,6 +32,7 @@ var _ testquery.TestCatalogReader = (*Store)(nil)
 var _ impact.EvidenceStore = (*Store)(nil)
 var _ impact.EdgeReader = (*Store)(nil)
 var _ ingest.Store = (*Store)(nil)
+var _ changeimpact.Store = (*Store)(nil)
 
 // OpenStore validates the secret database configuration, establishes a bounded
 // connection pool, and verifies connectivity without changing schema state.

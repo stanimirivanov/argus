@@ -193,18 +193,21 @@ PostgreSQL. [ADR-0006](../decisions/0006-enforce-capability-oriented-hexagonal-b
 defines this modular-monolith structure and the deliberately rejected generic
 layer packages.
 
-### Current change-ingestion boundaries
+### Current change-impact boundaries
 
-The M04 ingestion slice applies the same hexagonal rule to change evidence:
+The M04 change-impact slice applies the same hexagonal rule to change evidence:
 
 | Path | Owns | Must not own |
 |:--|:--|:--|
 | `internal/change` | Provider-neutral change-set vocabulary, bounds, canonical order, and semantic invariants | Contracts, HTTP, provider clients, SQL, or orchestration |
 | `internal/change/ingest` | Verified-delivery workflow plus its consumer-owned resolver and store ports | GitHub payloads, generated DTOs, HTTP status policy, or SQL |
+| `internal/change/impact` | Semantic analyzer and immutable impact-store ports plus assessment retry policy | OpenAPI parser types, GitHub calls, contracts, or SQL |
+| `internal/change/workflow` | Ordering of trusted ingestion and durable impact assessment | Provider, parser, contract, or persistence details |
 | `internal/change/adapters/github` | Raw-body signature verification, GitHub payload normalization, REST pagination, and pre/post revision consistency | Persistence or impact policy |
+| `internal/change/adapters/openapi` | Bounded OpenAPI 3 parsing, semantic comparison, operation fingerprints, and explicit capability mapping | Webhook trust, persistence, or test-selection policy |
 | `internal/change/adapters/httpapi` | Bounded webhook HTTP input, provider headers, versioned JSON output, and safe error mapping | Provider resolution, SQL, or domain policy |
 | `internal/change/adapters/contract` | Change-domain to `argus.dev/change-set/v1` conversion | Provider or persistence behavior |
-| `internal/catalog/adapters/postgres` | Atomic delivery claiming, immutable change/file rows, fingerprints, and reconstruction | Webhook parsing or GitHub calls |
+| `internal/catalog/adapters/postgres` | Atomic delivery and impact claims, typed immutable evidence rows, fingerprints, and reconstruction | Webhook parsing, GitHub calls, or OpenAPI semantics |
 | `cmd/control-plane` | Secret/configuration loading, concrete adapter composition, HTTP lifecycle, and graceful shutdown | Change policy or SQL orchestration |
 
 The service checks durable delivery identity before calling GitHub. The
@@ -212,8 +215,13 @@ PostgreSQL port performs the final atomic claim, so simultaneous first attempts
 still create one result. Provider calls remain outside database transactions.
 The GitHub resolver reads pull-request metadata both before and after file
 pagination and rejects revision or file-count movement as stale rather than
-publishing mixed evidence. The architecture test enforces inward dependencies
-for the new domain and application packages.
+publishing mixed evidence. The workflow acknowledges a webhook only after its
+impact assessment is also durable. Exact assessment retries avoid document I/O.
+Changed operations map to capabilities only through explicit
+`x-argus-capabilities` declarations; unmapped operations and partial analysis
+remain visible so M05 can broaden or abstain. The architecture test enforces
+inward dependencies for the domain, application, workflow, and driving-adapter
+packages.
 
 ## End-to-end decision flow
 

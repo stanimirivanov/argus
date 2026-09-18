@@ -17,7 +17,10 @@ import (
 	"github.com/stanimirivanov/argus/internal/catalog/adapters/postgres"
 	githubadapter "github.com/stanimirivanov/argus/internal/change/adapters/github"
 	"github.com/stanimirivanov/argus/internal/change/adapters/httpapi"
+	openapiadapter "github.com/stanimirivanov/argus/internal/change/adapters/openapi"
+	changeimpact "github.com/stanimirivanov/argus/internal/change/impact"
 	"github.com/stanimirivanov/argus/internal/change/ingest"
+	"github.com/stanimirivanov/argus/internal/change/workflow"
 )
 
 const (
@@ -73,7 +76,9 @@ func newApplication(ctx context.Context, getenv func(string) string) (*applicati
 	if err != nil {
 		return nil, err
 	}
-	service := ingest.NewService(store, githubClient)
+	ingestionService := ingest.NewService(store, githubClient)
+	impactService := changeimpact.NewService(store, openapiadapter.NewAnalyzer(githubClient))
+	service := workflow.NewService(ingestionService, impactService)
 	server := &http.Server{
 		Addr:              config.address,
 		Handler:           httpapi.NewHandler(decoder, service),

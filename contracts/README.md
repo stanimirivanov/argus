@@ -13,6 +13,9 @@
   pages expose supported, refuted, stale, and conflicting relationships.
 - Change-set v1 records a signed pull-request delivery, immutable base/head
   revisions, and explicitly bounded changed-file and patch evidence.
+- Capability-impact v1 records semantic OpenAPI document and operation changes,
+  explicit capability mappings, unmapped operations, and partial-analysis
+  warnings.
 - Structural validity and domain validity are distinct and share one fixture
   corpus.
 - Generate language stubs only when a real producer or consumer needs them.
@@ -42,6 +45,7 @@ actually fetched.
 | `source/impact-evidence-bundle-v1.ts` | Authoritative impact-evidence ingestion contract. |
 | `source/impact-edge-page-v1.ts` | Authoritative evaluated impact-edge result contract. |
 | `source/change-set-v1.ts` | Authoritative normalized pull-request change contract. |
+| `source/capability-impact-v1.ts` | Authoritative semantic OpenAPI capability-impact result. |
 | `source/repository-descriptor-v1.test.ts` | Structural fixture tests through Effect Schema. |
 | `source/test-catalog-page-v1.test.ts` | Test-catalog result compatibility tests through Effect Schema. |
 | `scripts/generate.ts` | Deterministic JSON Schema compiler and drift check. |
@@ -52,11 +56,13 @@ actually fetched.
 | `fixtures/impact-evidence-bundle/v1/` | Structural and semantic evidence-ingestion fixtures. |
 | `fixtures/impact-edge-page/v1/` | Evaluated relationship and conflict fixtures. |
 | `fixtures/change-set/v1/` | Positive and negative normalized-change fixtures. |
+| `fixtures/capability-impact/v1/` | Positive and negative semantic-impact fixtures. |
 | `repository_descriptor.go` | Go schema-validation boundary and transport DTO. |
 | `test_catalog_page.go` | Go test-catalog transport DTO and generated-schema validation boundary. |
 | `impact_evidence_bundle.go` | Go evidence-bundle transport and schema-validation boundary. |
 | `impact_edge_page.go` | Go evaluated impact-edge transport and schema-validation boundary. |
 | `change_set.go` | Go change-set transport and generated-schema validation boundary. |
+| `capability_impact.go` | Go capability-impact transport and generated-schema validation boundary. |
 | `../internal/catalog/adapters/contract/descriptor/` | Repository-descriptor-to-domain conversion and semantic validation. |
 | `../internal/catalog/` | Catalog domain vocabulary, use cases, errors, and persistence port. |
 | `../internal/change/` | Provider-neutral change invariants and ingestion use case. |

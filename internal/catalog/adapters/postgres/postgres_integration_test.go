@@ -86,8 +86,8 @@ func TestMigrateEmptyDatabaseAndRepeat(t *testing.T) {
 	).Scan(&count); err != nil {
 		t.Fatalf("count migration ledger: %v", err)
 	}
-	if count != 3 {
-		t.Fatalf("migration ledger count = %d, want 3", count)
+	if count != 4 {
+		t.Fatalf("migration ledger count = %d, want 4", count)
 	}
 }
 
@@ -127,8 +127,8 @@ func TestMigrationUpgradesReleasedCatalogWithRepresentativeData(t *testing.T) {
 	).Scan(&migrationCount); err != nil {
 		t.Fatalf("count upgraded migration ledger: %v", err)
 	}
-	if migrationCount != 3 {
-		t.Fatalf("upgraded migration count = %d, want 3", migrationCount)
+	if migrationCount != 4 {
+		t.Fatalf("upgraded migration count = %d, want 4", migrationCount)
 	}
 }
 
@@ -374,6 +374,69 @@ func TestConcurrentChangeDeliveryRetryCreatesOnce(t *testing.T) {
 	}
 	if createdCount != 1 {
 		t.Fatalf("created count = %d, want 1", createdCount)
+	}
+}
+
+func TestCapabilityImpactRoundTripRetryConflictAndRestart(t *testing.T) {
+	databaseURL := newTestDatabase(t)
+	migrateTestDatabase(t, databaseURL)
+	store := openTestStore(t, databaseURL)
+	delivery := integrationDelivery()
+	set := integrationChangeSet(delivery)
+	if _, err := store.SaveDelivery(t.Context(), delivery, set); err != nil {
+		t.Fatalf("save prerequisite delivery: %v", err)
+	}
+	assessment := integrationCapabilityImpact(set)
+	if _, err := store.FindCapabilityImpact(t.Context(), delivery.Provider, delivery.ID); !errors.Is(err, change.ErrNotFound) {
+		t.Fatalf("find missing assessment = %v, want ErrNotFound", err)
+	}
+	created, err := store.SaveCapabilityImpact(t.Context(), assessment)
+	if err != nil || !created {
+		t.Fatalf("save assessment: created=%t err=%v", created, err)
+	}
+	created, err = store.SaveCapabilityImpact(t.Context(), assessment)
+	if err != nil || created {
+		t.Fatalf("retry assessment: created=%t err=%v", created, err)
+	}
+	got, err := store.FindCapabilityImpact(t.Context(), delivery.Provider, delivery.ID)
+	if err != nil {
+		t.Fatalf("read assessment: %v", err)
+	}
+	if !reflect.DeepEqual(got, change.CanonicalCapabilityImpact(assessment)) {
+		t.Fatalf("assessment round trip differs:\ngot: %#v\nwant: %#v", got, assessment)
+	}
+	conflict := assessment
+	conflict.Status = change.ImpactPartial
+	conflict.Warnings = []string{"different analyzer result"}
+	if _, err := store.SaveCapabilityImpact(t.Context(), conflict); !errors.Is(err, change.ErrConflict) {
+		t.Fatalf("save conflicting assessment = %v, want ErrConflict", err)
+	}
+
+	store.Close()
+	reopened, err := OpenStore(t.Context(), databaseURL)
+	if err != nil {
+		t.Fatalf("reopen store: %v", err)
+	}
+	t.Cleanup(reopened.Close)
+	if _, err := reopened.FindCapabilityImpact(t.Context(), delivery.Provider, delivery.ID); err != nil {
+		t.Fatalf("read assessment after restart: %v", err)
+	}
+}
+
+func integrationCapabilityImpact(set change.Set) change.CapabilityImpact {
+	operationID := "createOrder"
+	return change.CapabilityImpact{
+		APIVersion: change.ImpactAPIVersion, AnalyzerVersion: change.OpenAPIAnalyzerVersion,
+		Change: set.Reference(), Status: change.ImpactComplete,
+		Documents: []change.DocumentImpact{{
+			Path: "api/openapi.yaml", Kind: change.SemanticModified,
+			TotalChanges: 2, BreakingChanges: 1,
+			Operations: []change.OperationImpact{{
+				Method: "POST", Path: "/orders", OperationID: &operationID,
+				Kind: change.SemanticModified, Capabilities: []string{"create-order"},
+				PotentialBreak: true,
+			}},
+		}},
 	}
 }
 

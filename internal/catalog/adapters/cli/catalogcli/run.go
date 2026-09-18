@@ -20,10 +20,12 @@ import (
 	"github.com/stanimirivanov/argus/internal/catalog/impact"
 	snapshotapp "github.com/stanimirivanov/argus/internal/catalog/snapshot"
 	"github.com/stanimirivanov/argus/internal/catalog/testquery"
+	changecontract "github.com/stanimirivanov/argus/internal/change/adapters/contract"
+	changeimpact "github.com/stanimirivanov/argus/internal/change/impact"
 )
 
 const (
-	usageText = "usage: catalog <import|get|list-tests|import-impact|list-impact> [options]"
+	usageText = "usage: catalog <import|get|list-tests|import-impact|list-impact|get-change-impact> [options]"
 )
 
 type importResult struct {
@@ -73,9 +75,51 @@ func Run(
 		return runImportImpact(ctx, arguments[1:], databaseURL, output, open)
 	case "list-impact":
 		return runListImpact(ctx, arguments[1:], databaseURL, output, open)
+	case "get-change-impact":
+		return runGetChangeImpact(ctx, arguments[1:], databaseURL, output, open)
 	default:
 		return errors.New(usageText)
 	}
+}
+
+func runGetChangeImpact(
+	ctx context.Context,
+	arguments []string,
+	databaseURL string,
+	output io.Writer,
+	open OpenRuntime,
+) error {
+	flags := flag.NewFlagSet("catalog get-change-impact", flag.ContinueOnError)
+	flags.SetOutput(io.Discard)
+	provider := flags.String("provider", string(catalog.ProviderGitHub), "delivery provider")
+	deliveryID := flags.String("delivery-id", "", "verified provider delivery ID")
+	if err := flags.Parse(arguments); err != nil {
+		return fmt.Errorf("catalog get-change-impact: %w", err)
+	}
+	if *deliveryID == "" || flags.NArg() != 0 {
+		return errors.New("usage: catalog get-change-impact [-provider github] -delivery-id <id>")
+	}
+	store, err := openStore(ctx, databaseURL, open)
+	if err != nil {
+		return err
+	}
+	defer store.Close()
+	impactStore, ok := store.(changeimpact.Store)
+	if !ok {
+		return errors.New("catalog runtime does not provide change-impact queries")
+	}
+	assessment, err := changeimpact.NewService(impactStore, nil).Get(
+		ctx, catalog.Provider(*provider), *deliveryID,
+	)
+	if err != nil {
+		return fmt.Errorf("read change impact: %w", err)
+	}
+	document, err := changecontract.ExportCapabilityImpactV1(assessment)
+	if err != nil {
+		return err
+	}
+
+	return encodeJSON(output, document)
 }
 
 func runImportImpact(
