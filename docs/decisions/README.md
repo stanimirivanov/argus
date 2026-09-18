@@ -105,3 +105,4 @@ How will the assumptions and consequences be verified?
 | [ADR-0004](0004-use-postgresql-and-embedded-forward-migrations.md) | Use PostgreSQL and embedded forward migrations | Accepted | 2026-09-17 |
 | [ADR-0005](0005-store-immutable-impact-evidence.md) | Store immutable impact evidence and derive edge state at query time | Accepted | 2026-09-18 |
 | [ADR-0006](0006-enforce-capability-oriented-hexagonal-boundaries.md) | Enforce capability-oriented hexagonal boundaries | Accepted | 2026-09-18 |
+| [ADR-0007](0007-ingest-github-changes-as-bounded-immutable-evidence.md) | Ingest GitHub changes as bounded immutable evidence | Accepted | 2026-09-18 |

@@ -31,6 +31,9 @@
 - [ADR-0006](../decisions/0006-enforce-capability-oriented-hexagonal-boundaries.md)
   makes each application capability own its ports, confines infrastructure to
   adapters, keeps commands as composition roots, and enforces import direction.
+- [ADR-0007](../decisions/0007-ingest-github-changes-as-bounded-immutable-evidence.md)
+  binds signed GitHub deliveries to immutable, bounded, durably idempotent
+  change evidence.
 - Queues and deployment topology remain deferred to ADRs and evidence from
   vertical slices.
 
@@ -189,6 +192,28 @@ import contracts or infrastructure, and the driving CLI adapter cannot select
 PostgreSQL. [ADR-0006](../decisions/0006-enforce-capability-oriented-hexagonal-boundaries.md)
 defines this modular-monolith structure and the deliberately rejected generic
 layer packages.
+
+### Current change-ingestion boundaries
+
+The M04 ingestion slice applies the same hexagonal rule to change evidence:
+
+| Path | Owns | Must not own |
+|:--|:--|:--|
+| `internal/change` | Provider-neutral change-set vocabulary, bounds, canonical order, and semantic invariants | Contracts, HTTP, provider clients, SQL, or orchestration |
+| `internal/change/ingest` | Verified-delivery workflow plus its consumer-owned resolver and store ports | GitHub payloads, generated DTOs, HTTP status policy, or SQL |
+| `internal/change/adapters/github` | Raw-body signature verification, GitHub payload normalization, REST pagination, and pre/post revision consistency | Persistence or impact policy |
+| `internal/change/adapters/httpapi` | Bounded webhook HTTP input, provider headers, versioned JSON output, and safe error mapping | Provider resolution, SQL, or domain policy |
+| `internal/change/adapters/contract` | Change-domain to `argus.dev/change-set/v1` conversion | Provider or persistence behavior |
+| `internal/catalog/adapters/postgres` | Atomic delivery claiming, immutable change/file rows, fingerprints, and reconstruction | Webhook parsing or GitHub calls |
+| `cmd/control-plane` | Secret/configuration loading, concrete adapter composition, HTTP lifecycle, and graceful shutdown | Change policy or SQL orchestration |
+
+The service checks durable delivery identity before calling GitHub. The
+PostgreSQL port performs the final atomic claim, so simultaneous first attempts
+still create one result. Provider calls remain outside database transactions.
+The GitHub resolver reads pull-request metadata both before and after file
+pagination and rejects revision or file-count movement as stale rather than
+publishing mixed evidence. The architecture test enforces inward dependencies
+for the new domain and application packages.
 
 ## End-to-end decision flow
 

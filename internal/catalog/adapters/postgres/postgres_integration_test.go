@@ -6,6 +6,7 @@ import (
 	"cmp"
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -28,6 +29,8 @@ import (
 	"github.com/stanimirivanov/argus/internal/catalog/adapters/contract/descriptor"
 	"github.com/stanimirivanov/argus/internal/catalog/impact"
 	"github.com/stanimirivanov/argus/internal/catalog/testquery"
+	"github.com/stanimirivanov/argus/internal/change"
+	"github.com/stanimirivanov/argus/internal/change/ingest"
 )
 
 const testDatabaseURLEnvironment = "ARGUS_TEST_POSTGRES_URL"
@@ -83,8 +86,8 @@ func TestMigrateEmptyDatabaseAndRepeat(t *testing.T) {
 	).Scan(&count); err != nil {
 		t.Fatalf("count migration ledger: %v", err)
 	}
-	if count != 2 {
-		t.Fatalf("migration ledger count = %d, want 2", count)
+	if count != 3 {
+		t.Fatalf("migration ledger count = %d, want 3", count)
 	}
 }
 
@@ -124,8 +127,8 @@ func TestMigrationUpgradesReleasedCatalogWithRepresentativeData(t *testing.T) {
 	).Scan(&migrationCount); err != nil {
 		t.Fatalf("count upgraded migration ledger: %v", err)
 	}
-	if migrationCount != 2 {
-		t.Fatalf("upgraded migration count = %d, want 2", migrationCount)
+	if migrationCount != 3 {
+		t.Fatalf("upgraded migration count = %d, want 3", migrationCount)
 	}
 }
 
@@ -293,6 +296,140 @@ func TestConcurrentSnapshotRetryCreatesOnce(t *testing.T) {
 	}
 	if createdCount != 1 {
 		t.Fatalf("created count = %d, want 1", createdCount)
+	}
+}
+
+func TestChangeDeliveryRoundTripRetryConflictAndRestart(t *testing.T) {
+	databaseURL := newTestDatabase(t)
+	migrateTestDatabase(t, databaseURL)
+	store := openTestStore(t, databaseURL)
+	delivery := integrationDelivery()
+	set := integrationChangeSet(delivery)
+
+	if _, err := store.FindDelivery(t.Context(), delivery.Provider, delivery.ID); !errors.Is(err, change.ErrNotFound) {
+		t.Fatalf("find missing delivery = %v, want ErrNotFound", err)
+	}
+	created, err := store.SaveDelivery(t.Context(), delivery, set)
+	if err != nil || !created {
+		t.Fatalf("save delivery: created=%t err=%v", created, err)
+	}
+	created, err = store.SaveDelivery(t.Context(), delivery, set)
+	if err != nil || created {
+		t.Fatalf("retry delivery: created=%t err=%v", created, err)
+	}
+
+	stored, err := store.FindDelivery(t.Context(), delivery.Provider, delivery.ID)
+	if err != nil {
+		t.Fatalf("find delivery: %v", err)
+	}
+	if stored.PayloadSHA256 != delivery.PayloadSHA256 ||
+		!reflect.DeepEqual(stored.ChangeSet, change.CanonicalSet(set)) {
+		t.Fatalf("stored delivery differs: %#v", stored)
+	}
+
+	conflict := delivery
+	conflict.PayloadSHA256 = strings.Repeat("a", 64)
+	if _, err := store.SaveDelivery(t.Context(), conflict, set); !errors.Is(err, change.ErrConflict) {
+		t.Fatalf("save conflicting delivery = %v, want ErrConflict", err)
+	}
+
+	store.Close()
+	reopened, err := OpenStore(t.Context(), databaseURL)
+	if err != nil {
+		t.Fatalf("reopen store: %v", err)
+	}
+	t.Cleanup(reopened.Close)
+	if _, err := reopened.FindDelivery(t.Context(), delivery.Provider, delivery.ID); err != nil {
+		t.Fatalf("find delivery after restart: %v", err)
+	}
+}
+
+func TestConcurrentChangeDeliveryRetryCreatesOnce(t *testing.T) {
+	databaseURL := newTestDatabase(t)
+	migrateTestDatabase(t, databaseURL)
+	stores := []*Store{openTestStore(t, databaseURL), openTestStore(t, databaseURL)}
+	delivery := integrationDelivery()
+	set := integrationChangeSet(delivery)
+
+	createdByStore := make([]bool, len(stores))
+	errorsByStore := make([]error, len(stores))
+	var waitGroup sync.WaitGroup
+	for index, store := range stores {
+		waitGroup.Add(1)
+		go func() {
+			defer waitGroup.Done()
+			createdByStore[index], errorsByStore[index] = store.SaveDelivery(t.Context(), delivery, set)
+		}()
+	}
+	waitGroup.Wait()
+
+	createdCount := 0
+	for index, err := range errorsByStore {
+		if err != nil {
+			t.Fatalf("concurrent delivery save %d: %v", index, err)
+		}
+		if createdByStore[index] {
+			createdCount++
+		}
+	}
+	if createdCount != 1 {
+		t.Fatalf("created count = %d, want 1", createdCount)
+	}
+}
+
+func integrationDelivery() ingest.Delivery {
+	digest := sha256.Sum256([]byte("signed webhook body"))
+	return ingest.Delivery{
+		Provider:      catalog.ProviderGitHub,
+		ID:            "integration-delivery-42",
+		Event:         "pull_request",
+		Action:        "synchronize",
+		PayloadSHA256: hex.EncodeToString(digest[:]),
+		Repository: catalog.Repository{
+			Identity: catalog.RepositoryIdentity{
+				Provider:             catalog.ProviderGitHub,
+				Host:                 "github.com",
+				ProviderRepositoryID: "integration-source-42",
+			},
+			Owner: "example",
+			Name:  "orders",
+		},
+		PullRequestNumber: 42,
+		BaseRevision: catalog.Revision{
+			Algorithm: catalog.RevisionGitSHA1,
+			Digest:    "0123456789abcdef0123456789abcdef01234567",
+		},
+		HeadRevision: catalog.Revision{
+			Algorithm: catalog.RevisionGitSHA1,
+			Digest:    "89abcdef0123456789abcdef0123456789abcdef",
+		},
+		ObservedAt: time.Date(2026, 9, 18, 9, 30, 0, 0, time.UTC),
+	}
+}
+
+func integrationChangeSet(delivery ingest.Delivery) change.Set {
+	patch := "@@ -1 +1 @@\n-old\n+new"
+	return change.Set{
+		APIVersion:        change.SetAPIVersion,
+		SourceRepository:  delivery.Repository,
+		PullRequestNumber: delivery.PullRequestNumber,
+		BaseRevision:      delivery.BaseRevision,
+		HeadRevision:      delivery.HeadRevision,
+		ObservedAt:        delivery.ObservedAt,
+		Trigger: change.Trigger{
+			Provider:   delivery.Provider,
+			DeliveryID: delivery.ID,
+			Event:      delivery.Event,
+			Action:     delivery.Action,
+		},
+		Files: []change.File{{
+			Path:        "api/openapi.yaml",
+			Kind:        change.KindModified,
+			Additions:   1,
+			Deletions:   1,
+			Patch:       &patch,
+			PatchStatus: change.PatchComplete,
+		}},
 	}
 }
 

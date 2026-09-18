@@ -1,0 +1,38 @@
+{
+  "apiVersion": "argus.dev/change-set/v1",
+  "sourceRepository": {
+    "provider": "github",
+    "host": "github.com",
+    "providerRepositoryId": "1296269",
+    "owner": "octocat",
+    "name": "hello-world"
+  },
+  "pullRequest": { "number": 42 },
+  "baseRevision": {
+    "algorithm": "git-sha1",
+    "digest": "0123456789abcdef0123456789abcdef01234567"
+  },
+  "headRevision": {
+    "algorithm": "git-sha1",
+    "digest": "89abcdef0123456789abcdef0123456789abcdef"
+  },
+  "observedAt": "2026-09-18T09:30:00Z",
+  "trigger": {
+    "provider": "github",
+    "deliveryId": "delivery-42",
+    "event": "pull_request",
+    "action": "synchronize"
+  },
+  "files": [
+    {
+      "path": "api/openapi.yaml",
+      "previousPath": null,
+      "kind": "modified",
+      "additions": 2,
+      "deletions": 1,
+      "patch": "@@ -1 +1 @@\n-old\n+new",
+      "patchStatus": "complete"
+    }
+  ],
+  "filesTruncated": false
+}

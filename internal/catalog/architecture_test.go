@@ -13,6 +13,7 @@ import (
 )
 
 const catalogImportPath = "github.com/stanimirivanov/argus/internal/catalog"
+const changeImportPath = "github.com/stanimirivanov/argus/internal/change"
 
 // TestHexagonalImportBoundaries turns the catalog's dependency direction into
 // an executable constraint. It intentionally checks production imports rather
@@ -22,6 +23,7 @@ func TestHexagonalImportBoundaries(t *testing.T) {
 	t.Parallel()
 
 	root := catalogSourceRoot(t)
+	changeRoot := filepath.Join(filepath.Dir(root), "change")
 	rules := []importRule{
 		{
 			name:      "shared domain remains dependency free",
@@ -61,6 +63,27 @@ func TestHexagonalImportBoundaries(t *testing.T) {
 			forbidden: []string{
 				"github.com/jackc/pgx",
 				catalogImportPath + "/adapters/postgres",
+			},
+		},
+		{
+			name:      "change domain remains dependency free",
+			directory: changeRoot,
+			recursive: false,
+			forbidden: []string{
+				"github.com/jackc/pgx",
+				"github.com/stanimirivanov/argus/contracts",
+				changeImportPath + "/adapters",
+				changeImportPath + "/ingest",
+			},
+		},
+		{
+			name:      "change ingestion application depends inward",
+			directory: filepath.Join(changeRoot, "ingest"),
+			recursive: true,
+			forbidden: []string{
+				"github.com/jackc/pgx",
+				"github.com/stanimirivanov/argus/contracts",
+				changeImportPath + "/adapters",
 			},
 		},
 	}

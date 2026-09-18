@@ -12,6 +12,8 @@
   deterministic keyset pagination.
 - Use `catalog import-impact` and `catalog list-impact` to preserve evidence and
   evaluate supported, refuted, stale, or conflicting capability-to-test edges.
+- The control plane stores authenticated GitHub delivery identity and bounded
+  normalized change evidence with atomic exact-retry behavior.
 - Database-changing work runs `make db-validate` against a disposable loopback
   PostgreSQL server configured by `ARGUS_TEST_POSTGRES_URL`.
 - Migration files are immutable after merge. A checksum mismatch, unknown
@@ -25,12 +27,13 @@ backups, recovery, high availability, monitoring, and major-version lifecycle.
 PostgreSQL 17 is the supported major for this slice; CI uses the exact 17.11
 container image.
 
-The Go adapter exposes two deliberately separate capabilities. `postgres.Store`
-implements the runtime `snapshot.Store` port and owns bounded read/write
-connections; opening it never changes schema state. `postgres.Migrator` owns a
-single privileged connection pool and can only apply the embedded migration
-chain. Commands compose one capability or the other, so a runtime dependency
-cannot acquire DDL authority through the same object.
+The Go adapter exposes runtime and migration capabilities separately.
+`postgres.Store` implements the catalog snapshot, query, impact-evidence, and
+change-ingestion ports and owns bounded read/write connections; opening it
+never changes schema state. `postgres.Migrator` owns a single privileged
+connection pool and can only apply the embedded migration chain. Commands
+compose one capability or the other, so a runtime dependency cannot acquire
+DDL authority through the same object.
 
 [ADR-0004](../decisions/0004-use-postgresql-and-embedded-forward-migrations.md)
 records the database, migration, transaction, identity, and Perfeng-reuse
@@ -174,6 +177,21 @@ leaves unused tables in place. The runtime role needs the same table and
 sequence privileges shown below; it does not need update or delete access on
 evidence bundles or observations.
 
+## Persist trusted change deliveries
+
+The control plane claims `(delivery_provider, delivery_id)` in the same
+transaction that stores the normalized change set and file rows. The signed
+payload SHA-256 and canonical change-set SHA-256 distinguish an exact retry
+from a conflicting reuse of immutable identity. Concurrent retries block on
+the uniqueness constraint and converge on one stored result.
+
+GitHub requests occur before this transaction begins. A slow or unavailable
+provider therefore cannot hold database locks. Reads reconstruct the change set
+under repeatable read, and a process restart preserves the retry result. The
+migration is additive: it creates `change_sets` and `change_files`, performs no
+backfill or table rewrite, and remains compatible with older binaries that do
+not use these tables. Application rollback leaves the unused evidence intact.
+
 ## Least-privilege roles
 
 The migration role owns the schema and ledger. The runtime role does not need
@@ -227,9 +245,10 @@ snapshot round trip, order-independent retry, immutable-content conflict,
 concurrent ingestion, deterministic multi-page catalog queries, capability
 filtering, empty/missing distinction, upgrade with representative data,
 evidence retry/conflict and reference validation, temporal edge states,
-concurrent evidence ingestion, and read-after-restart. Ordinary `make validate`
-remains database-independent; CI runs `make db-validate` in a separate Ubuntu
-job with an isolated PostgreSQL 17.11 service.
+concurrent evidence ingestion, delivery retry/conflict, concurrent delivery
+claiming, and read-after-restart. Ordinary `make validate` remains
+database-independent; CI runs `make db-validate` in a separate Ubuntu job with
+an isolated PostgreSQL 17.11 service.
 
 ## Recovery and current limits
 
@@ -240,6 +259,7 @@ the expected binary/migration chain or deliver a reviewed forward repair.
 A catalog import is append-only at the snapshot boundary. There is no delete
 or in-place snapshot repair command in this slice. Backup/restore exercises,
 evidence retention/deletion, source-precedence policy, HA, production SLOs,
-latest-snapshot resolution, and an authenticated network API remain later work
-as recorded in the roadmap. Until authorization exists, evidence ingestion and
-queries remain local administrative CLI boundaries.
+latest-snapshot resolution, and a general authenticated network API remain
+later work as recorded in the roadmap. The GitHub webhook is a narrow
+provider-authenticated ingress; catalog evidence ingestion and queries remain
+local administrative CLI boundaries until user/workload authorization exists.

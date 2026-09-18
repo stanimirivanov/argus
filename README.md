@@ -9,6 +9,8 @@ real repository-descriptor ingestion boundary and a durable evidence catalog.
 Effect Schema authors the wire contracts, generated JSON Schemas validate them,
 Go converts repository input into catalog state at a verified immutable
 revision, and PostgreSQL stores immutable snapshots and impact observations.
+The control plane also accepts signed GitHub pull-request webhooks, resolves a
+stable base/head comparison, and retains bounded changed-file evidence.
 Versioned queries enumerate stable tests and expose supported, refuted, stale,
 or conflicting capability-to-test relationships without discarding evidence.
 
@@ -59,13 +61,25 @@ unless it is cached.
 ## Run the control plane
 
 ~~~sh
+export ARGUS_DATABASE_URL='postgres://argus_runtime:...@db.example/argus'
+export ARGUS_GITHUB_TOKEN='fine-grained-token'
+export ARGUS_GITHUB_WEBHOOK_SECRET='shared-webhook-secret'
 go run ./cmd/control-plane
 ~~~
 
-The command writes structured lifecycle logs to standard output and waits for
-an interrupt or termination signal. Press `Ctrl+C` to request a graceful
-shutdown. The current process intentionally exposes no API, storage,
-configuration, workers, or test-selection behavior.
+Apply migrations first. The command listens on `127.0.0.1:8080` by default and
+accepts `POST /webhooks/github`. It verifies `X-Hub-Signature-256` over the raw
+body, accepts supported `pull_request` actions, resolves files through the
+GitHub API, and returns `argus.dev/change-set/v1`. A new delivery returns `201`;
+an exact retry returns the original result with `200` and does not call GitHub
+again. Reusing a delivery ID with different signed content returns `409`.
+
+Set `ARGUS_HTTP_ADDRESS` to change the listener. GitHub Enterprise deployments
+also set `ARGUS_GITHUB_API_URL` and `ARGUS_GITHUB_HOST`. The token needs only
+read access to pull requests and repository metadata. Request bodies, tokens,
+and webhook secrets are never logged. Press `Ctrl+C` for graceful shutdown.
+This endpoint is provider-authenticated ingestion, not the general Argus API;
+catalog queries remain local until the M10 identity boundary exists.
 
 ## Validate a repository descriptor
 
