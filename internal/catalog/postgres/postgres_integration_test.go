@@ -19,6 +19,7 @@ import (
 	"sync"
 	"testing"
 	"testing/fstest"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -80,8 +81,49 @@ func TestMigrateEmptyDatabaseAndRepeat(t *testing.T) {
 	).Scan(&count); err != nil {
 		t.Fatalf("count migration ledger: %v", err)
 	}
-	if count != 1 {
-		t.Fatalf("migration ledger count = %d, want 1", count)
+	if count != 2 {
+		t.Fatalf("migration ledger count = %d, want 2", count)
+	}
+}
+
+func TestMigrationUpgradesReleasedCatalogWithRepresentativeData(t *testing.T) {
+	databaseURL := newTestDatabase(t)
+	migrator := openTestMigrator(t, databaseURL)
+	firstMigration, err := fs.ReadFile(
+		embeddedMigrations,
+		"migrations/20260917052718_create_catalog.sql",
+	)
+	if err != nil {
+		t.Fatalf("read released catalog migration: %v", err)
+	}
+	releasedChain := fstest.MapFS{
+		"migrations/20260917052718_create_catalog.sql": &fstest.MapFile{Data: firstMigration},
+	}
+	if err := applyMigrationChain(t.Context(), migrator, releasedChain); err != nil {
+		t.Fatalf("apply released catalog schema: %v", err)
+	}
+
+	store := openTestStore(t, databaseURL)
+	snapshot := loadTestSnapshot(t)
+	if _, err := store.SaveSnapshot(t.Context(), snapshot); err != nil {
+		t.Fatalf("save representative released-schema data: %v", err)
+	}
+	if err := migrator.Migrate(t.Context()); err != nil {
+		t.Fatalf("upgrade released catalog schema: %v", err)
+	}
+	if _, err := store.GetSnapshot(t.Context(), snapshot.Key()); err != nil {
+		t.Fatalf("read representative data after upgrade: %v", err)
+	}
+
+	var migrationCount int
+	if err := store.pool.QueryRow(
+		t.Context(),
+		"SELECT count(*) FROM argus_catalog.schema_migrations",
+	).Scan(&migrationCount); err != nil {
+		t.Fatalf("count upgraded migration ledger: %v", err)
+	}
+	if migrationCount != 2 {
+		t.Fatalf("upgraded migration count = %d, want 2", migrationCount)
 	}
 }
 
@@ -345,6 +387,319 @@ func TestTestCatalogQueryPaginatesFiltersAndSurvivesRestart(t *testing.T) {
 	})
 	if !reflect.DeepEqual(afterRestart, items) {
 		t.Fatal("catalog query changed after store restart")
+	}
+}
+
+func TestImpactEvidenceRetryConflictStatesPaginationAndRestart(t *testing.T) {
+	databaseURL := newTestDatabase(t)
+	migrateTestDatabase(t, databaseURL)
+	store := openTestStore(t, databaseURL)
+	snapshot := queryableTestSnapshot(t)
+	if _, err := store.SaveSnapshot(t.Context(), snapshot); err != nil {
+		t.Fatalf("save impact snapshot: %v", err)
+	}
+
+	evaluatedAt := time.Date(2026, 9, 18, 12, 0, 0, 0, time.UTC)
+	activeSupport := impactBundleForIntegration(
+		snapshot,
+		1,
+		"explicit-import",
+		evaluatedAt.Add(-2*time.Hour),
+		nil,
+		[]catalog.ImpactObservation{
+			impactObservationForIntegration(
+				snapshot,
+				"create-order-support",
+				"create-order",
+				0,
+				0,
+				catalog.ImpactAssertionSupports,
+			),
+			impactObservationForIntegration(
+				snapshot,
+				"combined-order-support",
+				"create-order",
+				0,
+				2,
+				catalog.ImpactAssertionSupports,
+			),
+		},
+	)
+	activeRefutation := impactBundleForIntegration(
+		snapshot,
+		2,
+		"review-import",
+		evaluatedAt.Add(-time.Hour),
+		nil,
+		[]catalog.ImpactObservation{
+			impactObservationForIntegration(
+				snapshot,
+				"create-order-refutation",
+				"create-order",
+				0,
+				0,
+				catalog.ImpactAssertionRefutes,
+			),
+			impactObservationForIntegration(
+				snapshot,
+				"browser-cancel-refutation",
+				"cancel-order",
+				1,
+				0,
+				catalog.ImpactAssertionRefutes,
+			),
+		},
+	)
+	expiresAt := evaluatedAt.Add(-time.Second)
+	expiredSupport := impactBundleForIntegration(
+		snapshot,
+		3,
+		"coverage-import",
+		evaluatedAt.Add(-3*time.Hour),
+		&expiresAt,
+		[]catalog.ImpactObservation{
+			impactObservationForIntegration(
+				snapshot,
+				"cancel-order-expired",
+				"cancel-order",
+				0,
+				1,
+				catalog.ImpactAssertionSupports,
+			),
+		},
+	)
+
+	service := catalog.NewImpactEvidenceService(store)
+	for index, bundle := range []catalog.ImpactEvidenceBundle{activeSupport, activeRefutation, expiredSupport} {
+		created, err := service.Ingest(t.Context(), bundle)
+		if err != nil || !created {
+			t.Fatalf("ingest bundle %d: created=%t err=%v", index, created, err)
+		}
+	}
+	reordered := activeSupport
+	reordered.Observations = append([]catalog.ImpactObservation(nil), activeSupport.Observations...)
+	reordered.Observations[0], reordered.Observations[1] = reordered.Observations[1], reordered.Observations[0]
+	if created, err := service.Ingest(t.Context(), reordered); err != nil || created {
+		t.Fatalf("retry reordered evidence: created=%t err=%v", created, err)
+	}
+	conflict := activeSupport
+	conflict.Observations = append([]catalog.ImpactObservation(nil), activeSupport.Observations...)
+	conflict.Observations[0].Rationale = "Different immutable evidence."
+	if _, err := service.Ingest(t.Context(), conflict); !errors.Is(err, catalog.ErrConflict) {
+		t.Fatalf("ingest conflicting evidence = %v, want ErrConflict", err)
+	}
+
+	invalidReference := impactBundleForIntegration(
+		snapshot,
+		4,
+		"invalid-reference",
+		evaluatedAt.Add(-time.Hour),
+		nil,
+		[]catalog.ImpactObservation{
+			impactObservationForIntegration(
+				snapshot,
+				"missing-capability",
+				"not-cataloged",
+				0,
+				0,
+				catalog.ImpactAssertionSupports,
+			),
+		},
+	)
+	if _, err := service.Ingest(t.Context(), invalidReference); !errors.Is(err, catalog.ErrInvalidEvidence) {
+		t.Fatalf("ingest invalid reference = %v, want ErrInvalidEvidence", err)
+	}
+
+	query := catalog.ImpactEdgeQuery{
+		Snapshot:    snapshot.Key(),
+		EvaluatedAt: evaluatedAt,
+		PageSize:    2,
+	}
+	edges := collectImpactEdgePages(t, catalog.NewImpactEdgeService(store), query)
+	if len(edges) != 4 {
+		t.Fatalf("impact edge count = %d, want 4", len(edges))
+	}
+	wantStatuses := map[string]catalog.ImpactEdgeStatus{
+		"cancel-order/create-order-browser":    catalog.ImpactEdgeRefuted,
+		"cancel-order/cancel-order-valid":      catalog.ImpactEdgeStale,
+		"create-order/create-and-cancel-order": catalog.ImpactEdgeSupported,
+		"create-order/create-order-valid":      catalog.ImpactEdgeConflicting,
+	}
+	for _, edge := range edges {
+		key := edge.Capability.Key + "/" + edge.TestKey
+		if edge.Status != wantStatuses[key] {
+			t.Fatalf("edge %s status = %q, want %q", key, edge.Status, wantStatuses[key])
+		}
+	}
+
+	query.CapabilityKey = "create-order"
+	query.PageSize = 1
+	filtered := collectImpactEdgePages(t, catalog.NewImpactEdgeService(store), query)
+	if len(filtered) != 2 {
+		t.Fatalf("filtered impact edge count = %d, want 2", len(filtered))
+	}
+	for _, edge := range filtered {
+		if edge.Capability.Key != "create-order" {
+			t.Fatalf("filtered edge capability = %q", edge.Capability.Key)
+		}
+	}
+
+	store.Close()
+	reopened, err := OpenStore(t.Context(), databaseURL)
+	if err != nil {
+		t.Fatalf("reopen impact store: %v", err)
+	}
+	t.Cleanup(reopened.Close)
+	afterRestart := collectImpactEdgePages(t, catalog.NewImpactEdgeService(reopened), catalog.ImpactEdgeQuery{
+		Snapshot:    snapshot.Key(),
+		EvaluatedAt: evaluatedAt,
+		PageSize:    3,
+	})
+	if !reflect.DeepEqual(afterRestart, edges) {
+		t.Fatal("impact query changed after store restart")
+	}
+}
+
+func TestConcurrentImpactEvidenceRetryCreatesOnce(t *testing.T) {
+	databaseURL := newTestDatabase(t)
+	migrateTestDatabase(t, databaseURL)
+	stores := []*Store{openTestStore(t, databaseURL), openTestStore(t, databaseURL)}
+	snapshot := queryableTestSnapshot(t)
+	if _, err := stores[0].SaveSnapshot(t.Context(), snapshot); err != nil {
+		t.Fatalf("save concurrent impact snapshot: %v", err)
+	}
+	bundle := impactBundleForIntegration(
+		snapshot,
+		5,
+		"concurrent-import",
+		time.Date(2026, 9, 18, 10, 0, 0, 0, time.UTC),
+		nil,
+		[]catalog.ImpactObservation{
+			impactObservationForIntegration(
+				snapshot,
+				"concurrent-support",
+				"create-order",
+				0,
+				0,
+				catalog.ImpactAssertionSupports,
+			),
+		},
+	)
+
+	createdByStore := make([]bool, len(stores))
+	errorsByStore := make([]error, len(stores))
+	var waitGroup sync.WaitGroup
+	for index, store := range stores {
+		waitGroup.Add(1)
+		go func() {
+			defer waitGroup.Done()
+			createdByStore[index], errorsByStore[index] = catalog.NewImpactEvidenceService(store).Ingest(
+				t.Context(),
+				bundle,
+			)
+		}()
+	}
+	waitGroup.Wait()
+
+	createdCount := 0
+	for index, err := range errorsByStore {
+		if err != nil {
+			t.Fatalf("concurrent evidence save %d: %v", index, err)
+		}
+		if createdByStore[index] {
+			createdCount++
+		}
+	}
+	if createdCount != 1 {
+		t.Fatalf("created evidence count = %d, want 1", createdCount)
+	}
+}
+
+func collectImpactEdgePages(
+	t *testing.T,
+	service *catalog.ImpactEdgeService,
+	query catalog.ImpactEdgeQuery,
+) []catalog.ImpactEdge {
+	t.Helper()
+
+	var collected []catalog.ImpactEdge
+	for pageNumber := 0; pageNumber < 20; pageNumber++ {
+		page, err := service.List(t.Context(), query)
+		if err != nil {
+			t.Fatalf("list impact page %d: %v", pageNumber, err)
+		}
+		collected = append(collected, page.Items...)
+		if page.NextCursor == "" {
+			return collected
+		}
+		query.Cursor = page.NextCursor
+	}
+
+	t.Fatal("impact pagination did not terminate")
+
+	return nil
+}
+
+func impactBundleForIntegration(
+	snapshot catalog.Snapshot,
+	producerNumber int,
+	adapter string,
+	observedAt time.Time,
+	expiresAt *time.Time,
+	observations []catalog.ImpactObservation,
+) catalog.ImpactEvidenceBundle {
+	return catalog.ImpactEvidenceBundle{
+		APIVersion: catalog.ImpactEvidenceBundleAPIVersion,
+		Snapshot: catalog.SnapshotReference{
+			SourceRepository:     snapshot.Repository,
+			Revision:             snapshot.Revision,
+			DescriptorAPIVersion: snapshot.APIVersion,
+		},
+		Producer: catalog.ImpactEvidenceProducer{
+			Repository: catalog.Repository{
+				Identity: catalog.RepositoryIdentity{
+					Provider:             catalog.ProviderGitHub,
+					Host:                 "github.com",
+					ProviderRepositoryID: fmt.Sprintf("impact-producer-%d", producerNumber),
+				},
+				Owner: "example",
+				Name:  fmt.Sprintf("impact-producer-%d", producerNumber),
+			},
+			Revision: catalog.Revision{
+				Algorithm: catalog.RevisionGitSHA1,
+				Digest:    fmt.Sprintf("%040x", producerNumber),
+			},
+			Adapter: adapter,
+		},
+		ObservedAt:   observedAt,
+		ExpiresAt:    expiresAt,
+		Observations: observations,
+	}
+}
+
+func impactObservationForIntegration(
+	snapshot catalog.Snapshot,
+	key string,
+	capabilityKey string,
+	suiteIndex int,
+	testIndex int,
+	assertion catalog.ImpactAssertion,
+) catalog.ImpactObservation {
+	suite := snapshot.TestSuites[suiteIndex]
+	test := suite.Tests[testIndex]
+
+	return catalog.ImpactObservation{
+		Key:           key,
+		CapabilityKey: capabilityKey,
+		Test: catalog.TestCatalogIdentity{
+			TestRepository: suite.Repository.Identity,
+			SuiteKey:       suite.Key,
+			TestKey:        test.Key,
+		},
+		Assertion:             assertion,
+		EvidenceType:          catalog.ImpactEvidenceExplicit,
+		ConfidenceBasisPoints: 10_000,
+		Rationale:             "Integration-test evidence.",
 	}
 }
 

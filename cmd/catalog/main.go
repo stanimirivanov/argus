@@ -11,16 +11,18 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/stanimirivanov/argus/contracts"
 	"github.com/stanimirivanov/argus/internal/catalog"
 	"github.com/stanimirivanov/argus/internal/catalog/descriptor"
+	"github.com/stanimirivanov/argus/internal/catalog/evidence"
 	"github.com/stanimirivanov/argus/internal/catalog/postgres"
 )
 
 const (
 	databaseURLEnvironment = "ARGUS_DATABASE_URL"
-	usageText              = "usage: catalog <import|get> [options]"
+	usageText              = "usage: catalog <import|get|list-tests|import-impact|list-impact> [options]"
 )
 
 func main() {
@@ -38,6 +40,11 @@ type importResult struct {
 	Snapshot snapshotOutput `json:"snapshot"`
 }
 
+type impactImportResult struct {
+	Created bool                             `json:"created"`
+	Bundle  contracts.ImpactEvidenceBundleV1 `json:"bundle"`
+}
+
 func run(ctx context.Context, arguments []string, databaseURL string, output io.Writer) error {
 	if len(arguments) == 0 {
 		return errors.New(usageText)
@@ -50,9 +57,50 @@ func run(ctx context.Context, arguments []string, databaseURL string, output io.
 		return runGet(ctx, arguments[1:], databaseURL, output)
 	case "list-tests":
 		return runListTests(ctx, arguments[1:], databaseURL, output)
+	case "import-impact":
+		return runImportImpact(ctx, arguments[1:], databaseURL, output)
+	case "list-impact":
+		return runListImpact(ctx, arguments[1:], databaseURL, output)
 	default:
 		return errors.New(usageText)
 	}
+}
+
+func runImportImpact(ctx context.Context, arguments []string, databaseURL string, output io.Writer) error {
+	flags := flag.NewFlagSet("catalog import-impact", flag.ContinueOnError)
+	flags.SetOutput(io.Discard)
+	if err := flags.Parse(arguments); err != nil {
+		return fmt.Errorf("catalog import-impact: %w", err)
+	}
+	if flags.NArg() != 1 {
+		return errors.New("usage: catalog import-impact <impact-evidence.json>")
+	}
+
+	data, err := os.ReadFile(flags.Arg(0))
+	if err != nil {
+		return fmt.Errorf("read impact evidence: %w", err)
+	}
+	document, err := contracts.DecodeImpactEvidenceBundleV1(data)
+	if err != nil {
+		return err
+	}
+	bundle, err := evidence.Import(document)
+	if err != nil {
+		return fmt.Errorf("import impact evidence: %w", err)
+	}
+
+	store, err := openStore(ctx, databaseURL)
+	if err != nil {
+		return err
+	}
+	defer store.Close()
+
+	created, err := catalog.NewImpactEvidenceService(store).Ingest(ctx, bundle)
+	if err != nil {
+		return fmt.Errorf("persist impact evidence: %w", err)
+	}
+
+	return encodeJSON(output, impactImportResult{Created: created, Bundle: document})
 }
 
 func runImport(ctx context.Context, arguments []string, databaseURL string, output io.Writer) error {
@@ -203,6 +251,84 @@ func runListTests(ctx context.Context, arguments []string, databaseURL string, o
 	}
 
 	return encodeJSON(output, result)
+}
+
+func runListImpact(ctx context.Context, arguments []string, databaseURL string, output io.Writer) error {
+	flags := flag.NewFlagSet("catalog list-impact", flag.ContinueOnError)
+	flags.SetOutput(io.Discard)
+	provider := flags.String("provider", "", "source repository provider")
+	host := flags.String("host", "", "source repository host")
+	repositoryID := flags.String("repository-id", "", "opaque source repository identity")
+	algorithm := flags.String("algorithm", string(catalog.RevisionGitSHA1), "revision algorithm")
+	digest := flags.String("revision", "", "immutable source revision digest")
+	apiVersion := flags.String("api-version", contracts.RepositoryDescriptorV1APIVersion, "descriptor API version")
+	evaluatedAtText := flags.String("evaluated-at", "", "UTC RFC 3339 impact evaluation instant")
+	capability := flags.String("capability", "", "optional source capability key")
+	pageSize := flags.Int("page-size", catalog.DefaultImpactEdgePageSize, "maximum edges in this page")
+	cursor := flags.String("cursor", "", "opaque continuation cursor")
+	if err := flags.Parse(arguments); err != nil {
+		return fmt.Errorf("catalog list-impact: %w", err)
+	}
+	if *provider == "" || *host == "" || *repositoryID == "" || *digest == "" ||
+		*evaluatedAtText == "" || flags.NArg() != 0 {
+		return errors.New("usage: catalog list-impact -provider <provider> -host <host> -repository-id <id> -revision <digest> -evaluated-at <RFC3339> [options]")
+	}
+	revision, err := catalog.NewRevision(catalog.RevisionAlgorithm(*algorithm), *digest)
+	if err != nil {
+		return fmt.Errorf("validate revision: %w", err)
+	}
+	evaluatedAt, err := parseUTCTimestamp(*evaluatedAtText)
+	if err != nil {
+		return fmt.Errorf("validate impact evaluation time: %w", err)
+	}
+	query := catalog.ImpactEdgeQuery{
+		Snapshot: catalog.SnapshotKey{
+			Repository: catalog.RepositoryIdentity{
+				Provider:             catalog.Provider(*provider),
+				Host:                 *host,
+				ProviderRepositoryID: *repositoryID,
+			},
+			Revision:   revision,
+			APIVersion: *apiVersion,
+		},
+		EvaluatedAt:   evaluatedAt,
+		CapabilityKey: *capability,
+		PageSize:      *pageSize,
+		Cursor:        *cursor,
+	}
+	if err := catalog.ValidateImpactEdgeQuery(query); err != nil {
+		return fmt.Errorf("validate impact query: %w", err)
+	}
+
+	store, err := openStore(ctx, databaseURL)
+	if err != nil {
+		return err
+	}
+	defer store.Close()
+
+	page, err := catalog.NewImpactEdgeService(store).List(ctx, query)
+	if err != nil {
+		return fmt.Errorf("list impact edges: %w", err)
+	}
+	result := newImpactEdgePageOutput(page)
+	if err := contracts.ValidateImpactEdgePageV1(result); err != nil {
+		return fmt.Errorf("validate impact edge page output: %w", err)
+	}
+
+	return encodeJSON(output, result)
+}
+
+func parseUTCTimestamp(value string) (time.Time, error) {
+	parsed, err := time.Parse(time.RFC3339Nano, value)
+	if err != nil {
+		return time.Time{}, errors.New("timestamp must use RFC 3339")
+	}
+	_, offsetSeconds := parsed.Zone()
+	if offsetSeconds != 0 {
+		return time.Time{}, errors.New("timestamp must use UTC")
+	}
+
+	return parsed.UTC(), nil
 }
 
 func openStore(ctx context.Context, databaseURL string) (*postgres.Store, error) {

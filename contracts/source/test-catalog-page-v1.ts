@@ -51,7 +51,7 @@ export const TestCatalogEntry = Schema.Struct({
     "A stable test identity and its immutable catalog metadata. Identity is testRepository identity plus suite.key plus test.key.",
 });
 
-const ContinuationCursor = Schema.String.pipe(
+export const ContinuationCursor = Schema.String.pipe(
   Schema.minLength(1),
   Schema.maxLength(4096),
   Schema.pattern(/^[A-Za-z0-9_-]+$/),

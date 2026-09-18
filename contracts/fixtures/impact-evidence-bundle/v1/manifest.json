@@ -1,0 +1,19 @@
+{
+  "fixtures": [
+    {
+      "path": "fixtures/impact-evidence-bundle/v1/valid/orders-api.json",
+      "schemaValid": true,
+      "domainValid": true
+    },
+    {
+      "path": "fixtures/impact-evidence-bundle/v1/invalid/unknown-field.json",
+      "schemaValid": false,
+      "domainValid": false
+    },
+    {
+      "path": "fixtures/impact-evidence-bundle/v1/invalid/expiry-before-observation.json",
+      "schemaValid": true,
+      "domainValid": false
+    }
+  ]
+}

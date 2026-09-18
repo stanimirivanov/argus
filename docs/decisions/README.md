@@ -103,3 +103,4 @@ How will the assumptions and consequences be verified?
 | [ADR-0002](0002-keep-argus-in-a-single-product-repository.md) | Keep Argus in a single product repository | Accepted | 2026-09-16 |
 | [ADR-0003](0003-use-effect-schema-at-contract-boundaries.md) | Use Effect Schema at contract boundaries | Accepted | 2026-09-16 |
 | [ADR-0004](0004-use-postgresql-and-embedded-forward-migrations.md) | Use PostgreSQL and embedded forward migrations | Accepted | 2026-09-17 |
+| [ADR-0005](0005-store-immutable-impact-evidence.md) | Store immutable impact evidence and derive edge state at query time | Accepted | 2026-09-18 |

@@ -13,14 +13,20 @@ func TestEmbeddedMigrationChainLoadsInFilenameOrder(t *testing.T) {
 	if err != nil {
 		t.Fatalf("load embedded migrations: %v", err)
 	}
-	if len(migrations) != 1 {
-		t.Fatalf("migration count = %d, want 1", len(migrations))
+	if len(migrations) != 2 {
+		t.Fatalf("migration count = %d, want 2", len(migrations))
 	}
-	if migrations[0].name != "20260917052718_create_catalog.sql" {
-		t.Fatalf("migration name = %q", migrations[0].name)
+	wantNames := []string{
+		"20260917052718_create_catalog.sql",
+		"20260918045925_add_impact_evidence.sql",
 	}
-	if len(migrations[0].sha256) != 64 {
-		t.Fatalf("migration checksum length = %d, want 64", len(migrations[0].sha256))
+	for index, migration := range migrations {
+		if migration.name != wantNames[index] {
+			t.Fatalf("migration %d name = %q, want %q", index, migration.name, wantNames[index])
+		}
+		if len(migration.sha256) != 64 {
+			t.Fatalf("migration %d checksum length = %d, want 64", index, len(migration.sha256))
+		}
 	}
 }
 

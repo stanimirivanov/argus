@@ -1,0 +1,99 @@
+{
+  "apiVersion": "argus.dev/impact-edge-page/v1",
+  "snapshot": {
+    "sourceRepository": {
+      "provider": "github",
+      "host": "github.com",
+      "providerRepositoryId": "R_orders_source_01",
+      "owner": "example",
+      "name": "orders"
+    },
+    "revision": {
+      "algorithm": "git-sha1",
+      "digest": "0123456789abcdef0123456789abcdef01234567"
+    },
+    "descriptorApiVersion": "argus.dev/repository-descriptor/v1"
+  },
+  "evaluatedAt": "2026-09-18T05:00:00Z",
+  "items": [
+    {
+      "capability": {
+        "key": "create-order",
+        "name": "Create an order"
+      },
+      "testRepository": {
+        "provider": "github",
+        "host": "github.com",
+        "providerRepositoryId": "R_orders_tests_01",
+        "owner": "example",
+        "name": "orders-tests"
+      },
+      "suite": {
+        "key": "orders-api-contract",
+        "family": "functional-api",
+        "adapter": "generic-http"
+      },
+      "test": {
+        "key": "create-order-valid",
+        "name": "create order with a valid request"
+      },
+      "status": "conflicting",
+      "evidence": [
+        {
+          "producer": {
+            "repository": {
+              "provider": "github",
+              "host": "github.com",
+              "providerRepositoryId": "R_orders_tests_01",
+              "owner": "example",
+              "name": "orders-tests"
+            },
+            "revision": {
+              "algorithm": "git-sha1",
+              "digest": "89abcdef0123456789abcdef0123456789abcdef"
+            },
+            "adapter": "repository-declaration"
+          },
+          "observationKey": "create-order-api",
+          "assertion": "supports",
+          "evidenceType": "explicit",
+          "confidenceBasisPoints": 10000,
+          "rationale": "Explicit repository mapping.",
+          "observedAt": "2026-09-18T04:30:00Z",
+          "expiresAt": null,
+          "state": "active"
+        },
+        {
+          "producer": {
+            "repository": {
+              "provider": "github",
+              "host": "github.com",
+              "providerRepositoryId": "R_mapping_review_01",
+              "owner": "example",
+              "name": "mapping-review"
+            },
+            "revision": {
+              "algorithm": "git-sha1",
+              "digest": "abcdef0123456789abcdef0123456789abcdef01"
+            },
+            "adapter": "review-import"
+          },
+          "observationKey": "create-order-refutation",
+          "assertion": "refutes",
+          "evidenceType": "reviewer-confirmed",
+          "confidenceBasisPoints": 10000,
+          "rationale": "A reviewer found that this test no longer reaches the capability.",
+          "observedAt": "2026-09-18T04:45:00Z",
+          "expiresAt": null,
+          "state": "active"
+        }
+      ],
+      "conflict": {
+        "kind": "contradictory-active-assertions",
+        "supportingEvidenceCount": 1,
+        "refutingEvidenceCount": 1
+      }
+    }
+  ],
+  "nextCursor": null
+}

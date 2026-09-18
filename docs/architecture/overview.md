@@ -120,13 +120,13 @@ NOT become a network boundary merely because it appears as a separate row.
 ## Core information model
 
 The repository descriptor establishes repository, component, capability, suite,
-and test identity at a trusted immutable revision. Later boundaries still need
-stable identities and versioning for:
+and test identity at a trusted immutable revision. The impact-evidence boundary
+adds versioned relationships with evidence type, producer provenance,
+confidence, observation time, and expiry. Later boundaries still need stable
+identities and versioning for:
 
 - API operation, UI surface, owner, and execution environment;
 - normalized change set and semantic change;
-- impact edge with evidence type, provenance, confidence, observation time,
-  and expiry;
 - execution manifest and selection explanation;
 - execution attempt, normalized result, failure classification, and artifact;
 - adaptation proposal, validation evidence, and review outcome; and
@@ -135,8 +135,9 @@ stable identities and versioning for:
 The impact relationship is many-to-many and MUST NOT be inferred only from
 folder layout. The catalog merges explicit repository declarations with
 discovered static, dynamic, historical, and reviewer-confirmed relationships.
-Explicit declarations have policy-defined precedence, while contradictions
-become reviewable conflicts rather than silent overwrites.
+Any precedence for explicit declarations belongs to versioned selection policy;
+the catalog preserves every observation, and contradictions become reviewable
+conflicts rather than silent overwrites.
 
 ### Current catalog code boundaries
 
@@ -148,8 +149,9 @@ topology:
 |:--|:--|:--|
 | `internal/catalog` | Domain vocabulary, canonical ordering, catalog use cases, stable outcome errors, and consumer-owned persistence ports | JSON field names, SQL, driver errors, connection pools, or migration authority |
 | `internal/catalog/descriptor` | Conversion from the versioned repository-descriptor transport and JSON-path semantic errors | Persistence, orchestration, or reusable catalog policy unrelated to that transport |
+| `internal/catalog/evidence` | Conversion from versioned impact-evidence transport into validated domain observations | Persistence, edge-state policy, or producer execution |
 | `internal/catalog/postgres` | PostgreSQL transactions, relational mapping, private fingerprint encoding, error classification, and explicit migrations | Public wire formats or catalog policy that another storage adapter would need |
-| `cmd/catalog` | CLI argument and JSON output adapters, versioned test-catalog pages, and dependency composition | Domain rules, cursor policy, or direct SQL orchestration |
+| `cmd/catalog` | CLI argument and JSON output adapters, versioned catalog/impact pages, and dependency composition | Domain rules, cursor policy, temporal evidence policy, or direct SQL orchestration |
 | `cmd/migrate` | Explicit composition of the privileged migration capability | Runtime catalog reads or writes |
 
 Runtime catalog code depends on the narrow `catalog.SnapshotStore` port. The
@@ -164,6 +166,15 @@ the PostgreSQL adapter owns the keyset SQL and the CLI adapter owns conversion
 to `argus.dev/test-catalog-page/v1`. This query boundary is reusable by a later
 authenticated network API without moving transport concerns into catalog
 policy.
+
+Impact evidence follows the same inward dependency direction. The
+`ImpactEvidenceStore` port accepts immutable, canonical bundles, while the
+`ImpactEdgeReader` returns raw observations visible at an explicit time. The
+application service—not PostgreSQL or the CLI—derives supported, refuted,
+stale, and conflicting states. This keeps future storage adapters and network
+transports consistent and prevents a database query from becoming hidden
+selection policy. [ADR-0005](../decisions/0005-store-immutable-impact-evidence.md)
+defines the persisted meaning and temporal rules.
 
 ## End-to-end decision flow
 

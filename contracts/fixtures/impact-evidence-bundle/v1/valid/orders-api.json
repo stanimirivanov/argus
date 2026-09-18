@@ -1,0 +1,52 @@
+{
+  "apiVersion": "argus.dev/impact-evidence-bundle/v1",
+  "snapshot": {
+    "sourceRepository": {
+      "provider": "github",
+      "host": "github.com",
+      "providerRepositoryId": "R_orders_source_01",
+      "owner": "example",
+      "name": "orders"
+    },
+    "revision": {
+      "algorithm": "git-sha1",
+      "digest": "0123456789abcdef0123456789abcdef01234567"
+    },
+    "descriptorApiVersion": "argus.dev/repository-descriptor/v1"
+  },
+  "producer": {
+    "repository": {
+      "provider": "github",
+      "host": "github.com",
+      "providerRepositoryId": "R_orders_tests_01",
+      "owner": "example",
+      "name": "orders-tests"
+    },
+    "revision": {
+      "algorithm": "git-sha1",
+      "digest": "89abcdef0123456789abcdef0123456789abcdef"
+    },
+    "adapter": "repository-declaration"
+  },
+  "observedAt": "2026-09-18T04:30:00Z",
+  "expiresAt": null,
+  "observations": [
+    {
+      "key": "create-order-api",
+      "capabilityKey": "create-order",
+      "test": {
+        "testRepository": {
+          "provider": "github",
+          "host": "github.com",
+          "providerRepositoryId": "R_orders_tests_01"
+        },
+        "suiteKey": "orders-api-contract",
+        "testKey": "create-order-valid"
+      },
+      "assertion": "supports",
+      "evidenceType": "explicit",
+      "confidenceBasisPoints": 10000,
+      "rationale": "The design-partner repository explicitly maps this test to the create-order capability."
+    }
+  ]
+}

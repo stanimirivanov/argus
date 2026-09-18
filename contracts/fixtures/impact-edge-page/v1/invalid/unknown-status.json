@@ -1,0 +1,46 @@
+{
+  "apiVersion": "argus.dev/impact-edge-page/v1",
+  "snapshot": {
+    "sourceRepository": {
+      "provider": "github",
+      "host": "github.com",
+      "providerRepositoryId": "R_orders_source_01",
+      "owner": "example",
+      "name": "orders"
+    },
+    "revision": {
+      "algorithm": "git-sha1",
+      "digest": "0123456789abcdef0123456789abcdef01234567"
+    },
+    "descriptorApiVersion": "argus.dev/repository-descriptor/v1"
+  },
+  "evaluatedAt": "2026-09-18T05:00:00Z",
+  "items": [
+    {
+      "capability": {
+        "key": "create-order",
+        "name": "Create an order"
+      },
+      "testRepository": {
+        "provider": "github",
+        "host": "github.com",
+        "providerRepositoryId": "R_orders_tests_01",
+        "owner": "example",
+        "name": "orders-tests"
+      },
+      "suite": {
+        "key": "orders-api-contract",
+        "family": "functional-api",
+        "adapter": "generic-http"
+      },
+      "test": {
+        "key": "create-order-valid",
+        "name": "create order with a valid request"
+      },
+      "status": "unknown",
+      "evidence": [],
+      "conflict": null
+    }
+  ],
+  "nextCursor": null
+}

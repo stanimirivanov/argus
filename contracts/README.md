@@ -9,6 +9,8 @@
   at a separately verified immutable revision.
 - The test-catalog page contract exposes stable test identities and capability
   mappings through deterministic keyset pagination.
+- Impact-evidence bundles preserve immutable producer observations; impact-edge
+  pages expose supported, refuted, stale, and conflicting relationships.
 - Structural validity and domain validity are distinct and share one fixture
   corpus.
 - Generate language stubs only when a real producer or consumer needs them.
@@ -35,6 +37,8 @@ actually fetched.
 |:--|:--|
 | `source/repository-descriptor-v1.ts` | Authoritative Effect Schema and inferred TypeScript type. |
 | `source/test-catalog-page-v1.ts` | Authoritative versioned test-catalog result contract. |
+| `source/impact-evidence-bundle-v1.ts` | Authoritative impact-evidence ingestion contract. |
+| `source/impact-edge-page-v1.ts` | Authoritative evaluated impact-edge result contract. |
 | `source/repository-descriptor-v1.test.ts` | Structural fixture tests through Effect Schema. |
 | `source/test-catalog-page-v1.test.ts` | Test-catalog result compatibility tests through Effect Schema. |
 | `scripts/generate.ts` | Deterministic JSON Schema compiler and drift check. |
@@ -42,8 +46,12 @@ actually fetched.
 | `fixtures/repository-descriptor/v1/manifest.json` | Shared structural and domain expectations. |
 | `fixtures/repository-descriptor/v1/` | Positive and negative compatibility documents. |
 | `fixtures/test-catalog-page/v1/` | Positive and negative result-contract documents. |
+| `fixtures/impact-evidence-bundle/v1/` | Structural and semantic evidence-ingestion fixtures. |
+| `fixtures/impact-edge-page/v1/` | Evaluated relationship and conflict fixtures. |
 | `repository_descriptor.go` | Go schema-validation boundary and transport DTO. |
 | `test_catalog_page.go` | Go test-catalog transport DTO and generated-schema validation boundary. |
+| `impact_evidence_bundle.go` | Go evidence-bundle transport and schema-validation boundary. |
+| `impact_edge_page.go` | Go evaluated impact-edge transport and schema-validation boundary. |
 | `../internal/catalog/descriptor/` | Repository-descriptor-to-domain conversion and semantic validation. |
 | `../internal/catalog/` | Catalog domain vocabulary, use cases, errors, and persistence port. |
 
@@ -104,6 +112,35 @@ An empty `items` array is a successful result when the snapshot exists but no
 test matches the optional capability filter. A missing snapshot remains a
 distinct not-found outcome before a page document is produced.
 
+## Impact evidence and edge contracts
+
+`argus.dev/impact-evidence-bundle/v1` carries one producer repository revision
+and adapter's observations for one immutable catalog snapshot. Each observation
+has a stable local key, capability and test identity, support or refutation
+assertion, evidence method, confidence in basis points, and rationale. The
+bundle separates producer event time, optional expiry, and database ingestion
+time. An expiry must be later than the observation; `null` means the producer
+declared no expiry.
+
+`argus.dev/impact-edge-page/v1` evaluates all observations visible at an
+explicit UTC instant:
+
+| Status | Meaning |
+|:--|:--|
+| `supported` | At least one active supporting observation and no active refutation. |
+| `refuted` | At least one active refutation and no active support. |
+| `stale` | Evidence is visible, but every observation has expired. |
+| `conflicting` | Active evidence both supports and refutes the same relation. |
+
+Missing evidence is not negative evidence. Confidence belongs to its producer
+and is not aggregated by the catalog. A conflict returns the individual
+observations and active assertion counts without selecting a winner. Pages are
+ordered by capability key followed by stable test identity. Their opaque cursor
+is bound to the snapshot, optional capability filter, and evaluation instant.
+
+The immutable storage and evaluation decision is recorded in
+[ADR-0005](../docs/decisions/0005-store-immutable-impact-evidence.md).
+
 ## Structural and domain validation
 
 Effect Schema and generated JSON Schema enforce wire structure, required
@@ -116,7 +153,11 @@ semantic invariants:
 - component and test capability references resolve;
 - repeated capability references are rejected;
 - component roots are normalized repository-relative paths; and
-- the supplied immutable revision is a normalized full Git SHA-1 or SHA-256.
+- the supplied immutable revision is a normalized full Git SHA-1 or SHA-256;
+- evidence observation keys and edges are unique within a bundle;
+- producer observation and expiry times are ordered; and
+- every persisted evidence edge references a capability and test in its target
+  snapshot.
 
 The manifest records `schemaValid` and `domainValid` independently. Any new
 semantic rule requires a representative failing fixture. Go transport tests and
