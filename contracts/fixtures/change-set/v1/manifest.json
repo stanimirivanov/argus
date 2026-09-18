@@ -1,0 +1,16 @@
+{
+  "fixtures": [
+    {
+      "path": "fixtures/change-set/v1/valid/pull-request.json",
+      "schemaValid": true
+    },
+    {
+      "path": "fixtures/change-set/v1/invalid/unknown-file-kind.json",
+      "schemaValid": false
+    },
+    {
+      "path": "fixtures/change-set/v1/invalid/unknown-field.json",
+      "schemaValid": false
+    }
+  ]
+}
