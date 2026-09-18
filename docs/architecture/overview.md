@@ -28,6 +28,9 @@
 - [ADR-0004](../decisions/0004-use-postgresql-and-embedded-forward-migrations.md)
   selects PostgreSQL and explicit embedded forward migrations for catalog
   persistence.
+- [ADR-0006](../decisions/0006-enforce-capability-oriented-hexagonal-boundaries.md)
+  makes each application capability own its ports, confines infrastructure to
+  adapters, keeps commands as composition roots, and enforces import direction.
 - Queues and deployment topology remain deferred to ADRs and evidence from
   vertical slices.
 
@@ -41,7 +44,7 @@ MUST be recorded in
 control-plane language and cross-project reuse policy; ADR-0002 selects the
 initial repository topology and split criteria; ADR-0003 selects the contract
 authoring and interoperability boundary; ADR-0004 selects the catalog database
-and migration policy.
+and migration policy; ADR-0006 selects the code-level hexagonal boundaries.
 
 The [product definition](../product/product-definition.md) governs product
 behavior and safety. The [implementation milestones](../roadmap/milestones.md)
@@ -147,34 +150,45 @@ topology:
 
 | Path | Owns | Must not own |
 |:--|:--|:--|
-| `internal/catalog` | Domain vocabulary, canonical ordering, catalog use cases, stable outcome errors, and consumer-owned persistence ports | JSON field names, SQL, driver errors, connection pools, or migration authority |
-| `internal/catalog/descriptor` | Conversion from the versioned repository-descriptor transport and JSON-path semantic errors | Persistence, orchestration, or reusable catalog policy unrelated to that transport |
-| `internal/catalog/evidence` | Conversion from versioned impact-evidence transport into validated domain observations | Persistence, edge-state policy, or producer execution |
-| `internal/catalog/postgres` | PostgreSQL transactions, relational mapping, private fingerprint encoding, error classification, and explicit migrations | Public wire formats or catalog policy that another storage adapter would need |
-| `cmd/catalog` | CLI argument and JSON output adapters, versioned catalog/impact pages, and dependency composition | Domain rules, cursor policy, temporal evidence policy, or direct SQL orchestration |
+| `internal/catalog` | Shared repository, revision, snapshot, and test identity vocabulary; canonical ordering; invariants; and stable catalog errors | Use-case orchestration, consumer ports, generated contracts, SQL, or adapters |
+| `internal/catalog/snapshot` | Snapshot ingestion/retrieval service and its consumer-owned `Store` port | Transport conversion, SQL, or schema administration |
+| `internal/catalog/testquery` | Bounded test query service, keyset cursor policy, and its reader port | JSON output, SQL, or impact policy |
+| `internal/catalog/impact` | Immutable evidence ingestion, edge query and temporal/conflict policy, cursors, and consumer-owned ports | Generated DTOs, SQL, or selection thresholds |
+| `internal/catalog/adapters/contract/*` | Conversion from versioned generated transports and transport-specific semantic errors | Persistence or application orchestration |
+| `internal/catalog/adapters/cli/*` | Catalog and descriptor CLI parsing, local file input, application invocation, and versioned JSON output | Concrete infrastructure selection, SQL, or domain policy |
+| `internal/catalog/adapters/postgres` | PostgreSQL transactions, relational mapping, private fingerprint encoding, error classification, and explicit migrations | Public wire formats or application policy another adapter would need |
+| `cmd/catalog` | Process lifecycle, environment configuration, and concrete adapter composition | Argument policy, output mapping, cursor policy, or direct SQL orchestration |
+| `cmd/descriptor` | Descriptor-command process wiring | Descriptor validation, file parsing, or output mapping |
 | `cmd/migrate` | Explicit composition of the privileged migration capability | Runtime catalog reads or writes |
 
-Runtime catalog code depends on the narrow `catalog.SnapshotStore` port. The
-PostgreSQL `Store` implements that port, while the separately opened
+Runtime catalog code depends on the narrow `snapshot.Store` port. The
+PostgreSQL `Store` implements it, while the separately opened
 `Migrator` owns schema administration. Domain structs intentionally have no
 JSON tags: the descriptor DTO, command output DTO, and persisted fingerprint
 are distinct compatibility boundaries and evolve independently.
 
 The first catalog query is an application use case behind the
-`catalog.TestCatalogReader` port. It owns bounded-page and cursor policy, while
+`testquery.TestCatalogReader` port. It owns bounded-page and cursor policy, while
 the PostgreSQL adapter owns the keyset SQL and the CLI adapter owns conversion
 to `argus.dev/test-catalog-page/v1`. This query boundary is reusable by a later
 authenticated network API without moving transport concerns into catalog
 policy.
 
 Impact evidence follows the same inward dependency direction. The
-`ImpactEvidenceStore` port accepts immutable, canonical bundles, while the
-`ImpactEdgeReader` returns raw observations visible at an explicit time. The
+`impact.EvidenceStore` port accepts immutable, canonical bundles, while the
+`impact.EdgeReader` returns raw observations visible at an explicit time. The
 application service—not PostgreSQL or the CLI—derives supported, refuted,
 stale, and conflicting states. This keeps future storage adapters and network
 transports consistent and prevents a database query from becoming hidden
 selection policy. [ADR-0005](../decisions/0005-store-immutable-impact-evidence.md)
 defines the persisted meaning and temporal rules.
+
+The import-boundary test under `internal/catalog` enforces the dependency
+direction: shared domain code cannot point outward, capability packages cannot
+import contracts or infrastructure, and the driving CLI adapter cannot select
+PostgreSQL. [ADR-0006](../decisions/0006-enforce-capability-oriented-hexagonal-boundaries.md)
+defines this modular-monolith structure and the deliberately rejected generic
+layer packages.
 
 ## End-to-end decision flow
 

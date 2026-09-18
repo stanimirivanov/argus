@@ -25,7 +25,9 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/stanimirivanov/argus/contracts"
 	"github.com/stanimirivanov/argus/internal/catalog"
-	"github.com/stanimirivanov/argus/internal/catalog/descriptor"
+	"github.com/stanimirivanov/argus/internal/catalog/adapters/contract/descriptor"
+	"github.com/stanimirivanov/argus/internal/catalog/impact"
+	"github.com/stanimirivanov/argus/internal/catalog/testquery"
 )
 
 const testDatabaseURLEnvironment = "ARGUS_TEST_POSTGRES_URL"
@@ -331,8 +333,8 @@ func TestTestCatalogQueryPaginatesFiltersAndSurvivesRestart(t *testing.T) {
 		t.Fatalf("save queryable snapshot: %v", err)
 	}
 
-	query := catalog.TestCatalogQuery{Snapshot: snapshot.Key(), PageSize: 2}
-	items := collectTestCatalogPages(t, catalog.NewTestCatalogService(store), query)
+	query := testquery.TestCatalogQuery{Snapshot: snapshot.Key(), PageSize: 2}
+	items := collectTestCatalogPages(t, testquery.NewTestCatalogService(store), query)
 	if len(items) != 4 {
 		t.Fatalf("catalog entry count = %d, want 4", len(items))
 	}
@@ -344,7 +346,7 @@ func TestTestCatalogQueryPaginatesFiltersAndSurvivesRestart(t *testing.T) {
 
 	query.CapabilityKey = "cancel-order"
 	query.PageSize = 1
-	filtered := collectTestCatalogPages(t, catalog.NewTestCatalogService(store), query)
+	filtered := collectTestCatalogPages(t, testquery.NewTestCatalogService(store), query)
 	if len(filtered) != 2 {
 		t.Fatalf("filtered catalog entry count = %d, want 2", len(filtered))
 	}
@@ -354,7 +356,7 @@ func TestTestCatalogQueryPaginatesFiltersAndSurvivesRestart(t *testing.T) {
 		}
 	}
 
-	empty, err := catalog.NewTestCatalogService(store).ListTests(t.Context(), catalog.TestCatalogQuery{
+	empty, err := testquery.NewTestCatalogService(store).ListTests(t.Context(), testquery.TestCatalogQuery{
 		Snapshot:      snapshot.Key(),
 		CapabilityKey: "missing-capability",
 		PageSize:      10,
@@ -368,7 +370,7 @@ func TestTestCatalogQueryPaginatesFiltersAndSurvivesRestart(t *testing.T) {
 
 	missing := snapshot.Key()
 	missing.Revision.Digest = "1123456789abcdef0123456789abcdef01234567"
-	if _, err := catalog.NewTestCatalogService(store).ListTests(t.Context(), catalog.TestCatalogQuery{
+	if _, err := testquery.NewTestCatalogService(store).ListTests(t.Context(), testquery.TestCatalogQuery{
 		Snapshot: missing,
 		PageSize: 10,
 	}); !errors.Is(err, catalog.ErrNotFound) {
@@ -381,7 +383,7 @@ func TestTestCatalogQueryPaginatesFiltersAndSurvivesRestart(t *testing.T) {
 		t.Fatalf("reopen catalog store: %v", err)
 	}
 	t.Cleanup(reopened.Close)
-	afterRestart := collectTestCatalogPages(t, catalog.NewTestCatalogService(reopened), catalog.TestCatalogQuery{
+	afterRestart := collectTestCatalogPages(t, testquery.NewTestCatalogService(reopened), testquery.TestCatalogQuery{
 		Snapshot: snapshot.Key(),
 		PageSize: 3,
 	})
@@ -406,14 +408,14 @@ func TestImpactEvidenceRetryConflictStatesPaginationAndRestart(t *testing.T) {
 		"explicit-import",
 		evaluatedAt.Add(-2*time.Hour),
 		nil,
-		[]catalog.ImpactObservation{
+		[]impact.Observation{
 			impactObservationForIntegration(
 				snapshot,
 				"create-order-support",
 				"create-order",
 				0,
 				0,
-				catalog.ImpactAssertionSupports,
+				impact.AssertionSupports,
 			),
 			impactObservationForIntegration(
 				snapshot,
@@ -421,7 +423,7 @@ func TestImpactEvidenceRetryConflictStatesPaginationAndRestart(t *testing.T) {
 				"create-order",
 				0,
 				2,
-				catalog.ImpactAssertionSupports,
+				impact.AssertionSupports,
 			),
 		},
 	)
@@ -431,14 +433,14 @@ func TestImpactEvidenceRetryConflictStatesPaginationAndRestart(t *testing.T) {
 		"review-import",
 		evaluatedAt.Add(-time.Hour),
 		nil,
-		[]catalog.ImpactObservation{
+		[]impact.Observation{
 			impactObservationForIntegration(
 				snapshot,
 				"create-order-refutation",
 				"create-order",
 				0,
 				0,
-				catalog.ImpactAssertionRefutes,
+				impact.AssertionRefutes,
 			),
 			impactObservationForIntegration(
 				snapshot,
@@ -446,7 +448,7 @@ func TestImpactEvidenceRetryConflictStatesPaginationAndRestart(t *testing.T) {
 				"cancel-order",
 				1,
 				0,
-				catalog.ImpactAssertionRefutes,
+				impact.AssertionRefutes,
 			),
 		},
 	)
@@ -457,33 +459,33 @@ func TestImpactEvidenceRetryConflictStatesPaginationAndRestart(t *testing.T) {
 		"coverage-import",
 		evaluatedAt.Add(-3*time.Hour),
 		&expiresAt,
-		[]catalog.ImpactObservation{
+		[]impact.Observation{
 			impactObservationForIntegration(
 				snapshot,
 				"cancel-order-expired",
 				"cancel-order",
 				0,
 				1,
-				catalog.ImpactAssertionSupports,
+				impact.AssertionSupports,
 			),
 		},
 	)
 
-	service := catalog.NewImpactEvidenceService(store)
-	for index, bundle := range []catalog.ImpactEvidenceBundle{activeSupport, activeRefutation, expiredSupport} {
+	service := impact.NewEvidenceService(store)
+	for index, bundle := range []impact.EvidenceBundle{activeSupport, activeRefutation, expiredSupport} {
 		created, err := service.Ingest(t.Context(), bundle)
 		if err != nil || !created {
 			t.Fatalf("ingest bundle %d: created=%t err=%v", index, created, err)
 		}
 	}
 	reordered := activeSupport
-	reordered.Observations = append([]catalog.ImpactObservation(nil), activeSupport.Observations...)
+	reordered.Observations = append([]impact.Observation(nil), activeSupport.Observations...)
 	reordered.Observations[0], reordered.Observations[1] = reordered.Observations[1], reordered.Observations[0]
 	if created, err := service.Ingest(t.Context(), reordered); err != nil || created {
 		t.Fatalf("retry reordered evidence: created=%t err=%v", created, err)
 	}
 	conflict := activeSupport
-	conflict.Observations = append([]catalog.ImpactObservation(nil), activeSupport.Observations...)
+	conflict.Observations = append([]impact.Observation(nil), activeSupport.Observations...)
 	conflict.Observations[0].Rationale = "Different immutable evidence."
 	if _, err := service.Ingest(t.Context(), conflict); !errors.Is(err, catalog.ErrConflict) {
 		t.Fatalf("ingest conflicting evidence = %v, want ErrConflict", err)
@@ -495,14 +497,14 @@ func TestImpactEvidenceRetryConflictStatesPaginationAndRestart(t *testing.T) {
 		"invalid-reference",
 		evaluatedAt.Add(-time.Hour),
 		nil,
-		[]catalog.ImpactObservation{
+		[]impact.Observation{
 			impactObservationForIntegration(
 				snapshot,
 				"missing-capability",
 				"not-cataloged",
 				0,
 				0,
-				catalog.ImpactAssertionSupports,
+				impact.AssertionSupports,
 			),
 		},
 	)
@@ -510,20 +512,20 @@ func TestImpactEvidenceRetryConflictStatesPaginationAndRestart(t *testing.T) {
 		t.Fatalf("ingest invalid reference = %v, want ErrInvalidEvidence", err)
 	}
 
-	query := catalog.ImpactEdgeQuery{
+	query := impact.EdgeQuery{
 		Snapshot:    snapshot.Key(),
 		EvaluatedAt: evaluatedAt,
 		PageSize:    2,
 	}
-	edges := collectImpactEdgePages(t, catalog.NewImpactEdgeService(store), query)
+	edges := collectImpactEdgePages(t, impact.NewEdgeService(store), query)
 	if len(edges) != 4 {
 		t.Fatalf("impact edge count = %d, want 4", len(edges))
 	}
-	wantStatuses := map[string]catalog.ImpactEdgeStatus{
-		"cancel-order/create-order-browser":    catalog.ImpactEdgeRefuted,
-		"cancel-order/cancel-order-valid":      catalog.ImpactEdgeStale,
-		"create-order/create-and-cancel-order": catalog.ImpactEdgeSupported,
-		"create-order/create-order-valid":      catalog.ImpactEdgeConflicting,
+	wantStatuses := map[string]impact.EdgeStatus{
+		"cancel-order/create-order-browser":    impact.EdgeRefuted,
+		"cancel-order/cancel-order-valid":      impact.EdgeStale,
+		"create-order/create-and-cancel-order": impact.EdgeSupported,
+		"create-order/create-order-valid":      impact.EdgeConflicting,
 	}
 	for _, edge := range edges {
 		key := edge.Capability.Key + "/" + edge.TestKey
@@ -534,7 +536,7 @@ func TestImpactEvidenceRetryConflictStatesPaginationAndRestart(t *testing.T) {
 
 	query.CapabilityKey = "create-order"
 	query.PageSize = 1
-	filtered := collectImpactEdgePages(t, catalog.NewImpactEdgeService(store), query)
+	filtered := collectImpactEdgePages(t, impact.NewEdgeService(store), query)
 	if len(filtered) != 2 {
 		t.Fatalf("filtered impact edge count = %d, want 2", len(filtered))
 	}
@@ -550,7 +552,7 @@ func TestImpactEvidenceRetryConflictStatesPaginationAndRestart(t *testing.T) {
 		t.Fatalf("reopen impact store: %v", err)
 	}
 	t.Cleanup(reopened.Close)
-	afterRestart := collectImpactEdgePages(t, catalog.NewImpactEdgeService(reopened), catalog.ImpactEdgeQuery{
+	afterRestart := collectImpactEdgePages(t, impact.NewEdgeService(reopened), impact.EdgeQuery{
 		Snapshot:    snapshot.Key(),
 		EvaluatedAt: evaluatedAt,
 		PageSize:    3,
@@ -574,14 +576,14 @@ func TestConcurrentImpactEvidenceRetryCreatesOnce(t *testing.T) {
 		"concurrent-import",
 		time.Date(2026, 9, 18, 10, 0, 0, 0, time.UTC),
 		nil,
-		[]catalog.ImpactObservation{
+		[]impact.Observation{
 			impactObservationForIntegration(
 				snapshot,
 				"concurrent-support",
 				"create-order",
 				0,
 				0,
-				catalog.ImpactAssertionSupports,
+				impact.AssertionSupports,
 			),
 		},
 	)
@@ -593,7 +595,7 @@ func TestConcurrentImpactEvidenceRetryCreatesOnce(t *testing.T) {
 		waitGroup.Add(1)
 		go func() {
 			defer waitGroup.Done()
-			createdByStore[index], errorsByStore[index] = catalog.NewImpactEvidenceService(store).Ingest(
+			createdByStore[index], errorsByStore[index] = impact.NewEvidenceService(store).Ingest(
 				t.Context(),
 				bundle,
 			)
@@ -617,12 +619,12 @@ func TestConcurrentImpactEvidenceRetryCreatesOnce(t *testing.T) {
 
 func collectImpactEdgePages(
 	t *testing.T,
-	service *catalog.ImpactEdgeService,
-	query catalog.ImpactEdgeQuery,
-) []catalog.ImpactEdge {
+	service *impact.EdgeService,
+	query impact.EdgeQuery,
+) []impact.Edge {
 	t.Helper()
 
-	var collected []catalog.ImpactEdge
+	var collected []impact.Edge
 	for pageNumber := 0; pageNumber < 20; pageNumber++ {
 		page, err := service.List(t.Context(), query)
 		if err != nil {
@@ -646,16 +648,16 @@ func impactBundleForIntegration(
 	adapter string,
 	observedAt time.Time,
 	expiresAt *time.Time,
-	observations []catalog.ImpactObservation,
-) catalog.ImpactEvidenceBundle {
-	return catalog.ImpactEvidenceBundle{
-		APIVersion: catalog.ImpactEvidenceBundleAPIVersion,
+	observations []impact.Observation,
+) impact.EvidenceBundle {
+	return impact.EvidenceBundle{
+		APIVersion: impact.EvidenceBundleAPIVersion,
 		Snapshot: catalog.SnapshotReference{
 			SourceRepository:     snapshot.Repository,
 			Revision:             snapshot.Revision,
 			DescriptorAPIVersion: snapshot.APIVersion,
 		},
-		Producer: catalog.ImpactEvidenceProducer{
+		Producer: impact.EvidenceProducer{
 			Repository: catalog.Repository{
 				Identity: catalog.RepositoryIdentity{
 					Provider:             catalog.ProviderGitHub,
@@ -683,21 +685,21 @@ func impactObservationForIntegration(
 	capabilityKey string,
 	suiteIndex int,
 	testIndex int,
-	assertion catalog.ImpactAssertion,
-) catalog.ImpactObservation {
+	assertion impact.Assertion,
+) impact.Observation {
 	suite := snapshot.TestSuites[suiteIndex]
 	test := suite.Tests[testIndex]
 
-	return catalog.ImpactObservation{
+	return impact.Observation{
 		Key:           key,
 		CapabilityKey: capabilityKey,
-		Test: catalog.TestCatalogIdentity{
+		Test: catalog.TestIdentity{
 			TestRepository: suite.Repository.Identity,
 			SuiteKey:       suite.Key,
 			TestKey:        test.Key,
 		},
 		Assertion:             assertion,
-		EvidenceType:          catalog.ImpactEvidenceExplicit,
+		EvidenceType:          impact.EvidenceExplicit,
 		ConfidenceBasisPoints: 10_000,
 		Rationale:             "Integration-test evidence.",
 	}
@@ -705,12 +707,12 @@ func impactObservationForIntegration(
 
 func collectTestCatalogPages(
 	t *testing.T,
-	service *catalog.TestCatalogService,
-	query catalog.TestCatalogQuery,
-) []catalog.TestCatalogEntry {
+	service *testquery.TestCatalogService,
+	query testquery.TestCatalogQuery,
+) []testquery.TestCatalogEntry {
 	t.Helper()
 
-	var collected []catalog.TestCatalogEntry
+	var collected []testquery.TestCatalogEntry
 	for pageNumber := 0; pageNumber < 10; pageNumber++ {
 		page, err := service.ListTests(t.Context(), query)
 		if err != nil {
@@ -728,7 +730,7 @@ func collectTestCatalogPages(
 	return nil
 }
 
-func compareTestCatalogIdentities(left, right catalog.TestCatalogIdentity) int {
+func compareTestCatalogIdentities(left, right catalog.TestIdentity) int {
 	if compared := compareRepositoryIdentities(left.TestRepository, right.TestRepository); compared != 0 {
 		return compared
 	}
@@ -739,7 +741,7 @@ func compareTestCatalogIdentities(left, right catalog.TestCatalogIdentity) int {
 	return cmp.Compare(left.TestKey, right.TestKey)
 }
 
-func entryHasCapability(entry catalog.TestCatalogEntry, key string) bool {
+func entryHasCapability(entry testquery.TestCatalogEntry, key string) bool {
 	for _, capability := range entry.Capabilities {
 		if capability.Key == key {
 			return true
@@ -880,6 +882,7 @@ func loadTestSnapshot(t *testing.T) catalog.Snapshot {
 	t.Helper()
 
 	data, err := os.ReadFile(filepath.Join(
+		"..",
 		"..",
 		"..",
 		"..",

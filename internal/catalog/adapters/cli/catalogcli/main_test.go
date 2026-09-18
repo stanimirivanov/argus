@@ -1,4 +1,4 @@
-package main
+package catalogcli
 
 import (
 	"bytes"
@@ -15,7 +15,7 @@ const testRevision = "0123456789abcdef0123456789abcdef01234567"
 func TestRunRequiresSubcommand(t *testing.T) {
 	t.Parallel()
 
-	if err := run(context.Background(), nil, "", &bytes.Buffer{}); err == nil {
+	if err := Run(context.Background(), nil, "", &bytes.Buffer{}, nil); err == nil {
 		t.Fatal("expected missing subcommand to fail")
 	}
 }
@@ -24,7 +24,7 @@ func TestImportValidatesBeforeOpeningDatabase(t *testing.T) {
 	t.Parallel()
 
 	var output bytes.Buffer
-	err := run(context.Background(), []string{"import", "missing.json"}, "", &output)
+	err := Run(context.Background(), []string{"import", "missing.json"}, "", &output, nil)
 	if err == nil || !strings.Contains(err.Error(), "usage: catalog import") {
 		t.Fatalf("run error = %v, want import usage", err)
 	}
@@ -43,7 +43,7 @@ func TestGetRequiresDatabaseURLAfterValidArguments(t *testing.T) {
 		"-repository-id", "R_orders_source_01",
 		"-revision", testRevision,
 	}
-	err := run(context.Background(), arguments, "", &bytes.Buffer{})
+	err := Run(context.Background(), arguments, "", &bytes.Buffer{}, nil)
 	if err == nil || !strings.Contains(err.Error(), "ARGUS_DATABASE_URL") {
 		t.Fatalf("run error = %v, want missing database configuration", err)
 	}
@@ -59,7 +59,7 @@ func TestListTestsRequiresDatabaseURLAfterValidArguments(t *testing.T) {
 		"-repository-id", "R_orders_source_01",
 		"-revision", testRevision,
 	}
-	err := run(context.Background(), arguments, "", &bytes.Buffer{})
+	err := Run(context.Background(), arguments, "", &bytes.Buffer{}, nil)
 	if err == nil || !strings.Contains(err.Error(), "ARGUS_DATABASE_URL") {
 		t.Fatalf("run error = %v, want missing database configuration", err)
 	}
@@ -76,7 +76,7 @@ func TestListTestsRejectsPageSizeBeforeOpeningDatabase(t *testing.T) {
 		"-revision", testRevision,
 		"-page-size", "201",
 	}
-	err := run(context.Background(), arguments, "", &bytes.Buffer{})
+	err := Run(context.Background(), arguments, "", &bytes.Buffer{}, nil)
 	if !errors.Is(err, catalog.ErrInvalidQuery) || !strings.Contains(err.Error(), "page size") {
 		t.Fatalf("run error = %v, want page-size ErrInvalidQuery", err)
 	}
@@ -93,7 +93,7 @@ func TestListTestsRejectsCursorBeforeOpeningDatabase(t *testing.T) {
 		"-revision", testRevision,
 		"-cursor", "not+a+cursor",
 	}
-	err := run(context.Background(), arguments, "", &bytes.Buffer{})
+	err := Run(context.Background(), arguments, "", &bytes.Buffer{}, nil)
 	if !errors.Is(err, catalog.ErrInvalidCursor) {
 		t.Fatalf("run error = %v, want ErrInvalidCursor", err)
 	}
@@ -102,8 +102,8 @@ func TestListTestsRejectsCursorBeforeOpeningDatabase(t *testing.T) {
 func TestImportImpactRequiresDatabaseURLAfterValidDocument(t *testing.T) {
 	t.Parallel()
 
-	path := "../../contracts/fixtures/impact-evidence-bundle/v1/valid/orders-api.json"
-	err := run(context.Background(), []string{"import-impact", path}, "", &bytes.Buffer{})
+	path := "../../../../../contracts/fixtures/impact-evidence-bundle/v1/valid/orders-api.json"
+	err := Run(context.Background(), []string{"import-impact", path}, "", &bytes.Buffer{}, nil)
 	if err == nil || !strings.Contains(err.Error(), "ARGUS_DATABASE_URL") {
 		t.Fatalf("run error = %v, want missing database configuration", err)
 	}
@@ -112,8 +112,8 @@ func TestImportImpactRequiresDatabaseURLAfterValidDocument(t *testing.T) {
 func TestImportImpactRejectsDomainInvalidDocumentBeforeOpeningDatabase(t *testing.T) {
 	t.Parallel()
 
-	path := "../../contracts/fixtures/impact-evidence-bundle/v1/invalid/expiry-before-observation.json"
-	err := run(context.Background(), []string{"import-impact", path}, "", &bytes.Buffer{})
+	path := "../../../../../contracts/fixtures/impact-evidence-bundle/v1/invalid/expiry-before-observation.json"
+	err := Run(context.Background(), []string{"import-impact", path}, "", &bytes.Buffer{}, nil)
 	if !errors.Is(err, catalog.ErrInvalidEvidence) {
 		t.Fatalf("run error = %v, want ErrInvalidEvidence", err)
 	}
@@ -130,7 +130,7 @@ func TestListImpactRequiresDatabaseURLAfterValidArguments(t *testing.T) {
 		"-revision", testRevision,
 		"-evaluated-at", "2026-09-18T05:00:00Z",
 	}
-	err := run(context.Background(), arguments, "", &bytes.Buffer{})
+	err := Run(context.Background(), arguments, "", &bytes.Buffer{}, nil)
 	if err == nil || !strings.Contains(err.Error(), "ARGUS_DATABASE_URL") {
 		t.Fatalf("run error = %v, want missing database configuration", err)
 	}
@@ -147,7 +147,7 @@ func TestListImpactRejectsInvalidTimeAndCursorBeforeOpeningDatabase(t *testing.T
 		"-revision", testRevision,
 	}
 	invalidTime := append(append([]string(nil), base...), "-evaluated-at", "tomorrow")
-	if err := run(context.Background(), invalidTime, "", &bytes.Buffer{}); err == nil ||
+	if err := Run(context.Background(), invalidTime, "", &bytes.Buffer{}, nil); err == nil ||
 		!strings.Contains(err.Error(), "RFC 3339") {
 		t.Fatalf("invalid time error = %v", err)
 	}
@@ -157,7 +157,7 @@ func TestListImpactRejectsInvalidTimeAndCursorBeforeOpeningDatabase(t *testing.T
 		"-evaluated-at", "2026-09-18T05:00:00Z",
 		"-cursor", "not+a+cursor",
 	)
-	if err := run(context.Background(), invalidCursor, "", &bytes.Buffer{}); !errors.Is(err, catalog.ErrInvalidCursor) {
+	if err := Run(context.Background(), invalidCursor, "", &bytes.Buffer{}, nil); !errors.Is(err, catalog.ErrInvalidCursor) {
 		t.Fatalf("invalid cursor error = %v, want ErrInvalidCursor", err)
 	}
 }

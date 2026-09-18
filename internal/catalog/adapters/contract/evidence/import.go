@@ -8,47 +8,48 @@ import (
 
 	"github.com/stanimirivanov/argus/contracts"
 	"github.com/stanimirivanov/argus/internal/catalog"
+	"github.com/stanimirivanov/argus/internal/catalog/impact"
 )
 
 // Import converts a structurally validated v1 bundle into a validated catalog
 // value. Timestamp ordering, uniqueness, and closed-set semantics are domain
 // concerns rather than JSON Schema constraints.
-func Import(document contracts.ImpactEvidenceBundleV1) (catalog.ImpactEvidenceBundle, error) {
+func Import(document contracts.ImpactEvidenceBundleV1) (impact.EvidenceBundle, error) {
 	observedAt, err := parseUTC(document.ObservedAt, "/observedAt")
 	if err != nil {
-		return catalog.ImpactEvidenceBundle{}, err
+		return impact.EvidenceBundle{}, err
 	}
 
 	var expiresAt *time.Time
 	if document.ExpiresAt != nil {
 		parsed, err := parseUTC(*document.ExpiresAt, "/expiresAt")
 		if err != nil {
-			return catalog.ImpactEvidenceBundle{}, err
+			return impact.EvidenceBundle{}, err
 		}
 		expiresAt = &parsed
 	}
 
-	bundle := catalog.ImpactEvidenceBundle{
+	bundle := impact.EvidenceBundle{
 		APIVersion: document.APIVersion,
 		Snapshot: catalog.SnapshotReference{
 			SourceRepository:     repository(document.Snapshot.SourceRepository),
 			Revision:             revision(document.Snapshot.Revision),
 			DescriptorAPIVersion: document.Snapshot.DescriptorAPIVersion,
 		},
-		Producer: catalog.ImpactEvidenceProducer{
+		Producer: impact.EvidenceProducer{
 			Repository: repository(document.Producer.Repository),
 			Revision:   revision(document.Producer.Revision),
 			Adapter:    document.Producer.Adapter,
 		},
 		ObservedAt:   observedAt,
 		ExpiresAt:    expiresAt,
-		Observations: make([]catalog.ImpactObservation, len(document.Observations)),
+		Observations: make([]impact.Observation, len(document.Observations)),
 	}
 	for index, observation := range document.Observations {
-		bundle.Observations[index] = catalog.ImpactObservation{
+		bundle.Observations[index] = impact.Observation{
 			Key:           observation.Key,
 			CapabilityKey: observation.CapabilityKey,
-			Test: catalog.TestCatalogIdentity{
+			Test: catalog.TestIdentity{
 				TestRepository: catalog.RepositoryIdentity{
 					Provider:             catalog.Provider(observation.Test.TestRepository.Provider),
 					Host:                 observation.Test.TestRepository.Host,
@@ -57,17 +58,17 @@ func Import(document contracts.ImpactEvidenceBundleV1) (catalog.ImpactEvidenceBu
 				SuiteKey: observation.Test.SuiteKey,
 				TestKey:  observation.Test.TestKey,
 			},
-			Assertion:             catalog.ImpactAssertion(observation.Assertion),
-			EvidenceType:          catalog.ImpactEvidenceType(observation.EvidenceType),
+			Assertion:             impact.Assertion(observation.Assertion),
+			EvidenceType:          impact.EvidenceType(observation.EvidenceType),
 			ConfidenceBasisPoints: observation.ConfidenceBasisPoints,
 			Rationale:             observation.Rationale,
 		}
 	}
-	if err := catalog.ValidateImpactEvidenceBundle(bundle); err != nil {
-		return catalog.ImpactEvidenceBundle{}, err
+	if err := impact.ValidateEvidenceBundle(bundle); err != nil {
+		return impact.EvidenceBundle{}, err
 	}
 
-	return catalog.CanonicalImpactEvidenceBundle(bundle), nil
+	return impact.CanonicalEvidenceBundle(bundle), nil
 }
 
 func parseUTC(value, path string) (time.Time, error) {

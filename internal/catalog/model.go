@@ -1,5 +1,14 @@
 package catalog
 
+import (
+	"cmp"
+	"fmt"
+	"regexp"
+	"strings"
+)
+
+var localKeyPattern = regexp.MustCompile(`^[a-z][a-z0-9._-]{0,62}$`)
+
 // Provider identifies a supported source-code hosting provider.
 type Provider string
 
@@ -120,6 +129,94 @@ type SnapshotKey struct {
 	Repository RepositoryIdentity
 	Revision   Revision
 	APIVersion string
+}
+
+// Valid reports whether the key names a complete, normalized immutable
+// snapshot. Use-case packages translate a false result into their own stable
+// query or evidence error.
+func (key SnapshotKey) Valid() bool {
+	return ValidateSnapshotKey(key) == nil
+}
+
+// ValidateSnapshotKey verifies every normalized component of an immutable
+// snapshot identity and returns the stable query error used by consuming
+// capabilities. Valid is the boolean form for invariant checks.
+func ValidateSnapshotKey(key SnapshotKey) error {
+	switch key.Repository.Provider {
+	case ProviderGitHub, ProviderGitLab, ProviderAzureDevOps, ProviderOther:
+	default:
+		return fmt.Errorf("%w: repository provider", ErrInvalidQuery)
+	}
+	if strings.TrimSpace(key.Repository.Host) == "" ||
+		strings.TrimSpace(key.Repository.ProviderRepositoryID) == "" ||
+		strings.TrimSpace(key.APIVersion) == "" {
+		return fmt.Errorf("%w: incomplete snapshot identity", ErrInvalidQuery)
+	}
+	validatedRevision, err := NewRevision(key.Revision.Algorithm, key.Revision.Digest)
+
+	if err != nil || validatedRevision != key.Revision {
+		return fmt.Errorf("%w: revision", ErrInvalidQuery)
+	}
+
+	return nil
+}
+
+// SnapshotReference describes the immutable catalog observation associated
+// with query results and evidence.
+type SnapshotReference struct {
+	SourceRepository     Repository
+	Revision             Revision
+	DescriptorAPIVersion string
+}
+
+// Key returns the immutable identity represented by the reference.
+func (reference SnapshotReference) Key() SnapshotKey {
+	return SnapshotKey{
+		Repository: reference.SourceRepository.Identity,
+		Revision:   reference.Revision,
+		APIVersion: reference.DescriptorAPIVersion,
+	}
+}
+
+// TestIdentity is stable across repository-coordinate and test display-name
+// changes.
+type TestIdentity struct {
+	TestRepository RepositoryIdentity
+	SuiteKey       string
+	TestKey        string
+}
+
+// Valid reports whether every part of the stable test identity is normalized.
+func (identity TestIdentity) Valid() bool {
+	switch identity.TestRepository.Provider {
+	case ProviderGitHub, ProviderGitLab, ProviderAzureDevOps, ProviderOther:
+	default:
+		return false
+	}
+
+	return strings.TrimSpace(identity.TestRepository.Host) != "" &&
+		strings.TrimSpace(identity.TestRepository.ProviderRepositoryID) != "" &&
+		IsLocalKey(identity.SuiteKey) &&
+		IsLocalKey(identity.TestKey)
+}
+
+// CompareTestIdentities returns the lexical ordering used by catalog query
+// ports and deterministic cursors.
+func CompareTestIdentities(left, right TestIdentity) int {
+	if compared := compareRepositoryIdentities(left.TestRepository, right.TestRepository); compared != 0 {
+		return compared
+	}
+	if compared := cmp.Compare(left.SuiteKey, right.SuiteKey); compared != 0 {
+		return compared
+	}
+
+	return cmp.Compare(left.TestKey, right.TestKey)
+}
+
+// IsLocalKey reports whether value is a normalized repository-local catalog
+// key.
+func IsLocalKey(value string) bool {
+	return localKeyPattern.MatchString(value)
 }
 
 // Key returns the immutable identity used to persist and retrieve the snapshot.

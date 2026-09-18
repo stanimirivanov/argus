@@ -1,4 +1,4 @@
-package main
+package catalogcli
 
 import (
 	"encoding/json"
@@ -7,6 +7,8 @@ import (
 
 	"github.com/stanimirivanov/argus/contracts"
 	"github.com/stanimirivanov/argus/internal/catalog"
+	"github.com/stanimirivanov/argus/internal/catalog/impact"
+	"github.com/stanimirivanov/argus/internal/catalog/testquery"
 )
 
 func TestSnapshotOutputPreservesPublicJSONShape(t *testing.T) {
@@ -46,7 +48,7 @@ func TestSnapshotOutputPreservesPublicJSONShape(t *testing.T) {
 func TestTestCatalogPageOutputConformsToVersionedContract(t *testing.T) {
 	t.Parallel()
 
-	page := catalog.TestCatalogPage{
+	page := testquery.TestCatalogPage{
 		Snapshot: catalog.SnapshotReference{
 			SourceRepository: catalog.Repository{
 				Identity: catalog.RepositoryIdentity{
@@ -63,7 +65,7 @@ func TestTestCatalogPageOutputConformsToVersionedContract(t *testing.T) {
 			},
 			DescriptorAPIVersion: contracts.RepositoryDescriptorV1APIVersion,
 		},
-		Items: []catalog.TestCatalogEntry{
+		Items: []testquery.TestCatalogEntry{
 			{
 				TestRepository: catalog.Repository{
 					Identity: catalog.RepositoryIdentity{
@@ -111,7 +113,7 @@ func TestImpactEdgePageOutputConformsToVersionedContract(t *testing.T) {
 	t.Parallel()
 
 	evaluatedAt := time.Date(2026, 9, 18, 5, 0, 0, 0, time.UTC)
-	page := catalog.ImpactEdgePage{
+	page := impact.EdgePage{
 		Snapshot: catalog.SnapshotReference{
 			SourceRepository: catalog.Repository{
 				Identity: catalog.RepositoryIdentity{
@@ -129,7 +131,7 @@ func TestImpactEdgePageOutputConformsToVersionedContract(t *testing.T) {
 			DescriptorAPIVersion: contracts.RepositoryDescriptorV1APIVersion,
 		},
 		EvaluatedAt: evaluatedAt,
-		Items: []catalog.ImpactEdge{
+		Items: []impact.Edge{
 			{
 				Capability: catalog.Capability{Key: "create-order", Name: "Create an order"},
 				TestRepository: catalog.Repository{
@@ -146,11 +148,11 @@ func TestImpactEdgePageOutputConformsToVersionedContract(t *testing.T) {
 				Adapter:  "generic-http",
 				TestKey:  "create-order-valid",
 				TestName: "create an order",
-				Status:   catalog.ImpactEdgeConflicting,
-				Evidence: []catalog.EvaluatedImpactEvidence{
+				Status:   impact.EdgeConflicting,
+				Evidence: []impact.EvaluatedEvidence{
 					{
-						ImpactEvidence: catalog.ImpactEvidence{
-							Producer: catalog.ImpactEvidenceProducer{
+						Evidence: impact.Evidence{
+							Producer: impact.EvidenceProducer{
 								Repository: catalog.Repository{
 									Identity: catalog.RepositoryIdentity{
 										Provider:             catalog.ProviderGitHub,
@@ -167,17 +169,17 @@ func TestImpactEdgePageOutputConformsToVersionedContract(t *testing.T) {
 								Adapter: "repository-declaration",
 							},
 							ObservationKey:        "create-order-support",
-							Assertion:             catalog.ImpactAssertionSupports,
-							EvidenceType:          catalog.ImpactEvidenceExplicit,
+							Assertion:             impact.AssertionSupports,
+							EvidenceType:          impact.EvidenceExplicit,
 							ConfidenceBasisPoints: 10_000,
 							Rationale:             "Explicit mapping.",
 							ObservedAt:            evaluatedAt.Add(-time.Hour),
 						},
-						State: catalog.ImpactEvidenceActive,
+						State: impact.EvidenceActive,
 					},
 					{
-						ImpactEvidence: catalog.ImpactEvidence{
-							Producer: catalog.ImpactEvidenceProducer{
+						Evidence: impact.Evidence{
+							Producer: impact.EvidenceProducer{
 								Repository: catalog.Repository{
 									Identity: catalog.RepositoryIdentity{
 										Provider:             catalog.ProviderGitHub,
@@ -194,16 +196,16 @@ func TestImpactEdgePageOutputConformsToVersionedContract(t *testing.T) {
 								Adapter: "review-import",
 							},
 							ObservationKey:        "create-order-refutation",
-							Assertion:             catalog.ImpactAssertionRefutes,
-							EvidenceType:          catalog.ImpactEvidenceReviewerConfirmed,
+							Assertion:             impact.AssertionRefutes,
+							EvidenceType:          impact.EvidenceReviewerConfirmed,
 							ConfidenceBasisPoints: 10_000,
 							Rationale:             "Reviewer-confirmed refutation.",
 							ObservedAt:            evaluatedAt.Add(-30 * time.Minute),
 						},
-						State: catalog.ImpactEvidenceActive,
+						State: impact.EvidenceActive,
 					},
 				},
-				Conflict: &catalog.MappingConflict{
+				Conflict: &impact.MappingConflict{
 					SupportingEvidenceCount: 1,
 					RefutingEvidenceCount:   1,
 				},

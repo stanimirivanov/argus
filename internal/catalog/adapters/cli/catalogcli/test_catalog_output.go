@@ -1,11 +1,12 @@
-package main
+package catalogcli
 
 import (
 	"github.com/stanimirivanov/argus/contracts"
 	"github.com/stanimirivanov/argus/internal/catalog"
+	"github.com/stanimirivanov/argus/internal/catalog/testquery"
 )
 
-func newTestCatalogPageOutput(page catalog.TestCatalogPage) contracts.TestCatalogPageV1 {
+func newTestCatalogPageOutput(page testquery.TestCatalogPage) contracts.TestCatalogPageV1 {
 	items := make([]contracts.TestCatalogEntry, len(page.Items))
 	for index, entry := range page.Items {
 		capabilities := make([]contracts.CapabilityReference, len(entry.Capabilities))

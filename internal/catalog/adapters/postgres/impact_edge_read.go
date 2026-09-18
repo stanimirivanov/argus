@@ -7,10 +7,11 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/stanimirivanov/argus/internal/catalog"
+	"github.com/stanimirivanov/argus/internal/catalog/impact"
 )
 
 type impactEdgeRow struct {
-	edge             catalog.RawImpactEdge
+	edge             impact.RawEdge
 	testRepositoryID int64
 }
 
@@ -18,10 +19,10 @@ type impactEdgeRow struct {
 // page. Temporal state and conflict policy remain application-owned.
 func (store *Store) ListImpactEdges(
 	ctx context.Context,
-	request catalog.ImpactEdgeReadRequest,
-) (catalog.ImpactEdgeReadPage, error) {
-	if request.Limit < 1 || request.Limit > catalog.MaxImpactEdgePageSize {
-		return catalog.ImpactEdgeReadPage{}, catalog.ErrInvalidQuery
+	request impact.EdgeReadRequest,
+) (impact.EdgeReadPage, error) {
+	if request.Limit < 1 || request.Limit > impact.MaxEdgePageSize {
+		return impact.EdgeReadPage{}, catalog.ErrInvalidQuery
 	}
 
 	operationContext, cancel := context.WithTimeout(ctx, operationTimeout)
@@ -31,7 +32,7 @@ func (store *Store) ListImpactEdges(
 		AccessMode: pgx.ReadOnly,
 	})
 	if err != nil {
-		return catalog.ImpactEdgeReadPage{}, classifyDatabaseError(err)
+		return impact.EdgeReadPage{}, classifyDatabaseError(err)
 	}
 	defer func() {
 		_ = tx.Rollback(operationContext) //nolint:errcheck // Best effort after commit or failure.
@@ -39,25 +40,25 @@ func (store *Store) ListImpactEdges(
 
 	snapshotID, snapshot, err := readSnapshotHeader(operationContext, tx, request.Snapshot)
 	if err != nil {
-		return catalog.ImpactEdgeReadPage{}, err
+		return impact.EdgeReadPage{}, err
 	}
 	rows, hasMore, err := readImpactEdgeRows(operationContext, tx, snapshotID, request)
 	if err != nil {
-		return catalog.ImpactEdgeReadPage{}, err
+		return impact.EdgeReadPage{}, err
 	}
 	if err := readImpactEvidence(operationContext, tx, snapshotID, request.EvaluatedAt, rows); err != nil {
-		return catalog.ImpactEdgeReadPage{}, err
+		return impact.EdgeReadPage{}, err
 	}
 	if err := tx.Commit(operationContext); err != nil {
-		return catalog.ImpactEdgeReadPage{}, classifyDatabaseError(err)
+		return impact.EdgeReadPage{}, classifyDatabaseError(err)
 	}
 
-	items := make([]catalog.RawImpactEdge, len(rows))
+	items := make([]impact.RawEdge, len(rows))
 	for index := range rows {
 		items[index] = rows[index].edge
 	}
 
-	return catalog.ImpactEdgeReadPage{
+	return impact.EdgeReadPage{
 		Snapshot: catalog.SnapshotReference{
 			SourceRepository:     snapshot.Repository,
 			Revision:             snapshot.Revision,
@@ -72,7 +73,7 @@ func readImpactEdgeRows(
 	ctx context.Context,
 	tx pgx.Tx,
 	snapshotID int64,
-	request catalog.ImpactEdgeReadRequest,
+	request impact.EdgeReadRequest,
 ) ([]impactEdgeRow, bool, error) {
 	var afterCapability any
 	var afterProvider any
@@ -231,7 +232,7 @@ func readImpactEvidence(
 	repositoryIDs := make([]int64, len(edges))
 	suiteKeys := make([]string, len(edges))
 	testKeys := make([]string, len(edges))
-	edgeIndexes := make(map[catalog.ImpactEdgeIdentity]int, len(edges))
+	edgeIndexes := make(map[impact.EdgeIdentity]int, len(edges))
 	for index := range edges {
 		capabilityKeys[index] = edges[index].edge.Capability.Key
 		repositoryIDs[index] = edges[index].testRepositoryID
@@ -304,9 +305,9 @@ func readImpactEvidence(
 	defer rows.Close()
 
 	for rows.Next() {
-		var identity catalog.ImpactEdgeIdentity
-		var producer catalog.ImpactEvidenceProducer
-		var evidence catalog.ImpactEvidence
+		var identity impact.EdgeIdentity
+		var producer impact.EvidenceProducer
+		var evidence impact.Evidence
 		var expiresAt *time.Time
 		if err := rows.Scan(
 			&identity.CapabilityKey,

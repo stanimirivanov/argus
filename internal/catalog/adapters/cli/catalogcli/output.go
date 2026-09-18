@@ -1,4 +1,4 @@
-package main
+package catalogcli
 
 import "github.com/stanimirivanov/argus/internal/catalog"
 

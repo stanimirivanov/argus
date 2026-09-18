@@ -9,7 +9,7 @@ import (
 
 	"github.com/stanimirivanov/argus/contracts"
 	"github.com/stanimirivanov/argus/internal/catalog"
-	"github.com/stanimirivanov/argus/internal/catalog/descriptor"
+	"github.com/stanimirivanov/argus/internal/catalog/adapters/contract/descriptor"
 )
 
 const testSHA1 = "0123456789abcdef0123456789abcdef01234567"
@@ -27,7 +27,7 @@ type fixtureExpectation struct {
 func TestRepositoryDescriptorDomainCorpus(t *testing.T) {
 	t.Parallel()
 
-	contractsRoot := filepath.Join("..", "..", "..", "contracts")
+	contractsRoot := filepath.Join("..", "..", "..", "..", "..", "contracts")
 	manifestData, err := os.ReadFile(filepath.Join(
 		contractsRoot,
 		"fixtures",
@@ -97,7 +97,7 @@ func TestValidationErrorSupportsErrorsAs(t *testing.T) {
 	t.Parallel()
 
 	data, err := os.ReadFile(filepath.Join(
-		"..", "..", "..", "contracts", "fixtures", "repository-descriptor", "v1", "invalid", "duplicate-capability.json",
+		"..", "..", "..", "..", "..", "contracts", "fixtures", "repository-descriptor", "v1", "invalid", "duplicate-capability.json",
 	))
 	if err != nil {
 		t.Fatalf("read fixture: %v", err)
@@ -125,7 +125,7 @@ func TestSuiteKeyIsScopedToTestRepository(t *testing.T) {
 	t.Parallel()
 
 	data, err := os.ReadFile(filepath.Join(
-		"..", "..", "..", "contracts", "fixtures", "repository-descriptor", "v1", "invalid", "duplicate-test-suite.json",
+		"..", "..", "..", "..", "..", "contracts", "fixtures", "repository-descriptor", "v1", "invalid", "duplicate-test-suite.json",
 	))
 	if err != nil {
 		t.Fatalf("read fixture: %v", err)
