@@ -1,6 +1,8 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { JSONSchema } from "effect";
 
+import { ImpactEdgePageV1 } from "../source/impact-edge-page-v1.js";
+import { ImpactEvidenceBundleV1 } from "../source/impact-evidence-bundle-v1.js";
 import { RepositoryDescriptorV1 } from "../source/repository-descriptor-v1.js";
 import { TestCatalogPageV1 } from "../source/test-catalog-page-v1.js";
 
@@ -25,6 +27,28 @@ const artifacts = [
     document: {
       $id: "https://argus.dev/contracts/test-catalog-page/v1/schema.json",
       ...JSONSchema.make(TestCatalogPageV1, { target: "jsonSchema2020-12" }),
+    },
+  },
+  {
+    name: "impact evidence bundle",
+    outputPath: new URL(
+      "../generated/impact-evidence-bundle/v1/impact-evidence-bundle.schema.json",
+      import.meta.url,
+    ),
+    document: {
+      $id: "https://argus.dev/contracts/impact-evidence-bundle/v1/schema.json",
+      ...JSONSchema.make(ImpactEvidenceBundleV1, { target: "jsonSchema2020-12" }),
+    },
+  },
+  {
+    name: "impact edge page",
+    outputPath: new URL(
+      "../generated/impact-edge-page/v1/impact-edge-page.schema.json",
+      import.meta.url,
+    ),
+    document: {
+      $id: "https://argus.dev/contracts/impact-edge-page/v1/schema.json",
+      ...JSONSchema.make(ImpactEdgePageV1, { target: "jsonSchema2020-12" }),
     },
   },
 ] as const;

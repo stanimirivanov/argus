@@ -10,6 +10,8 @@
   descriptor snapshot and `catalog get ...` to reconstruct it.
 - Use `catalog list-tests` to query stable tests with capability filtering and
   deterministic keyset pagination.
+- Use `catalog import-impact` and `catalog list-impact` to preserve evidence and
+  evaluate supported, refuted, stale, or conflicting capability-to-test edges.
 - Database-changing work runs `make db-validate` against a disposable loopback
   PostgreSQL server configured by `ARGUS_TEST_POSTGRES_URL`.
 - Migration files are immutable after merge. A checksum mismatch, unknown
@@ -34,6 +36,8 @@ cannot acquire DDL authority through the same object.
 records the database, migration, transaction, identity, and Perfeng-reuse
 decisions. The general migration policy remains
 [SQL migration criteria](sql-migrations.md).
+[ADR-0005](../decisions/0005-store-immutable-impact-evidence.md) defines the
+append-only evidence, time, confidence, expiry, and conflict semantics.
 
 ## Apply migrations
 
@@ -129,6 +133,47 @@ continuation tokens, not permanent test identifiers or authorization tokens.
 A missing snapshot returns the catalog not-found outcome. An existing snapshot
 with no matching capability mapping returns a successful empty page.
 
+## Ingest and query impact evidence
+
+An evidence bundle references an already persisted snapshot. The producer
+repository revision and adapter form part of the immutable bundle identity:
+
+~~~sh
+go run ./cmd/catalog import-impact \
+  contracts/fixtures/impact-evidence-bundle/v1/valid/orders-api.json
+~~~
+
+The write validates every capability and test reference before copying any
+observation rows. The complete bundle commits in one transaction. Retrying the
+same identity and canonical content reports `created: false`; changing content
+at the same identity returns a conflict. Observation order is not semantic.
+
+List evaluated relationships with an explicit UTC instant:
+
+~~~sh
+go run ./cmd/catalog list-impact \
+  -provider github \
+  -host github.com \
+  -repository-id R_orders_source_01 \
+  -revision 0123456789abcdef0123456789abcdef01234567 \
+  -evaluated-at 2026-09-18T05:00:00Z \
+  -capability create-order \
+  -page-size 50
+~~~
+
+The optional capability filter and evaluation time are bound into the opaque
+cursor. The query ignores observations from the future relative to that time,
+marks evidence expired at `expiresAt`, and derives relationship state in the Go
+application service. SQL performs a deterministic keyset read ordered by
+capability key and stable test identity under `C` collation; it does not choose
+between contradictory observations or aggregate confidence.
+
+The evidence migration is additive and performs no data backfill, table scan,
+or rewrite. Existing binaries remain compatible and application rollback
+leaves unused tables in place. The runtime role needs the same table and
+sequence privileges shown below; it does not need update or delete access on
+evidence bundles or observations.
+
 ## Least-privilege roles
 
 The migration role owns the schema and ledger. The runtime role does not need
@@ -180,9 +225,11 @@ The suite verifies empty and repeated migration, advisory-lock serialization,
 checksum drift rejection, transactional rollback, relational constraints,
 snapshot round trip, order-independent retry, immutable-content conflict,
 concurrent ingestion, deterministic multi-page catalog queries, capability
-filtering, empty/missing distinction, and read-after-restart. Ordinary `make
-validate` remains database-independent; CI runs `make db-validate` in a
-separate Ubuntu job with an isolated PostgreSQL 17.11 service.
+filtering, empty/missing distinction, upgrade with representative data,
+evidence retry/conflict and reference validation, temporal edge states,
+concurrent evidence ingestion, and read-after-restart. Ordinary `make validate`
+remains database-independent; CI runs `make db-validate` in a separate Ubuntu
+job with an isolated PostgreSQL 17.11 service.
 
 ## Recovery and current limits
 
@@ -192,7 +239,7 @@ the expected binary/migration chain or deliver a reviewed forward repair.
 
 A catalog import is append-only at the snapshot boundary. There is no delete
 or in-place snapshot repair command in this slice. Backup/restore exercises,
-retention, HA, production SLOs, impact edges, mapping provenance and expiry,
-conflict reporting across observations, latest-snapshot resolution, and an
-authenticated network API remain later M03 or M10 work as recorded in the
-roadmap.
+evidence retention/deletion, source-precedence policy, HA, production SLOs,
+latest-snapshot resolution, and an authenticated network API remain later work
+as recorded in the roadmap. Until authorization exists, evidence ingestion and
+queries remain local administrative CLI boundaries.

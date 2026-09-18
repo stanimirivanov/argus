@@ -172,9 +172,12 @@ creates stable repository/component/capability/suite/test storage, and proves
 explicit migration plus immutable descriptor snapshot write/read behavior.
 A second slice exposes Effect-authored, versioned test-catalog pages through a
 CLI adapter with capability filtering and deterministic keyset pagination.
-Impact-edge contracts and storage, conflict/staleness reporting,
-design-partner ingestion, and an authenticated network API remain subsequent
-M03 slices.
+A third slice ingests immutable design-partner capability-to-test evidence,
+stores provenance, confidence, observation time, and expiry, and exposes
+deterministic versioned reads that retain and report stale or conflicting
+observations. Together these slices complete the local M03 catalog outcome.
+Authenticated network exposure remains deferred until its M10 identity and
+authorization boundary; source-precedence policy belongs with M05 selection.
 
 Completion means one source repository and one separate functional-test
 repository are represented with stable, queryable identities.

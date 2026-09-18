@@ -5,12 +5,12 @@ which tests should run for a software change, identifies stale or missing test
 coverage, and produces evidence-backed maintenance proposals.
 
 The repository has completed its engineering foundation and now includes a
-real repository-descriptor ingestion boundary and its first durable catalog
-slice. Effect Schema authors the wire contracts, generated JSON Schemas validate
-them, Go converts repository input into catalog state at a verified immutable revision,
-and PostgreSQL stores and reconstructs immutable snapshots. A versioned catalog
-query now enumerates stable tests with capability filtering and deterministic
-keyset pagination.
+real repository-descriptor ingestion boundary and a durable evidence catalog.
+Effect Schema authors the wire contracts, generated JSON Schemas validate them,
+Go converts repository input into catalog state at a verified immutable
+revision, and PostgreSQL stores immutable snapshots and impact observations.
+Versioned queries enumerate stable tests and expose supported, refuted, stale,
+or conflicting capability-to-test relationships without discarding evidence.
 
 ## Start here
 
@@ -123,6 +123,35 @@ Cursors are opaque, versioned, and bound to the snapshot and capability filter.
 A cursor cannot be reused for a different query. Page sizes range from 1 to
 200 and may change between pages. The command never resolves an implicit
 “latest” snapshot.
+
+## Ingest and query impact evidence
+
+After importing the referenced catalog snapshot, ingest an immutable producer
+bundle:
+
+~~~sh
+go run ./cmd/catalog import-impact \
+  contracts/fixtures/impact-evidence-bundle/v1/valid/orders-api.json
+~~~
+
+Query relationships at an explicit, reproducible evaluation instant:
+
+~~~sh
+go run ./cmd/catalog list-impact \
+  -provider github \
+  -host github.com \
+  -repository-id R_orders_source_01 \
+  -revision 0123456789abcdef0123456789abcdef01234567 \
+  -evaluated-at 2026-09-18T05:00:00Z \
+  -capability create-order
+~~~
+
+`argus.dev/impact-edge-page/v1` returns each visible evidence observation with
+its producer revision, method, basis-point confidence, rationale, event time,
+expiry, and active/expired state. Argus derives `supported`, `refuted`, `stale`,
+or `conflicting` at the supplied time. Confidence remains producer-specific
+metadata; ingestion does not combine it into an authority score. Contradictory
+active evidence is retained and reported for review.
 
 ## Build and verify
 

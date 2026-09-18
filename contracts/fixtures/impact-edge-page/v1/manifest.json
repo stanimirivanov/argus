@@ -1,0 +1,12 @@
+{
+  "fixtures": [
+    {
+      "path": "fixtures/impact-edge-page/v1/valid/conflicting.json",
+      "schemaValid": true
+    },
+    {
+      "path": "fixtures/impact-edge-page/v1/invalid/unknown-status.json",
+      "schemaValid": false
+    }
+  ]
+}

@@ -1,0 +1,471 @@
+{
+  "$id": "https://argus.dev/contracts/impact-edge-page/v1/schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "ImpactEdgePageV1": {
+      "type": "object",
+      "required": [
+        "apiVersion",
+        "snapshot",
+        "evaluatedAt",
+        "items",
+        "nextCursor"
+      ],
+      "properties": {
+        "apiVersion": {
+          "type": "string",
+          "enum": [
+            "argus.dev/impact-edge-page/v1"
+          ]
+        },
+        "snapshot": {
+          "$ref": "#/$defs/CatalogSnapshotReference"
+        },
+        "evaluatedAt": {
+          "$ref": "#/$defs/UtcTimestamp"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ImpactEdge"
+          }
+        },
+        "nextCursor": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ContinuationCursor"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "description": "A deterministic page of capability-to-test relationships evaluated at an explicit UTC instant.",
+      "title": "Argus impact edge page v1"
+    },
+    "CatalogSnapshotReference": {
+      "type": "object",
+      "required": [
+        "sourceRepository",
+        "revision",
+        "descriptorApiVersion"
+      ],
+      "properties": {
+        "sourceRepository": {
+          "$ref": "#/$defs/RepositoryReference"
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "descriptorApiVersion": {
+          "type": "string",
+          "enum": [
+            "argus.dev/repository-descriptor/v1"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "description": "The immutable repository descriptor observation queried by this result page."
+    },
+    "RepositoryReference": {
+      "type": "object",
+      "required": [
+        "provider",
+        "host",
+        "providerRepositoryId",
+        "owner",
+        "name"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": [
+            "github",
+            "gitlab",
+            "azure-devops",
+            "other"
+          ]
+        },
+        "host": {
+          "type": "string",
+          "description": "a string matching the pattern ^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$",
+          "title": "maxLength(255)",
+          "minLength": 1,
+          "maxLength": 255,
+          "pattern": "^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$"
+        },
+        "providerRepositoryId": {
+          "type": "string",
+          "description": "a string at most 255 character(s) long",
+          "title": "maxLength(255)",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "owner": {
+          "type": "string",
+          "description": "a string at most 255 character(s) long",
+          "title": "maxLength(255)",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "name": {
+          "type": "string",
+          "description": "a string at most 255 character(s) long",
+          "title": "maxLength(255)",
+          "minLength": 1,
+          "maxLength": 255
+        }
+      },
+      "additionalProperties": false,
+      "description": "A repository reference anchored by the provider-assigned identity; owner and name are mutable display coordinates."
+    },
+    "Revision": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "algorithm",
+            "digest"
+          ],
+          "properties": {
+            "algorithm": {
+              "type": "string",
+              "enum": [
+                "git-sha1"
+              ]
+            },
+            "digest": {
+              "type": "string",
+              "description": "a string matching the pattern ^[0-9a-f]{40}$",
+              "pattern": "^[0-9a-f]{40}$"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "algorithm",
+            "digest"
+          ],
+          "properties": {
+            "algorithm": {
+              "type": "string",
+              "enum": [
+                "git-sha256"
+              ]
+            },
+            "digest": {
+              "type": "string",
+              "description": "a string matching the pattern ^[0-9a-f]{64}$",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          "additionalProperties": false
+        }
+      ],
+      "description": "An immutable, normalized Git object revision."
+    },
+    "UtcTimestamp": {
+      "type": "string",
+      "description": "An RFC 3339 instant normalized to UTC with an explicit Z suffix.",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,9})?Z$"
+    },
+    "ImpactEdge": {
+      "type": "object",
+      "required": [
+        "capability",
+        "testRepository",
+        "suite",
+        "test",
+        "status",
+        "evidence",
+        "conflict"
+      ],
+      "properties": {
+        "capability": {
+          "$ref": "#/$defs/CapabilityReference"
+        },
+        "testRepository": {
+          "$ref": "#/$defs/RepositoryReference"
+        },
+        "suite": {
+          "type": "object",
+          "required": [
+            "key",
+            "family",
+            "adapter"
+          ],
+          "properties": {
+            "key": {
+              "$ref": "#/$defs/LocalKey"
+            },
+            "family": {
+              "$ref": "#/$defs/TestFamily"
+            },
+            "adapter": {
+              "type": "string",
+              "description": "a string at most 127 character(s) long",
+              "title": "maxLength(127)",
+              "minLength": 1,
+              "maxLength": 127
+            }
+          },
+          "additionalProperties": false
+        },
+        "test": {
+          "type": "object",
+          "required": [
+            "key",
+            "name"
+          ],
+          "properties": {
+            "key": {
+              "$ref": "#/$defs/LocalKey"
+            },
+            "name": {
+              "type": "string",
+              "description": "a string at most 255 character(s) long",
+              "title": "maxLength(255)",
+              "minLength": 1,
+              "maxLength": 255
+            }
+          },
+          "additionalProperties": false
+        },
+        "status": {
+          "$ref": "#/$defs/ImpactEdgeStatus"
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ImpactEvidenceReference"
+          },
+          "description": "an array of at least 1 item(s)",
+          "title": "minItems(1)",
+          "minItems": 1
+        },
+        "conflict": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MappingConflict"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "description": "A capability-to-test relationship with all visible evidence and its derived state."
+    },
+    "CapabilityReference": {
+      "type": "object",
+      "required": [
+        "key",
+        "name"
+      ],
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/LocalKey"
+        },
+        "name": {
+          "type": "string",
+          "description": "a string at most 255 character(s) long",
+          "title": "maxLength(255)",
+          "minLength": 1,
+          "maxLength": 255
+        }
+      },
+      "additionalProperties": false
+    },
+    "LocalKey": {
+      "type": "string",
+      "description": "A stable, repository-declared key. It is scoped by its containing repository or parent declaration.",
+      "title": "maxLength(63)",
+      "minLength": 1,
+      "maxLength": 63,
+      "pattern": "^[a-z][a-z0-9._-]*$"
+    },
+    "TestFamily": {
+      "type": "string",
+      "enum": [
+        "unit",
+        "component",
+        "contract",
+        "integration",
+        "functional-api",
+        "functional-ui",
+        "end-to-end",
+        "performance",
+        "security",
+        "resilience",
+        "other"
+      ]
+    },
+    "ImpactEdgeStatus": {
+      "type": "string",
+      "enum": [
+        "supported",
+        "refuted",
+        "stale",
+        "conflicting"
+      ]
+    },
+    "ImpactEvidenceReference": {
+      "type": "object",
+      "required": [
+        "producer",
+        "observationKey",
+        "assertion",
+        "evidenceType",
+        "confidenceBasisPoints",
+        "rationale",
+        "observedAt",
+        "expiresAt",
+        "state"
+      ],
+      "properties": {
+        "producer": {
+          "$ref": "#/$defs/ImpactEvidenceProducer"
+        },
+        "observationKey": {
+          "$ref": "#/$defs/LocalKey"
+        },
+        "assertion": {
+          "$ref": "#/$defs/ImpactAssertion"
+        },
+        "evidenceType": {
+          "$ref": "#/$defs/ImpactEvidenceType"
+        },
+        "confidenceBasisPoints": {
+          "$ref": "#/$defs/ConfidenceBasisPoints"
+        },
+        "rationale": {
+          "type": "string",
+          "description": "a string at most 1024 character(s) long",
+          "title": "maxLength(1024)",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "observedAt": {
+          "$ref": "#/$defs/UtcTimestamp"
+        },
+        "expiresAt": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/UtcTimestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "state": {
+          "$ref": "#/$defs/ImpactEvidenceState"
+        }
+      },
+      "additionalProperties": false,
+      "description": "One visible evidence observation and its state at the requested evaluation time."
+    },
+    "ImpactEvidenceProducer": {
+      "type": "object",
+      "required": [
+        "repository",
+        "revision",
+        "adapter"
+      ],
+      "properties": {
+        "repository": {
+          "$ref": "#/$defs/RepositoryReference"
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "adapter": {
+          "type": "string",
+          "description": "a string at most 127 character(s) long",
+          "title": "maxLength(127)",
+          "minLength": 1,
+          "maxLength": 127
+        }
+      },
+      "additionalProperties": false,
+      "description": "The immutable producer revision and adapter responsible for the evidence bundle."
+    },
+    "ImpactAssertion": {
+      "type": "string",
+      "enum": [
+        "supports",
+        "refutes"
+      ],
+      "description": "Whether the evidence asserts or contradicts a capability-to-test relationship."
+    },
+    "ImpactEvidenceType": {
+      "type": "string",
+      "enum": [
+        "explicit",
+        "static",
+        "dynamic",
+        "historical",
+        "reviewer-confirmed"
+      ],
+      "description": "The method that produced one impact observation."
+    },
+    "ConfidenceBasisPoints": {
+      "type": "integer",
+      "description": "Producer-specific confidence in basis points. It is evidence metadata, not a universal selection threshold.",
+      "title": "between(0, 10000)",
+      "minimum": 0,
+      "maximum": 10000
+    },
+    "ImpactEvidenceState": {
+      "type": "string",
+      "enum": [
+        "active",
+        "expired"
+      ]
+    },
+    "MappingConflict": {
+      "type": "object",
+      "required": [
+        "kind",
+        "supportingEvidenceCount",
+        "refutingEvidenceCount"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "contradictory-active-assertions"
+          ]
+        },
+        "supportingEvidenceCount": {
+          "type": "integer",
+          "description": "a number greater than or equal to 1",
+          "title": "greaterThanOrEqualTo(1)",
+          "minimum": 1
+        },
+        "refutingEvidenceCount": {
+          "type": "integer",
+          "description": "a number greater than or equal to 1",
+          "title": "greaterThanOrEqualTo(1)",
+          "minimum": 1
+        }
+      },
+      "additionalProperties": false,
+      "description": "A reviewable conflict produced when active evidence both supports and refutes the same edge."
+    },
+    "ContinuationCursor": {
+      "type": "string",
+      "description": "An opaque, versioned continuation token bound to the originating query.",
+      "title": "maxLength(4096)",
+      "minLength": 1,
+      "maxLength": 4096,
+      "pattern": "^[A-Za-z0-9_-]+$"
+    }
+  },
+  "$ref": "#/$defs/ImpactEdgePageV1"
+}
