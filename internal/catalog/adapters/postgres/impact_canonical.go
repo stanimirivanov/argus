@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/stanimirivanov/argus/internal/catalog"
+	"github.com/stanimirivanov/argus/internal/catalog/impact"
 )
 
 // The impact fingerprint is a private persistence encoding. Keep it explicit:
@@ -36,8 +36,8 @@ type fingerprintImpactObservation struct {
 	Key                   string                        `json:"key"`
 	CapabilityKey         string                        `json:"capabilityKey"`
 	Test                  fingerprintImpactTestIdentity `json:"test"`
-	Assertion             catalog.ImpactAssertion       `json:"assertion"`
-	EvidenceType          catalog.ImpactEvidenceType    `json:"evidenceType"`
+	Assertion             impact.Assertion              `json:"assertion"`
+	EvidenceType          impact.EvidenceType           `json:"evidenceType"`
 	ConfidenceBasisPoints int                           `json:"confidenceBasisPoints"`
 	Rationale             string                        `json:"rationale"`
 }
@@ -48,7 +48,7 @@ type fingerprintImpactTestIdentity struct {
 	TestKey        string                        `json:"testKey"`
 }
 
-func impactEvidenceFingerprint(bundle catalog.ImpactEvidenceBundle) (string, error) {
+func impactEvidenceFingerprint(bundle impact.EvidenceBundle) (string, error) {
 	observations := make([]fingerprintImpactObservation, len(bundle.Observations))
 	for index, observation := range bundle.Observations {
 		observations[index] = fingerprintImpactObservation{

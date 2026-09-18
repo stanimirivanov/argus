@@ -1,8 +1,12 @@
-package catalog
+// Package testquery implements the application use case for reading tests from
+// an immutable catalog snapshot. Its Reader interface is the driven port owned
+// by this capability; storage adapters implement it from the outside.
+package testquery
 
 import (
-	"cmp"
 	"context"
+
+	"github.com/stanimirivanov/argus/internal/catalog"
 )
 
 const (
@@ -14,45 +18,20 @@ const (
 	MaxTestCatalogPageSize = 200
 )
 
-// SnapshotReference describes the immutable catalog observation associated
-// with query results.
-type SnapshotReference struct {
-	SourceRepository     Repository
-	Revision             Revision
-	DescriptorAPIVersion string
-}
-
-// Key returns the immutable identity represented by the query result.
-func (reference SnapshotReference) Key() SnapshotKey {
-	return SnapshotKey{
-		Repository: reference.SourceRepository.Identity,
-		Revision:   reference.Revision,
-		APIVersion: reference.DescriptorAPIVersion,
-	}
-}
-
-// TestCatalogIdentity is stable across repository coordinate and test display
-// name changes.
-type TestCatalogIdentity struct {
-	TestRepository RepositoryIdentity
-	SuiteKey       string
-	TestKey        string
-}
-
 // TestCatalogEntry contains one stable test and its catalog metadata.
 type TestCatalogEntry struct {
-	TestRepository Repository
+	TestRepository catalog.Repository
 	SuiteKey       string
-	Family         TestFamily
+	Family         catalog.TestFamily
 	Adapter        string
 	TestKey        string
 	Name           string
-	Capabilities   []Capability
+	Capabilities   []catalog.Capability
 }
 
 // Identity returns the entry's stable pagination and reference identity.
-func (entry TestCatalogEntry) Identity() TestCatalogIdentity {
-	return TestCatalogIdentity{
+func (entry TestCatalogEntry) Identity() catalog.TestIdentity {
+	return catalog.TestIdentity{
 		TestRepository: entry.TestRepository.Identity,
 		SuiteKey:       entry.SuiteKey,
 		TestKey:        entry.TestKey,
@@ -62,7 +41,7 @@ func (entry TestCatalogEntry) Identity() TestCatalogIdentity {
 // TestCatalogQuery selects one deterministic page from an immutable snapshot.
 // An empty CapabilityKey includes every test in the snapshot.
 type TestCatalogQuery struct {
-	Snapshot      SnapshotKey
+	Snapshot      catalog.SnapshotKey
 	CapabilityKey string
 	PageSize      int
 	Cursor        string
@@ -70,7 +49,7 @@ type TestCatalogQuery struct {
 
 // TestCatalogPage is the application result before transport conversion.
 type TestCatalogPage struct {
-	Snapshot   SnapshotReference
+	Snapshot   catalog.SnapshotReference
 	Items      []TestCatalogEntry
 	NextCursor string
 }
@@ -78,15 +57,15 @@ type TestCatalogPage struct {
 // TestCatalogReadRequest is the normalized keyset query consumed by storage
 // adapters. After is exclusive.
 type TestCatalogReadRequest struct {
-	Snapshot      SnapshotKey
+	Snapshot      catalog.SnapshotKey
 	CapabilityKey string
 	Limit         int
-	After         *TestCatalogIdentity
+	After         *catalog.TestIdentity
 }
 
 // TestCatalogReadPage is the storage-neutral result returned by a reader.
 type TestCatalogReadPage struct {
-	Snapshot SnapshotReference
+	Snapshot catalog.SnapshotReference
 	Items    []TestCatalogEntry
 	HasMore  bool
 }
@@ -136,7 +115,7 @@ func (service *TestCatalogService) ListTests(
 		return TestCatalogPage{}, err
 	}
 	if !validTestCatalogReadPage(readPage, normalized, after) {
-		return TestCatalogPage{}, ErrUnavailable
+		return TestCatalogPage{}, catalog.ErrUnavailable
 	}
 
 	nextCursor := ""
@@ -157,7 +136,7 @@ func (service *TestCatalogService) ListTests(
 func validTestCatalogReadPage(
 	page TestCatalogReadPage,
 	query TestCatalogQuery,
-	after *TestCatalogIdentity,
+	after *catalog.TestIdentity,
 ) bool {
 	if page.Snapshot.Key() != query.Snapshot ||
 		len(page.Items) > query.PageSize ||
@@ -165,7 +144,7 @@ func validTestCatalogReadPage(
 		return false
 	}
 
-	var previous TestCatalogIdentity
+	var previous catalog.TestIdentity
 	hasPrevious := false
 	if after != nil {
 		previous = *after
@@ -173,8 +152,8 @@ func validTestCatalogReadPage(
 	}
 	for _, item := range page.Items {
 		identity := item.Identity()
-		if validateTestCatalogIdentity(identity) != nil ||
-			(hasPrevious && compareTestCatalogIdentity(previous, identity) >= 0) {
+		if !identity.Valid() ||
+			(hasPrevious && catalog.CompareTestIdentities(previous, identity) >= 0) {
 			return false
 		}
 		previous = identity
@@ -182,15 +161,4 @@ func validTestCatalogReadPage(
 	}
 
 	return true
-}
-
-func compareTestCatalogIdentity(left, right TestCatalogIdentity) int {
-	if compared := compareRepositoryIdentities(left.TestRepository, right.TestRepository); compared != 0 {
-		return compared
-	}
-	if compared := cmp.Compare(left.SuiteKey, right.SuiteKey); compared != 0 {
-		return compared
-	}
-
-	return cmp.Compare(left.TestKey, right.TestKey)
 }

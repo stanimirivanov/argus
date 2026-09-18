@@ -8,6 +8,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/stanimirivanov/argus/internal/catalog"
+	"github.com/stanimirivanov/argus/internal/catalog/impact"
 )
 
 // SaveImpactEvidence atomically persists one immutable evidence bundle. It
@@ -15,10 +16,10 @@ import (
 // identity is already bound to different canonical content.
 func (store *Store) SaveImpactEvidence(
 	ctx context.Context,
-	bundle catalog.ImpactEvidenceBundle,
+	bundle impact.EvidenceBundle,
 ) (bool, error) {
-	canonical := catalog.CanonicalImpactEvidenceBundle(bundle)
-	if err := catalog.ValidateImpactEvidenceBundle(canonical); err != nil {
+	canonical := impact.CanonicalEvidenceBundle(bundle)
+	if err := impact.ValidateEvidenceBundle(canonical); err != nil {
 		return false, err
 	}
 	fingerprint, err := impactEvidenceFingerprint(canonical)
@@ -123,7 +124,7 @@ func claimImpactEvidenceBundle(
 	tx pgx.Tx,
 	snapshotID int64,
 	producerRepositoryID int64,
-	bundle catalog.ImpactEvidenceBundle,
+	bundle impact.EvidenceBundle,
 	fingerprint string,
 ) (int64, bool, error) {
 	var bundleID int64
@@ -200,7 +201,7 @@ func claimImpactEvidenceBundle(
 func resolveExistingImpactRepositories(
 	ctx context.Context,
 	tx pgx.Tx,
-	observations []catalog.ImpactObservation,
+	observations []impact.Observation,
 ) (map[catalog.RepositoryIdentity]int64, error) {
 	identitySet := make(map[catalog.RepositoryIdentity]struct{})
 	for _, observation := range observations {
@@ -271,7 +272,7 @@ func validateImpactObservationReferences(
 	ctx context.Context,
 	tx pgx.Tx,
 	snapshotID int64,
-	observations []catalog.ImpactObservation,
+	observations []impact.Observation,
 	repositoryIDs map[catalog.RepositoryIdentity]int64,
 ) error {
 	capabilities := make([]string, len(observations))
@@ -315,7 +316,7 @@ func validateImpactObservationReferences(
 func impactObservationRows(
 	bundleID int64,
 	snapshotID int64,
-	observations []catalog.ImpactObservation,
+	observations []impact.Observation,
 	repositoryIDs map[catalog.RepositoryIdentity]int64,
 ) [][]any {
 	rows := make([][]any, len(observations))

@@ -5,6 +5,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/stanimirivanov/argus/internal/catalog"
+	"github.com/stanimirivanov/argus/internal/catalog/testquery"
 )
 
 // ListTestCatalogEntries reads one keyset page from an immutable snapshot. The
@@ -12,10 +13,10 @@ import (
 // exclusive position of the last delivered test.
 func (store *Store) ListTestCatalogEntries(
 	ctx context.Context,
-	request catalog.TestCatalogReadRequest,
-) (catalog.TestCatalogReadPage, error) {
-	if request.Limit < 1 || request.Limit > catalog.MaxTestCatalogPageSize {
-		return catalog.TestCatalogReadPage{}, catalog.ErrInvalidQuery
+	request testquery.TestCatalogReadRequest,
+) (testquery.TestCatalogReadPage, error) {
+	if request.Limit < 1 || request.Limit > testquery.MaxTestCatalogPageSize {
+		return testquery.TestCatalogReadPage{}, catalog.ErrInvalidQuery
 	}
 
 	operationContext, cancel := context.WithTimeout(ctx, operationTimeout)
@@ -26,7 +27,7 @@ func (store *Store) ListTestCatalogEntries(
 		AccessMode: pgx.ReadOnly,
 	})
 	if err != nil {
-		return catalog.TestCatalogReadPage{}, classifyDatabaseError(err)
+		return testquery.TestCatalogReadPage{}, classifyDatabaseError(err)
 	}
 	defer func() {
 		_ = tx.Rollback(operationContext) //nolint:errcheck // Best effort after commit or failure.
@@ -34,17 +35,17 @@ func (store *Store) ListTestCatalogEntries(
 
 	snapshotID, snapshot, err := readSnapshotHeader(operationContext, tx, request.Snapshot)
 	if err != nil {
-		return catalog.TestCatalogReadPage{}, err
+		return testquery.TestCatalogReadPage{}, err
 	}
 	items, hasMore, err := readTestCatalogPage(operationContext, tx, snapshotID, request)
 	if err != nil {
-		return catalog.TestCatalogReadPage{}, err
+		return testquery.TestCatalogReadPage{}, err
 	}
 	if err := tx.Commit(operationContext); err != nil {
-		return catalog.TestCatalogReadPage{}, classifyDatabaseError(err)
+		return testquery.TestCatalogReadPage{}, classifyDatabaseError(err)
 	}
 
-	return catalog.TestCatalogReadPage{
+	return testquery.TestCatalogReadPage{
 		Snapshot: catalog.SnapshotReference{
 			SourceRepository:     snapshot.Repository,
 			Revision:             snapshot.Revision,
@@ -59,8 +60,8 @@ func readTestCatalogPage(
 	ctx context.Context,
 	tx pgx.Tx,
 	snapshotID int64,
-	request catalog.TestCatalogReadRequest,
-) ([]catalog.TestCatalogEntry, bool, error) {
+	request testquery.TestCatalogReadRequest,
+) ([]testquery.TestCatalogEntry, bool, error) {
 	var afterProvider any
 	var afterHost any
 	var afterRepositoryID any
@@ -166,7 +167,7 @@ func readTestCatalogPage(
 	}
 	defer rows.Close()
 
-	items := make([]catalog.TestCatalogEntry, 0, request.Limit+1)
+	items := make([]testquery.TestCatalogEntry, 0, request.Limit+1)
 	for rows.Next() {
 		entry, scanErr := scanTestCatalogEntry(rows)
 		if scanErr != nil {
@@ -187,8 +188,8 @@ func readTestCatalogPage(
 	return items, hasMore, nil
 }
 
-func scanTestCatalogEntry(rows pgx.Rows) (catalog.TestCatalogEntry, error) {
-	var entry catalog.TestCatalogEntry
+func scanTestCatalogEntry(rows pgx.Rows) (testquery.TestCatalogEntry, error) {
+	var entry testquery.TestCatalogEntry
 	var capabilityKeys []string
 	var capabilityNames []string
 	if err := rows.Scan(
@@ -205,10 +206,10 @@ func scanTestCatalogEntry(rows pgx.Rows) (catalog.TestCatalogEntry, error) {
 		&capabilityKeys,
 		&capabilityNames,
 	); err != nil {
-		return catalog.TestCatalogEntry{}, classifyDatabaseError(err)
+		return testquery.TestCatalogEntry{}, classifyDatabaseError(err)
 	}
 	if len(capabilityKeys) != len(capabilityNames) {
-		return catalog.TestCatalogEntry{}, catalog.ErrUnavailable
+		return testquery.TestCatalogEntry{}, catalog.ErrUnavailable
 	}
 
 	entry.Capabilities = make([]catalog.Capability, len(capabilityKeys))

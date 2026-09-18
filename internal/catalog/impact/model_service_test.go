@@ -1,4 +1,4 @@
-package catalog_test
+package impact_test
 
 import (
 	"context"
@@ -7,17 +7,18 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stanimirivanov/argus/internal/catalog"
+	domain "github.com/stanimirivanov/argus/internal/catalog"
+	catalog "github.com/stanimirivanov/argus/internal/catalog/impact"
 )
 
 func TestImpactEvidenceServiceValidatesAndCanonicalizesBundle(t *testing.T) {
 	t.Parallel()
 
 	store := &recordingImpactEvidenceStore{created: true}
-	service := catalog.NewImpactEvidenceService(store)
+	service := catalog.NewEvidenceService(store)
 	bundle := validImpactEvidenceBundle()
 	bundle.Observations = append(bundle.Observations,
-		impactObservation("a-observation", "cancel-order", "cancel-order-valid", catalog.ImpactAssertionRefutes),
+		impactObservation("a-observation", "cancel-order", "cancel-order-valid", catalog.AssertionRefutes),
 	)
 	bundle.Observations[0].Key = "z-observation"
 
@@ -36,25 +37,25 @@ func TestValidateImpactEvidenceBundleRejectsSemanticViolations(t *testing.T) {
 
 	for _, test := range []struct {
 		name   string
-		mutate func(*catalog.ImpactEvidenceBundle)
+		mutate func(*catalog.EvidenceBundle)
 	}{
 		{
 			name: "expiry before observation",
-			mutate: func(bundle *catalog.ImpactEvidenceBundle) {
+			mutate: func(bundle *catalog.EvidenceBundle) {
 				expiresAt := bundle.ObservedAt.Add(-time.Second)
 				bundle.ExpiresAt = &expiresAt
 			},
 		},
 		{
 			name: "duplicate observation key",
-			mutate: func(bundle *catalog.ImpactEvidenceBundle) {
+			mutate: func(bundle *catalog.EvidenceBundle) {
 				bundle.Observations = append(bundle.Observations, bundle.Observations[0])
 				bundle.Observations[1].Test.TestKey = "cancel-order-valid"
 			},
 		},
 		{
 			name: "duplicate edge",
-			mutate: func(bundle *catalog.ImpactEvidenceBundle) {
+			mutate: func(bundle *catalog.EvidenceBundle) {
 				duplicate := bundle.Observations[0]
 				duplicate.Key = "different-key"
 				bundle.Observations = append(bundle.Observations, duplicate)
@@ -62,13 +63,13 @@ func TestValidateImpactEvidenceBundleRejectsSemanticViolations(t *testing.T) {
 		},
 		{
 			name: "invalid confidence",
-			mutate: func(bundle *catalog.ImpactEvidenceBundle) {
+			mutate: func(bundle *catalog.EvidenceBundle) {
 				bundle.Observations[0].ConfidenceBasisPoints = 10_001
 			},
 		},
 		{
 			name: "unknown evidence type",
-			mutate: func(bundle *catalog.ImpactEvidenceBundle) {
+			mutate: func(bundle *catalog.EvidenceBundle) {
 				bundle.Observations[0].EvidenceType = "model-opinion"
 			},
 		},
@@ -79,7 +80,7 @@ func TestValidateImpactEvidenceBundleRejectsSemanticViolations(t *testing.T) {
 
 			bundle := validImpactEvidenceBundle()
 			test.mutate(&bundle)
-			if err := catalog.ValidateImpactEvidenceBundle(bundle); !errors.Is(err, catalog.ErrInvalidEvidence) {
+			if err := catalog.ValidateEvidenceBundle(bundle); !errors.Is(err, domain.ErrInvalidEvidence) {
 				t.Fatalf("validate bundle = %v, want ErrInvalidEvidence", err)
 			}
 		})
@@ -91,46 +92,46 @@ func TestImpactEdgeServiceDerivesSupportedRefutedStaleAndConflictingStates(t *te
 
 	query := validImpactEdgeQuery()
 	query.PageSize = 10
-	activeSupport := impactEvidence("support", catalog.ImpactAssertionSupports, query.EvaluatedAt.Add(-time.Hour), nil)
-	activeRefutation := impactEvidence("refute", catalog.ImpactAssertionRefutes, query.EvaluatedAt.Add(-time.Hour), nil)
+	activeSupport := impactEvidence("support", catalog.AssertionSupports, query.EvaluatedAt.Add(-time.Hour), nil)
+	activeRefutation := impactEvidence("refute", catalog.AssertionRefutes, query.EvaluatedAt.Add(-time.Hour), nil)
 	expiry := query.EvaluatedAt.Add(-time.Second)
 	expiredSupport := impactEvidence(
 		"expired",
-		catalog.ImpactAssertionSupports,
+		catalog.AssertionSupports,
 		query.EvaluatedAt.Add(-2*time.Hour),
 		&expiry,
 	)
 
-	reader := &recordingImpactEdgeReader{page: catalog.ImpactEdgeReadPage{
+	reader := &recordingImpactEdgeReader{page: catalog.EdgeReadPage{
 		Snapshot: impactSnapshotReference(),
-		Items: []catalog.RawImpactEdge{
-			rawImpactEdge("a-capability", "a-test", []catalog.ImpactEvidence{activeSupport}),
-			rawImpactEdge("b-capability", "b-test", []catalog.ImpactEvidence{activeRefutation}),
-			rawImpactEdge("c-capability", "c-test", []catalog.ImpactEvidence{expiredSupport}),
+		Items: []catalog.RawEdge{
+			rawImpactEdge("a-capability", "a-test", []catalog.Evidence{activeSupport}),
+			rawImpactEdge("b-capability", "b-test", []catalog.Evidence{activeRefutation}),
+			rawImpactEdge("c-capability", "c-test", []catalog.Evidence{expiredSupport}),
 			rawImpactEdge(
 				"d-capability",
 				"d-test",
-				[]catalog.ImpactEvidence{activeSupport, activeRefutation},
+				[]catalog.Evidence{activeSupport, activeRefutation},
 			),
 		},
 	}}
 
-	page, err := catalog.NewImpactEdgeService(reader).List(context.Background(), query)
+	page, err := catalog.NewEdgeService(reader).List(context.Background(), query)
 	if err != nil {
 		t.Fatalf("list impact edges: %v", err)
 	}
-	want := []catalog.ImpactEdgeStatus{
-		catalog.ImpactEdgeSupported,
-		catalog.ImpactEdgeRefuted,
-		catalog.ImpactEdgeStale,
-		catalog.ImpactEdgeConflicting,
+	want := []catalog.EdgeStatus{
+		catalog.EdgeSupported,
+		catalog.EdgeRefuted,
+		catalog.EdgeStale,
+		catalog.EdgeConflicting,
 	}
 	for index, status := range want {
 		if page.Items[index].Status != status {
 			t.Fatalf("item %d status = %q, want %q", index, page.Items[index].Status, status)
 		}
 	}
-	if page.Items[2].Evidence[0].State != catalog.ImpactEvidenceExpired {
+	if page.Items[2].Evidence[0].State != catalog.EvidenceExpired {
 		t.Fatal("stale evidence was not marked expired")
 	}
 	conflict := page.Items[3].Conflict
@@ -143,16 +144,16 @@ func TestImpactEdgeCursorIsBoundToEvaluationAndFilter(t *testing.T) {
 	t.Parallel()
 
 	query := validImpactEdgeQuery()
-	reader := &recordingImpactEdgeReader{page: catalog.ImpactEdgeReadPage{
+	reader := &recordingImpactEdgeReader{page: catalog.EdgeReadPage{
 		Snapshot: impactSnapshotReference(),
-		Items: []catalog.RawImpactEdge{
-			rawImpactEdge("create-order", "create-order-valid", []catalog.ImpactEvidence{
-				impactEvidence("support", catalog.ImpactAssertionSupports, query.EvaluatedAt.Add(-time.Hour), nil),
+		Items: []catalog.RawEdge{
+			rawImpactEdge("create-order", "create-order-valid", []catalog.Evidence{
+				impactEvidence("support", catalog.AssertionSupports, query.EvaluatedAt.Add(-time.Hour), nil),
 			}),
 		},
 		HasMore: true,
 	}}
-	service := catalog.NewImpactEdgeService(reader)
+	service := catalog.NewEdgeService(reader)
 
 	first, err := service.List(context.Background(), query)
 	if err != nil {
@@ -165,17 +166,17 @@ func TestImpactEdgeCursorIsBoundToEvaluationAndFilter(t *testing.T) {
 
 	for _, test := range []struct {
 		name   string
-		mutate func(*catalog.ImpactEdgeQuery)
+		mutate func(*catalog.EdgeQuery)
 	}{
 		{
 			name: "evaluation time",
-			mutate: func(candidate *catalog.ImpactEdgeQuery) {
+			mutate: func(candidate *catalog.EdgeQuery) {
 				candidate.EvaluatedAt = candidate.EvaluatedAt.Add(time.Second)
 			},
 		},
 		{
 			name: "capability filter",
-			mutate: func(candidate *catalog.ImpactEdgeQuery) {
+			mutate: func(candidate *catalog.EdgeQuery) {
 				candidate.CapabilityKey = "create-order"
 			},
 		},
@@ -185,17 +186,17 @@ func TestImpactEdgeCursorIsBoundToEvaluationAndFilter(t *testing.T) {
 			candidate := query
 			candidate.Cursor = first.NextCursor
 			test.mutate(&candidate)
-			if _, err := service.List(context.Background(), candidate); !errors.Is(err, catalog.ErrInvalidCursor) {
+			if _, err := service.List(context.Background(), candidate); !errors.Is(err, domain.ErrInvalidCursor) {
 				t.Fatalf("list with mismatched cursor = %v, want ErrInvalidCursor", err)
 			}
 		})
 	}
 
-	reader.page = catalog.ImpactEdgeReadPage{
+	reader.page = catalog.EdgeReadPage{
 		Snapshot: impactSnapshotReference(),
-		Items: []catalog.RawImpactEdge{
-			rawImpactEdge("z-capability", "z-test", []catalog.ImpactEvidence{
-				impactEvidence("later", catalog.ImpactAssertionSupports, query.EvaluatedAt.Add(-time.Hour), nil),
+		Items: []catalog.RawEdge{
+			rawImpactEdge("z-capability", "z-test", []catalog.Evidence{
+				impactEvidence("later", catalog.AssertionSupports, query.EvaluatedAt.Add(-time.Hour), nil),
 			}),
 		},
 	}
@@ -215,43 +216,43 @@ func TestImpactEdgeServiceRejectsFutureOrUnorderedReaderEvidence(t *testing.T) {
 	t.Parallel()
 
 	query := validImpactEdgeQuery()
-	validEvidence := impactEvidence("support", catalog.ImpactAssertionSupports, query.EvaluatedAt.Add(-time.Hour), nil)
+	validEvidence := impactEvidence("support", catalog.AssertionSupports, query.EvaluatedAt.Add(-time.Hour), nil)
 	for _, test := range []struct {
 		name  string
-		items []catalog.RawImpactEdge
+		items []catalog.RawEdge
 	}{
 		{
 			name: "future evidence",
-			items: []catalog.RawImpactEdge{
-				rawImpactEdge("a-capability", "a-test", []catalog.ImpactEvidence{
-					impactEvidence("future", catalog.ImpactAssertionSupports, query.EvaluatedAt.Add(time.Second), nil),
+			items: []catalog.RawEdge{
+				rawImpactEdge("a-capability", "a-test", []catalog.Evidence{
+					impactEvidence("future", catalog.AssertionSupports, query.EvaluatedAt.Add(time.Second), nil),
 				}),
 			},
 		},
 		{
 			name: "unordered edges",
-			items: []catalog.RawImpactEdge{
-				rawImpactEdge("b-capability", "b-test", []catalog.ImpactEvidence{validEvidence}),
-				rawImpactEdge("a-capability", "a-test", []catalog.ImpactEvidence{validEvidence}),
+			items: []catalog.RawEdge{
+				rawImpactEdge("b-capability", "b-test", []catalog.Evidence{validEvidence}),
+				rawImpactEdge("a-capability", "a-test", []catalog.Evidence{validEvidence}),
 			},
 		},
 		{
 			name:  "edge without evidence",
-			items: []catalog.RawImpactEdge{rawImpactEdge("a-capability", "a-test", nil)},
+			items: []catalog.RawEdge{rawImpactEdge("a-capability", "a-test", nil)},
 		},
 	} {
 		test := test
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			reader := &recordingImpactEdgeReader{page: catalog.ImpactEdgeReadPage{
+			reader := &recordingImpactEdgeReader{page: catalog.EdgeReadPage{
 				Snapshot: impactSnapshotReference(),
 				Items:    test.items,
 			}}
-			if _, err := catalog.NewImpactEdgeService(reader).List(
+			if _, err := catalog.NewEdgeService(reader).List(
 				context.Background(),
 				query,
-			); !errors.Is(err, catalog.ErrUnavailable) {
+			); !errors.Is(err, domain.ErrUnavailable) {
 				t.Fatalf("list inconsistent reader page = %v, want ErrUnavailable", err)
 			}
 		})
@@ -259,14 +260,14 @@ func TestImpactEdgeServiceRejectsFutureOrUnorderedReaderEvidence(t *testing.T) {
 }
 
 type recordingImpactEvidenceStore struct {
-	bundle  catalog.ImpactEvidenceBundle
+	bundle  catalog.EvidenceBundle
 	created bool
 	err     error
 }
 
 func (store *recordingImpactEvidenceStore) SaveImpactEvidence(
 	_ context.Context,
-	bundle catalog.ImpactEvidenceBundle,
+	bundle catalog.EvidenceBundle,
 ) (bool, error) {
 	store.bundle = bundle
 
@@ -274,47 +275,47 @@ func (store *recordingImpactEvidenceStore) SaveImpactEvidence(
 }
 
 type recordingImpactEdgeReader struct {
-	request catalog.ImpactEdgeReadRequest
-	page    catalog.ImpactEdgeReadPage
+	request catalog.EdgeReadRequest
+	page    catalog.EdgeReadPage
 	err     error
 }
 
 func (reader *recordingImpactEdgeReader) ListImpactEdges(
 	_ context.Context,
-	request catalog.ImpactEdgeReadRequest,
-) (catalog.ImpactEdgeReadPage, error) {
+	request catalog.EdgeReadRequest,
+) (catalog.EdgeReadPage, error) {
 	reader.request = request
 
 	return reader.page, reader.err
 }
 
-func validImpactEvidenceBundle() catalog.ImpactEvidenceBundle {
-	return catalog.ImpactEvidenceBundle{
-		APIVersion: catalog.ImpactEvidenceBundleAPIVersion,
+func validImpactEvidenceBundle() catalog.EvidenceBundle {
+	return catalog.EvidenceBundle{
+		APIVersion: catalog.EvidenceBundleAPIVersion,
 		Snapshot:   impactSnapshotReference(),
-		Producer: catalog.ImpactEvidenceProducer{
-			Repository: catalog.Repository{
-				Identity: catalog.RepositoryIdentity{
-					Provider:             catalog.ProviderGitHub,
+		Producer: catalog.EvidenceProducer{
+			Repository: domain.Repository{
+				Identity: domain.RepositoryIdentity{
+					Provider:             domain.ProviderGitHub,
 					Host:                 "github.com",
 					ProviderRepositoryID: "producer-1",
 				},
 				Owner: "example",
 				Name:  "impact-producer",
 			},
-			Revision: catalog.Revision{
-				Algorithm: catalog.RevisionGitSHA1,
+			Revision: domain.Revision{
+				Algorithm: domain.RevisionGitSHA1,
 				Digest:    "89abcdef0123456789abcdef0123456789abcdef",
 			},
 			Adapter: "repository-declaration",
 		},
 		ObservedAt: time.Date(2026, 9, 18, 4, 30, 0, 0, time.UTC),
-		Observations: []catalog.ImpactObservation{
+		Observations: []catalog.Observation{
 			impactObservation(
 				"create-order-api",
 				"create-order",
 				"create-order-valid",
-				catalog.ImpactAssertionSupports,
+				catalog.AssertionSupports,
 			),
 		},
 	}
@@ -324,14 +325,14 @@ func impactObservation(
 	key string,
 	capabilityKey string,
 	testKey string,
-	assertion catalog.ImpactAssertion,
-) catalog.ImpactObservation {
-	return catalog.ImpactObservation{
+	assertion catalog.Assertion,
+) catalog.Observation {
+	return catalog.Observation{
 		Key:           key,
 		CapabilityKey: capabilityKey,
-		Test: catalog.TestCatalogIdentity{
-			TestRepository: catalog.RepositoryIdentity{
-				Provider:             catalog.ProviderGitHub,
+		Test: domain.TestIdentity{
+			TestRepository: domain.RepositoryIdentity{
+				Provider:             domain.ProviderGitHub,
 				Host:                 "github.com",
 				ProviderRepositoryID: "tests-1",
 			},
@@ -339,33 +340,33 @@ func impactObservation(
 			TestKey:  testKey,
 		},
 		Assertion:             assertion,
-		EvidenceType:          catalog.ImpactEvidenceExplicit,
+		EvidenceType:          catalog.EvidenceExplicit,
 		ConfidenceBasisPoints: 10_000,
 		Rationale:             "Explicit design-partner mapping.",
 	}
 }
 
-func validImpactEdgeQuery() catalog.ImpactEdgeQuery {
-	return catalog.ImpactEdgeQuery{
+func validImpactEdgeQuery() catalog.EdgeQuery {
+	return catalog.EdgeQuery{
 		Snapshot:    impactSnapshotReference().Key(),
 		EvaluatedAt: time.Date(2026, 9, 18, 12, 0, 0, 0, time.UTC),
 		PageSize:    2,
 	}
 }
 
-func impactSnapshotReference() catalog.SnapshotReference {
-	return catalog.SnapshotReference{
-		SourceRepository: catalog.Repository{
-			Identity: catalog.RepositoryIdentity{
-				Provider:             catalog.ProviderGitHub,
+func impactSnapshotReference() domain.SnapshotReference {
+	return domain.SnapshotReference{
+		SourceRepository: domain.Repository{
+			Identity: domain.RepositoryIdentity{
+				Provider:             domain.ProviderGitHub,
 				Host:                 "github.com",
 				ProviderRepositoryID: "source-1",
 			},
 			Owner: "example",
 			Name:  "orders",
 		},
-		Revision: catalog.Revision{
-			Algorithm: catalog.RevisionGitSHA1,
+		Revision: domain.Revision{
+			Algorithm: domain.RevisionGitSHA1,
 			Digest:    "0123456789abcdef0123456789abcdef01234567",
 		},
 		DescriptorAPIVersion: "argus.dev/repository-descriptor/v1",
@@ -374,15 +375,15 @@ func impactSnapshotReference() catalog.SnapshotReference {
 
 func impactEvidence(
 	key string,
-	assertion catalog.ImpactAssertion,
+	assertion catalog.Assertion,
 	observedAt time.Time,
 	expiresAt *time.Time,
-) catalog.ImpactEvidence {
-	return catalog.ImpactEvidence{
+) catalog.Evidence {
+	return catalog.Evidence{
 		Producer:              validImpactEvidenceBundle().Producer,
 		ObservationKey:        key,
 		Assertion:             assertion,
-		EvidenceType:          catalog.ImpactEvidenceExplicit,
+		EvidenceType:          catalog.EvidenceExplicit,
 		ConfidenceBasisPoints: 10_000,
 		Rationale:             "Explainable evidence.",
 		ObservedAt:            observedAt,
@@ -393,13 +394,13 @@ func impactEvidence(
 func rawImpactEdge(
 	capabilityKey string,
 	testKey string,
-	evidence []catalog.ImpactEvidence,
-) catalog.RawImpactEdge {
-	return catalog.RawImpactEdge{
-		Capability: catalog.Capability{Key: capabilityKey, Name: capabilityKey},
-		TestRepository: catalog.Repository{
-			Identity: catalog.RepositoryIdentity{
-				Provider:             catalog.ProviderGitHub,
+	evidence []catalog.Evidence,
+) catalog.RawEdge {
+	return catalog.RawEdge{
+		Capability: domain.Capability{Key: capabilityKey, Name: capabilityKey},
+		TestRepository: domain.Repository{
+			Identity: domain.RepositoryIdentity{
+				Provider:             domain.ProviderGitHub,
 				Host:                 "github.com",
 				ProviderRepositoryID: "tests-1",
 			},
@@ -407,7 +408,7 @@ func rawImpactEdge(
 			Name:  "orders-tests",
 		},
 		SuiteKey: "orders-api",
-		Family:   catalog.TestFamilyFunctionalAPI,
+		Family:   domain.TestFamilyFunctionalAPI,
 		Adapter:  "generic-http",
 		TestKey:  testKey,
 		TestName: testKey,
@@ -420,10 +421,10 @@ func TestCanonicalImpactEvidenceBundleDoesNotMutateInput(t *testing.T) {
 
 	bundle := validImpactEvidenceBundle()
 	bundle.Observations = append(bundle.Observations,
-		impactObservation("a-observation", "cancel-order", "cancel-order-valid", catalog.ImpactAssertionSupports),
+		impactObservation("a-observation", "cancel-order", "cancel-order-valid", catalog.AssertionSupports),
 	)
-	original := append([]catalog.ImpactObservation(nil), bundle.Observations...)
-	canonical := catalog.CanonicalImpactEvidenceBundle(bundle)
+	original := append([]catalog.Observation(nil), bundle.Observations...)
+	canonical := catalog.CanonicalEvidenceBundle(bundle)
 	if !reflect.DeepEqual(bundle.Observations, original) {
 		t.Fatal("canonicalization mutated the input")
 	}

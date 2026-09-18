@@ -88,7 +88,7 @@ race:
 	go test -vet=off -race -count=1 ./...
 
 db-validate:
-	go test -vet=off -tags=integration -race -count=1 -timeout=5m ./internal/catalog/postgres
+	go test -vet=off -tags=integration -race -count=1 -timeout=5m ./internal/catalog/adapters/postgres
 
 vuln:
 	$(GOVULNCHECK) ./...

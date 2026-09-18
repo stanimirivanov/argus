@@ -68,7 +68,7 @@ transactions, bulk copy, and PostgreSQL error typing needed by the M03 vertical
 slice; reproducing these correctly with the standard library would require a
 driver and protocol implementation. The module is actively maintained,
 requires no process execution, receives a database URL supplied by the
-operator, and is isolated behind `internal/catalog/postgres`. Its upstream MIT
+operator, and is isolated behind `internal/catalog/adapters/postgres`. Its upstream MIT
 license and the compatible licenses of reachable runtime dependencies fit the
 runtime allowlist. Removal means replacing this adapter and its connection,
 transaction, copy, and error-classification behavior behind the catalog domain

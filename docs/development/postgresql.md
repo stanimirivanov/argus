@@ -26,7 +26,7 @@ PostgreSQL 17 is the supported major for this slice; CI uses the exact 17.11
 container image.
 
 The Go adapter exposes two deliberately separate capabilities. `postgres.Store`
-implements the runtime `catalog.SnapshotStore` port and owns bounded read/write
+implements the runtime `snapshot.Store` port and owns bounded read/write
 connections; opening it never changes schema state. `postgres.Migrator` owns a
 single privileged connection pool and can only apply the embedded migration
 chain. Commands compose one capability or the other, so a runtime dependency

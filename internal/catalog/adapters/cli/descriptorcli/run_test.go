@@ -1,4 +1,4 @@
-package main
+package descriptorcli
 
 import (
 	"bytes"
@@ -13,10 +13,10 @@ func TestRunReportsNormalizedDescriptorSummary(t *testing.T) {
 	t.Parallel()
 
 	fixture := filepath.Join(
-		"..", "..", "contracts", "fixtures", "repository-descriptor", "v1", "valid", "source-and-test-repositories.json",
+		"..", "..", "..", "..", "..", "contracts", "fixtures", "repository-descriptor", "v1", "valid", "source-and-test-repositories.json",
 	)
 	var output bytes.Buffer
-	if err := run([]string{"-revision", testRevision, fixture}, &output); err != nil {
+	if err := Run([]string{"-revision", testRevision, fixture}, &output); err != nil {
 		t.Fatalf("run descriptor command: %v", err)
 	}
 
@@ -61,10 +61,10 @@ func TestRunRejectsDomainInvalidDescriptor(t *testing.T) {
 	t.Parallel()
 
 	fixture := filepath.Join(
-		"..", "..", "contracts", "fixtures", "repository-descriptor", "v1", "invalid", "unknown-capability-reference.json",
+		"..", "..", "..", "..", "..", "contracts", "fixtures", "repository-descriptor", "v1", "invalid", "unknown-capability-reference.json",
 	)
 	var output bytes.Buffer
-	err := run([]string{"-revision", testRevision, fixture}, &output)
+	err := Run([]string{"-revision", testRevision, fixture}, &output)
 	if err == nil {
 		t.Fatal("expected domain-invalid descriptor to fail")
 	}
@@ -76,7 +76,7 @@ func TestRunRejectsDomainInvalidDescriptor(t *testing.T) {
 func TestRunRequiresRevisionAndPath(t *testing.T) {
 	t.Parallel()
 
-	if err := run(nil, &bytes.Buffer{}); err == nil {
+	if err := Run(nil, &bytes.Buffer{}); err == nil {
 		t.Fatal("expected missing arguments to fail")
 	}
 }

@@ -52,7 +52,7 @@ actually fetched.
 | `test_catalog_page.go` | Go test-catalog transport DTO and generated-schema validation boundary. |
 | `impact_evidence_bundle.go` | Go evidence-bundle transport and schema-validation boundary. |
 | `impact_edge_page.go` | Go evaluated impact-edge transport and schema-validation boundary. |
-| `../internal/catalog/descriptor/` | Repository-descriptor-to-domain conversion and semantic validation. |
+| `../internal/catalog/adapters/contract/descriptor/` | Repository-descriptor-to-domain conversion and semantic validation. |
 | `../internal/catalog/` | Catalog domain vocabulary, use cases, errors, and persistence port. |
 
 Only the Effect source is edited to change wire structure. `make

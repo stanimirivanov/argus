@@ -9,7 +9,8 @@ import (
 
 	"github.com/stanimirivanov/argus/contracts"
 	"github.com/stanimirivanov/argus/internal/catalog"
-	"github.com/stanimirivanov/argus/internal/catalog/evidence"
+	"github.com/stanimirivanov/argus/internal/catalog/adapters/contract/evidence"
+	"github.com/stanimirivanov/argus/internal/catalog/impact"
 )
 
 type fixtureManifest struct {
@@ -25,7 +26,7 @@ type fixtureExpectation struct {
 func TestImpactEvidenceDomainCorpus(t *testing.T) {
 	t.Parallel()
 
-	contractsRoot := filepath.Join("..", "..", "..", "contracts")
+	contractsRoot := filepath.Join("..", "..", "..", "..", "..", "contracts")
 	manifestData, err := os.ReadFile(filepath.Join(
 		contractsRoot,
 		"fixtures",
@@ -71,7 +72,7 @@ func assertImpactEvidenceFixture(t *testing.T, contractsRoot string, fixture fix
 	if !fixture.DomainValid && !errors.Is(importErr, catalog.ErrInvalidEvidence) {
 		t.Fatalf("import error = %v, want ErrInvalidEvidence", importErr)
 	}
-	if fixture.DomainValid && bundle.APIVersion != catalog.ImpactEvidenceBundleAPIVersion {
+	if fixture.DomainValid && bundle.APIVersion != impact.EvidenceBundleAPIVersion {
 		t.Fatalf("apiVersion = %q", bundle.APIVersion)
 	}
 }

@@ -1,4 +1,4 @@
-package catalog
+package impact
 
 import (
 	"bytes"
@@ -7,8 +7,12 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"time"
+
+	"github.com/stanimirivanov/argus/internal/catalog"
 )
 
 const (
@@ -24,45 +28,45 @@ type impactEdgeCursor struct {
 }
 
 type impactEdgeCursorIdentity struct {
-	CapabilityKey        string   `json:"capabilityKey"`
-	Provider             Provider `json:"provider"`
-	Host                 string   `json:"host"`
-	ProviderRepositoryID string   `json:"providerRepositoryId"`
-	SuiteKey             string   `json:"suiteKey"`
-	TestKey              string   `json:"testKey"`
+	CapabilityKey        string           `json:"capabilityKey"`
+	Provider             catalog.Provider `json:"provider"`
+	Host                 string           `json:"host"`
+	ProviderRepositoryID string           `json:"providerRepositoryId"`
+	SuiteKey             string           `json:"suiteKey"`
+	TestKey              string           `json:"testKey"`
 }
 
 type impactEdgeCursorBinding struct {
-	Namespace            string            `json:"namespace"`
-	Provider             Provider          `json:"provider"`
-	Host                 string            `json:"host"`
-	ProviderRepositoryID string            `json:"providerRepositoryId"`
-	RevisionAlgorithm    RevisionAlgorithm `json:"revisionAlgorithm"`
-	RevisionDigest       string            `json:"revisionDigest"`
-	DescriptorAPIVersion string            `json:"descriptorApiVersion"`
-	EvaluatedAt          string            `json:"evaluatedAt"`
-	CapabilityKey        string            `json:"capabilityKey"`
+	Namespace            string                    `json:"namespace"`
+	Provider             catalog.Provider          `json:"provider"`
+	Host                 string                    `json:"host"`
+	ProviderRepositoryID string                    `json:"providerRepositoryId"`
+	RevisionAlgorithm    catalog.RevisionAlgorithm `json:"revisionAlgorithm"`
+	RevisionDigest       string                    `json:"revisionDigest"`
+	DescriptorAPIVersion string                    `json:"descriptorApiVersion"`
+	EvaluatedAt          string                    `json:"evaluatedAt"`
+	CapabilityKey        string                    `json:"capabilityKey"`
 }
 
-func normalizeImpactEdgeQuery(query ImpactEdgeQuery) (ImpactEdgeQuery, *ImpactEdgeIdentity, error) {
-	if err := validateSnapshotKey(query.Snapshot); err != nil {
-		return ImpactEdgeQuery{}, nil, err
+func normalizeImpactEdgeQuery(query EdgeQuery) (EdgeQuery, *EdgeIdentity, error) {
+	if err := catalog.ValidateSnapshotKey(query.Snapshot); err != nil {
+		return EdgeQuery{}, nil, err
 	}
 	if query.EvaluatedAt.IsZero() || !isUTC(query.EvaluatedAt) {
-		return ImpactEdgeQuery{}, nil, fmt.Errorf("%w: evaluatedAt must be a UTC instant", ErrInvalidQuery)
+		return EdgeQuery{}, nil, fmt.Errorf("%w: evaluatedAt must be a UTC instant", catalog.ErrInvalidQuery)
 	}
 	query.EvaluatedAt = query.EvaluatedAt.UTC()
-	if query.CapabilityKey != "" && !localKeyPattern.MatchString(query.CapabilityKey) {
-		return ImpactEdgeQuery{}, nil, fmt.Errorf("%w: capability key", ErrInvalidQuery)
+	if query.CapabilityKey != "" && !catalog.IsLocalKey(query.CapabilityKey) {
+		return EdgeQuery{}, nil, fmt.Errorf("%w: capability key", catalog.ErrInvalidQuery)
 	}
 	if query.PageSize == 0 {
-		query.PageSize = DefaultImpactEdgePageSize
+		query.PageSize = DefaultEdgePageSize
 	}
-	if query.PageSize < 1 || query.PageSize > MaxImpactEdgePageSize {
-		return ImpactEdgeQuery{}, nil, fmt.Errorf(
+	if query.PageSize < 1 || query.PageSize > MaxEdgePageSize {
+		return EdgeQuery{}, nil, fmt.Errorf(
 			"%w: page size must be between 1 and %d",
-			ErrInvalidQuery,
-			MaxImpactEdgePageSize,
+			catalog.ErrInvalidQuery,
+			MaxEdgePageSize,
 		)
 	}
 	if query.Cursor == "" {
@@ -71,15 +75,15 @@ func normalizeImpactEdgeQuery(query ImpactEdgeQuery) (ImpactEdgeQuery, *ImpactEd
 
 	after, err := decodeImpactEdgeCursor(query, query.Cursor)
 	if err != nil {
-		return ImpactEdgeQuery{}, nil, err
+		return EdgeQuery{}, nil, err
 	}
 
 	return query, &after, nil
 }
 
-func encodeImpactEdgeCursor(query ImpactEdgeQuery, after ImpactEdgeIdentity) (string, error) {
+func encodeImpactEdgeCursor(query EdgeQuery, after EdgeIdentity) (string, error) {
 	if err := validateImpactEdgeIdentity(after); err != nil {
-		return "", ErrUnavailable
+		return "", catalog.ErrUnavailable
 	}
 	queryHash, err := impactEdgeQueryHash(query)
 	if err != nil {
@@ -104,39 +108,39 @@ func encodeImpactEdgeCursor(query ImpactEdgeQuery, after ImpactEdgeIdentity) (st
 	return base64.RawURLEncoding.EncodeToString(payload), nil
 }
 
-func decodeImpactEdgeCursor(query ImpactEdgeQuery, encoded string) (ImpactEdgeIdentity, error) {
+func decodeImpactEdgeCursor(query EdgeQuery, encoded string) (EdgeIdentity, error) {
 	if len(encoded) > maxImpactEdgeCursorLength {
-		return ImpactEdgeIdentity{}, fmt.Errorf("%w: token length", ErrInvalidCursor)
+		return EdgeIdentity{}, fmt.Errorf("%w: token length", catalog.ErrInvalidCursor)
 	}
 	payload, err := base64.RawURLEncoding.Strict().DecodeString(encoded)
 	if err != nil {
-		return ImpactEdgeIdentity{}, fmt.Errorf("%w: token encoding", ErrInvalidCursor)
+		return EdgeIdentity{}, fmt.Errorf("%w: token encoding", catalog.ErrInvalidCursor)
 	}
 
 	var cursor impactEdgeCursor
 	decoder := json.NewDecoder(bytes.NewReader(payload))
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(&cursor); err != nil {
-		return ImpactEdgeIdentity{}, fmt.Errorf("%w: token document", ErrInvalidCursor)
+		return EdgeIdentity{}, fmt.Errorf("%w: token document", catalog.ErrInvalidCursor)
 	}
 	if err := requireJSONEnd(decoder); err != nil {
-		return ImpactEdgeIdentity{}, err
+		return EdgeIdentity{}, err
 	}
 	if cursor.Version != impactEdgeCursorVersion {
-		return ImpactEdgeIdentity{}, fmt.Errorf("%w: token version", ErrInvalidCursor)
+		return EdgeIdentity{}, fmt.Errorf("%w: token version", catalog.ErrInvalidCursor)
 	}
 
 	wantHash, err := impactEdgeQueryHash(query)
 	if err != nil {
-		return ImpactEdgeIdentity{}, err
+		return EdgeIdentity{}, err
 	}
 	if subtle.ConstantTimeCompare([]byte(cursor.QueryHash), []byte(wantHash)) != 1 {
-		return ImpactEdgeIdentity{}, fmt.Errorf("%w: token query", ErrInvalidCursor)
+		return EdgeIdentity{}, fmt.Errorf("%w: token query", catalog.ErrInvalidCursor)
 	}
-	identity := ImpactEdgeIdentity{
+	identity := EdgeIdentity{
 		CapabilityKey: cursor.After.CapabilityKey,
-		Test: TestCatalogIdentity{
-			TestRepository: RepositoryIdentity{
+		Test: catalog.TestIdentity{
+			TestRepository: catalog.RepositoryIdentity{
 				Provider:             cursor.After.Provider,
 				Host:                 cursor.After.Host,
 				ProviderRepositoryID: cursor.After.ProviderRepositoryID,
@@ -146,13 +150,13 @@ func decodeImpactEdgeCursor(query ImpactEdgeQuery, encoded string) (ImpactEdgeId
 		},
 	}
 	if err := validateImpactEdgeIdentity(identity); err != nil {
-		return ImpactEdgeIdentity{}, fmt.Errorf("%w: token position", ErrInvalidCursor)
+		return EdgeIdentity{}, fmt.Errorf("%w: token position", catalog.ErrInvalidCursor)
 	}
 
 	return identity, nil
 }
 
-func impactEdgeQueryHash(query ImpactEdgeQuery) (string, error) {
+func impactEdgeQueryHash(query EdgeQuery) (string, error) {
 	payload, err := json.Marshal(impactEdgeCursorBinding{
 		Namespace:            impactEdgeCursorNamespace,
 		Provider:             query.Snapshot.Repository.Provider,
@@ -170,4 +174,14 @@ func impactEdgeQueryHash(query ImpactEdgeQuery) (string, error) {
 	digest := sha256.Sum256(payload)
 
 	return hex.EncodeToString(digest[:]), nil
+}
+
+func requireJSONEnd(decoder *json.Decoder) error {
+	var trailing any
+	err := decoder.Decode(&trailing)
+	if errors.Is(err, io.EOF) {
+		return nil
+	}
+
+	return fmt.Errorf("%w: token document", catalog.ErrInvalidCursor)
 }

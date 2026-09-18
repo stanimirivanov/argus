@@ -8,7 +8,9 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/stanimirivanov/argus/internal/catalog"
+	"github.com/stanimirivanov/argus/internal/catalog/impact"
+	"github.com/stanimirivanov/argus/internal/catalog/snapshot"
+	"github.com/stanimirivanov/argus/internal/catalog/testquery"
 )
 
 const (
@@ -23,10 +25,10 @@ type Store struct {
 	pool *pgxpool.Pool
 }
 
-var _ catalog.SnapshotStore = (*Store)(nil)
-var _ catalog.TestCatalogReader = (*Store)(nil)
-var _ catalog.ImpactEvidenceStore = (*Store)(nil)
-var _ catalog.ImpactEdgeReader = (*Store)(nil)
+var _ snapshot.Store = (*Store)(nil)
+var _ testquery.TestCatalogReader = (*Store)(nil)
+var _ impact.EvidenceStore = (*Store)(nil)
+var _ impact.EdgeReader = (*Store)(nil)
 
 // OpenStore validates the secret database configuration, establishes a bounded
 // connection pool, and verifies connectivity without changing schema state.

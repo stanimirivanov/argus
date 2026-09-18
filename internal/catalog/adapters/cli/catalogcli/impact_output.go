@@ -1,13 +1,13 @@
-package main
+package catalogcli
 
 import (
 	"time"
 
 	"github.com/stanimirivanov/argus/contracts"
-	"github.com/stanimirivanov/argus/internal/catalog"
+	"github.com/stanimirivanov/argus/internal/catalog/impact"
 )
 
-func newImpactEdgePageOutput(page catalog.ImpactEdgePage) contracts.ImpactEdgePageV1 {
+func newImpactEdgePageOutput(page impact.EdgePage) contracts.ImpactEdgePageV1 {
 	items := make([]contracts.ImpactEdge, len(page.Items))
 	for index, edge := range page.Items {
 		evidence := make([]contracts.ImpactEvidenceReference, len(edge.Evidence))
@@ -65,7 +65,7 @@ func newImpactEdgePageOutput(page catalog.ImpactEdgePage) contracts.ImpactEdgePa
 	}
 }
 
-func newImpactEvidenceReference(item catalog.EvaluatedImpactEvidence) contracts.ImpactEvidenceReference {
+func newImpactEvidenceReference(item impact.EvaluatedEvidence) contracts.ImpactEvidenceReference {
 	var expiresAt *string
 	if item.ExpiresAt != nil {
 		formatted := item.ExpiresAt.UTC().Format(time.RFC3339Nano)

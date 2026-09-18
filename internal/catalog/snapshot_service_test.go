@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/stanimirivanov/argus/internal/catalog"
+	snapshotapp "github.com/stanimirivanov/argus/internal/catalog/snapshot"
 )
 
 func TestSnapshotServiceIngestsAndReturnsDurableSnapshot(t *testing.T) {
@@ -15,7 +16,7 @@ func TestSnapshotServiceIngestsAndReturnsDurableSnapshot(t *testing.T) {
 	snapshot := testSnapshot()
 	persisted := catalog.CanonicalSnapshot(snapshot)
 	store := &recordingSnapshotStore{snapshot: persisted}
-	service := catalog.NewSnapshotService(store)
+	service := snapshotapp.NewService(store)
 
 	result, err := service.IngestSnapshot(context.Background(), snapshot)
 	if err != nil {
@@ -36,7 +37,7 @@ func TestSnapshotServiceStopsWhenSaveFails(t *testing.T) {
 	t.Parallel()
 
 	store := &recordingSnapshotStore{saveErr: catalog.ErrConflict}
-	service := catalog.NewSnapshotService(store)
+	service := snapshotapp.NewService(store)
 
 	_, err := service.IngestSnapshot(context.Background(), testSnapshot())
 	if !errors.Is(err, catalog.ErrConflict) {
@@ -51,7 +52,7 @@ func TestSnapshotServiceReportsReadFailureAfterSuccessfulSave(t *testing.T) {
 	t.Parallel()
 
 	store := &recordingSnapshotStore{getErr: catalog.ErrUnavailable}
-	service := catalog.NewSnapshotService(store)
+	service := snapshotapp.NewService(store)
 
 	_, err := service.IngestSnapshot(context.Background(), testSnapshot())
 	if !errors.Is(err, catalog.ErrUnavailable) {
