@@ -107,3 +107,4 @@ How will the assumptions and consequences be verified?
 | [ADR-0006](0006-enforce-capability-oriented-hexagonal-boundaries.md) | Enforce capability-oriented hexagonal boundaries | Accepted | 2026-09-18 |
 | [ADR-0007](0007-ingest-github-changes-as-bounded-immutable-evidence.md) | Ingest GitHub changes as bounded immutable evidence | Accepted | 2026-09-18 |
 | [ADR-0008](0008-derive-capability-impact-from-openapi-operations.md) | Derive capability impact from OpenAPI operations | Accepted | 2026-09-18 |
+| [ADR-0009](0009-start-functional-api-selection-with-deterministic-safe-fallbacks.md) | Start functional API selection with deterministic safe fallbacks | Accepted | 2026-09-18 |

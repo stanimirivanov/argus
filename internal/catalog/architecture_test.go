@@ -14,6 +14,7 @@ import (
 
 const catalogImportPath = "github.com/stanimirivanov/argus/internal/catalog"
 const changeImportPath = "github.com/stanimirivanov/argus/internal/change"
+const selectionImportPath = "github.com/stanimirivanov/argus/internal/selection"
 
 // TestHexagonalImportBoundaries turns the catalog's dependency direction into
 // an executable constraint. It intentionally checks production imports rather
@@ -24,6 +25,7 @@ func TestHexagonalImportBoundaries(t *testing.T) {
 
 	root := catalogSourceRoot(t)
 	changeRoot := filepath.Join(filepath.Dir(root), "change")
+	selectionRoot := filepath.Join(filepath.Dir(root), "selection")
 	rules := []importRule{
 		{
 			name:      "shared domain remains dependency free",
@@ -102,6 +104,38 @@ func TestHexagonalImportBoundaries(t *testing.T) {
 				"github.com/jackc/pgx",
 				"github.com/stanimirivanov/argus/contracts",
 				changeImportPath + "/adapters",
+			},
+		},
+		{
+			name:      "selection domain remains dependency free",
+			directory: selectionRoot,
+			recursive: false,
+			forbidden: []string{
+				"github.com/jackc/pgx",
+				"github.com/stanimirivanov/argus/contracts",
+				selectionImportPath + "/adapters",
+				selectionImportPath + "/functionalapi",
+			},
+		},
+		{
+			name:      "selection application depends inward",
+			directory: filepath.Join(selectionRoot, "functionalapi"),
+			recursive: true,
+			forbidden: []string{
+				"github.com/jackc/pgx",
+				"github.com/stanimirivanov/argus/contracts",
+				catalogImportPath + "/adapters",
+				catalogImportPath + "/testquery",
+				selectionImportPath + "/adapters",
+			},
+		},
+		{
+			name:      "selection CLI does not select infrastructure",
+			directory: filepath.Join(selectionRoot, "adapters", "cli"),
+			recursive: true,
+			forbidden: []string{
+				"github.com/jackc/pgx",
+				catalogImportPath + "/adapters/postgres",
 			},
 		},
 	}
