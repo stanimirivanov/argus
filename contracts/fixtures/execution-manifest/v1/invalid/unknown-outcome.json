@@ -1,0 +1,81 @@
+{
+  "apiVersion": "argus.dev/execution-manifest/v1",
+  "policyVersion": "argus.dev/selection-policy/functional-api/v1",
+  "impact": {
+    "apiVersion": "argus.dev/capability-impact/v1",
+    "analyzerVersion": "argus-openapi/v1+libopenapi/v0.38.7"
+  },
+  "change": {
+    "sourceRepository": {
+      "provider": "github",
+      "host": "github.com",
+      "providerRepositoryId": "source-42",
+      "owner": "example",
+      "name": "orders"
+    },
+    "pullRequest": { "number": 42 },
+    "baseRevision": {
+      "algorithm": "git-sha1",
+      "digest": "0123456789abcdef0123456789abcdef01234567"
+    },
+    "headRevision": {
+      "algorithm": "git-sha1",
+      "digest": "89abcdef0123456789abcdef0123456789abcdef"
+    },
+    "observedAt": "2026-09-18T12:00:00Z",
+    "trigger": {
+      "provider": "github",
+      "deliveryId": "delivery-42",
+      "event": "pull_request",
+      "action": "synchronize"
+    }
+  },
+  "catalog": {
+    "sourceRepository": {
+      "provider": "github",
+      "host": "github.com",
+      "providerRepositoryId": "source-42",
+      "owner": "example",
+      "name": "orders"
+    },
+    "revision": {
+      "algorithm": "git-sha1",
+      "digest": "0123456789abcdef0123456789abcdef01234567"
+    },
+    "descriptorApiVersion": "argus.dev/repository-descriptor/v1"
+  },
+  "family": "functional-api",
+  "mode": "targeted",
+  "affectedCapabilities": ["create-order"],
+  "uncoveredCapabilities": [],
+  "decisions": [
+    {
+      "testRepository": {
+        "provider": "github",
+        "host": "github.com",
+        "providerRepositoryId": "tests-1",
+        "owner": "example",
+        "name": "orders-tests"
+      },
+      "suite": {
+        "key": "orders-api",
+        "family": "functional-api",
+        "adapter": "playwright"
+      },
+      "test": {
+        "key": "create-order-test",
+        "name": "Create order"
+      },
+      "capabilities": ["create-order"],
+      "outcome": "RUN_OPTIONAL",
+      "remainingExecution": "none",
+      "reasons": [
+        {
+          "code": "DIRECT_CAPABILITY_IMPACT",
+          "capabilities": ["create-order"]
+        }
+      ]
+    }
+  ],
+  "warnings": []
+}

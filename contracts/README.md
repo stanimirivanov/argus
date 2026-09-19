@@ -16,6 +16,9 @@
 - Capability-impact v1 records semantic OpenAPI document and operation changes,
   explicit capability mappings, unmapped operations, and partial-analysis
   warnings.
+- Execution-manifest v1 records deterministic functional API inclusion and
+  omission decisions, immutable input provenance, remaining-suite obligations,
+  and uncovered capabilities.
 - Structural validity and domain validity are distinct and share one fixture
   corpus.
 - Generate language stubs only when a real producer or consumer needs them.
@@ -46,6 +49,7 @@ actually fetched.
 | `source/impact-edge-page-v1.ts` | Authoritative evaluated impact-edge result contract. |
 | `source/change-set-v1.ts` | Authoritative normalized pull-request change contract. |
 | `source/capability-impact-v1.ts` | Authoritative semantic OpenAPI capability-impact result. |
+| `source/execution-manifest-v1.ts` | Authoritative functional API execution-manifest result. |
 | `source/repository-descriptor-v1.test.ts` | Structural fixture tests through Effect Schema. |
 | `source/test-catalog-page-v1.test.ts` | Test-catalog result compatibility tests through Effect Schema. |
 | `scripts/generate.ts` | Deterministic JSON Schema compiler and drift check. |
@@ -57,12 +61,14 @@ actually fetched.
 | `fixtures/impact-edge-page/v1/` | Evaluated relationship and conflict fixtures. |
 | `fixtures/change-set/v1/` | Positive and negative normalized-change fixtures. |
 | `fixtures/capability-impact/v1/` | Positive and negative semantic-impact fixtures. |
+| `fixtures/execution-manifest/v1/` | Positive and negative selection-manifest fixtures. |
 | `repository_descriptor.go` | Go schema-validation boundary and transport DTO. |
 | `test_catalog_page.go` | Go test-catalog transport DTO and generated-schema validation boundary. |
 | `impact_evidence_bundle.go` | Go evidence-bundle transport and schema-validation boundary. |
 | `impact_edge_page.go` | Go evaluated impact-edge transport and schema-validation boundary. |
 | `change_set.go` | Go change-set transport and generated-schema validation boundary. |
 | `capability_impact.go` | Go capability-impact transport and generated-schema validation boundary. |
+| `execution_manifest.go` | Go execution-manifest transport and generated-schema validation boundary. |
 | `../internal/catalog/adapters/contract/descriptor/` | Repository-descriptor-to-domain conversion and semantic validation. |
 | `../internal/catalog/` | Catalog domain vocabulary, use cases, errors, and persistence port. |
 | `../internal/change/` | Provider-neutral change invariants and ingestion use case. |
@@ -165,6 +171,21 @@ is bound to the snapshot, optional capability filter, and evaluation instant.
 
 The immutable storage and evaluation decision is recorded in
 [ADR-0005](../docs/decisions/0005-store-immutable-impact-evidence.md).
+
+## Execution manifest contract
+
+`argus.dev/execution-manifest/v1` records one decision for every functional
+API candidate in the approved base-revision catalog. Each decision contains the
+stable test identity, outcome, remaining execution obligation, and
+machine-readable reasons. The manifest also identifies its change assessment,
+catalog snapshot, analyzer, and policy versions.
+
+`targeted` mode requires tests mapped to affected capabilities and marks other
+candidates `SKIP_FOR_NOW` with a required later full-suite path. `fallback`
+mode requires every candidate when impact is partial, empty, or unmapped.
+`uncoveredCapabilities` identifies affected behavior without a mapped
+functional API test. The manifest is an explainable selection result; it does
+not claim that execution occurred or that an early subset is release authority.
 
 ## Structural and domain validation
 

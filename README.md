@@ -136,6 +136,23 @@ HTTP operations, explicit capability mappings, potentially-breaking markers,
 and partial-analysis warnings. It is the explainability input for M05 selection,
 not yet an execution decision.
 
+## Select functional API tests
+
+Generate a deterministic execution manifest after the matching approved
+base-revision catalog and change impact have been stored:
+
+~~~sh
+export ARGUS_DATABASE_URL='postgres://argus_runtime:...@db.example/argus'
+go run ./cmd/select +  -provider github +  -delivery-id 01234567-89ab-cdef-0123-456789abcdef
+~~~
+
+The command emits `argus.dev/execution-manifest/v1`. With complete mapped
+impact, tests sharing an affected capability are `RUN_REQUIRED`; other
+functional API candidates are `SKIP_FOR_NOW` in the early stage and explicitly
+required in a later full-suite control. Partial, empty, or unmapped impact
+switches to fallback mode and requires every functional API candidate. The
+manifest reports affected capabilities without a mapped test.
+
 ## Query catalog tests
 
 List a bounded page of tests from one explicitly identified immutable snapshot:

@@ -1,0 +1,12 @@
+{
+  "fixtures": [
+    {
+      "path": "fixtures/execution-manifest/v1/valid/targeted.json",
+      "schemaValid": true
+    },
+    {
+      "path": "fixtures/execution-manifest/v1/invalid/unknown-outcome.json",
+      "schemaValid": false
+    }
+  ]
+}
