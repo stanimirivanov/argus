@@ -1,0 +1,8 @@
+{
+  "fixtures": [
+    {
+      "path": "fixtures/execution-attempt/v1/valid/passed.json",
+      "schemaValid": true
+    }
+  ]
+}

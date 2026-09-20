@@ -3,12 +3,50 @@ import { JSONSchema } from "effect";
 import { CapabilityImpactV1 } from "../source/capability-impact-v1.js";
 import { ChangeSetV1 } from "../source/change-set-v1.js";
 import { ExecutionManifestV1 } from "../source/execution-manifest-v1.js";
+import {
+  ExecutionAttemptV1,
+  FunctionalAPIAdapterRequestV1,
+  FunctionalAPIAdapterResultV1,
+} from "../source/functional-api-execution-v1.js";
 import { ImpactEdgePageV1 } from "../source/impact-edge-page-v1.js";
 import { ImpactEvidenceBundleV1 } from "../source/impact-evidence-bundle-v1.js";
 import { RepositoryDescriptorV1 } from "../source/repository-descriptor-v1.js";
 import { TestCatalogPageV1 } from "../source/test-catalog-page-v1.js";
 
 const artifacts = [
+  {
+    name: "functional API adapter request",
+    outputPath: new URL(
+      "../generated/functional-api-adapter-request/v1/functional-api-adapter-request.schema.json",
+      import.meta.url,
+    ),
+    document: {
+      $id: "https://argus.dev/contracts/functional-api-adapter-request/v1/schema.json",
+      ...JSONSchema.make(FunctionalAPIAdapterRequestV1, { target: "jsonSchema2020-12" }),
+    },
+  },
+  {
+    name: "functional API adapter result",
+    outputPath: new URL(
+      "../generated/functional-api-adapter-result/v1/functional-api-adapter-result.schema.json",
+      import.meta.url,
+    ),
+    document: {
+      $id: "https://argus.dev/contracts/functional-api-adapter-result/v1/schema.json",
+      ...JSONSchema.make(FunctionalAPIAdapterResultV1, { target: "jsonSchema2020-12" }),
+    },
+  },
+  {
+    name: "execution attempt",
+    outputPath: new URL(
+      "../generated/execution-attempt/v1/execution-attempt.schema.json",
+      import.meta.url,
+    ),
+    document: {
+      $id: "https://argus.dev/contracts/execution-attempt/v1/schema.json",
+      ...JSONSchema.make(ExecutionAttemptV1, { target: "jsonSchema2020-12" }),
+    },
+  },
   {
     name: "execution manifest",
     outputPath: new URL(

@@ -19,6 +19,9 @@
 - Execution-manifest v1 records deterministic functional API inclusion and
   omission decisions, immutable input provenance, remaining-suite obligations,
   and uncovered capabilities.
+- Functional API adapter request/result v1 and execution-attempt v1 provide a
+  bounded framework-neutral CI execution boundary with exact result
+  correlation.
 - Structural validity and domain validity are distinct and share one fixture
   corpus.
 - Generate language stubs only when a real producer or consumer needs them.
@@ -50,6 +53,7 @@ actually fetched.
 | `source/change-set-v1.ts` | Authoritative normalized pull-request change contract. |
 | `source/capability-impact-v1.ts` | Authoritative semantic OpenAPI capability-impact result. |
 | `source/execution-manifest-v1.ts` | Authoritative functional API execution-manifest result. |
+| `source/functional-api-execution-v1.ts` | Authoritative adapter request/result and normalized execution-attempt contracts. |
 | `source/repository-descriptor-v1.test.ts` | Structural fixture tests through Effect Schema. |
 | `source/test-catalog-page-v1.test.ts` | Test-catalog result compatibility tests through Effect Schema. |
 | `scripts/generate.ts` | Deterministic JSON Schema compiler and drift check. |
@@ -62,6 +66,9 @@ actually fetched.
 | `fixtures/change-set/v1/` | Positive and negative normalized-change fixtures. |
 | `fixtures/capability-impact/v1/` | Positive and negative semantic-impact fixtures. |
 | `fixtures/execution-manifest/v1/` | Positive and negative selection-manifest fixtures. |
+| `fixtures/functional-api-adapter-request/v1/` | Adapter request conformance fixtures. |
+| `fixtures/functional-api-adapter-result/v1/` | Adapter result conformance fixtures. |
+| `fixtures/execution-attempt/v1/` | Normalized attempt conformance fixtures. |
 | `repository_descriptor.go` | Go schema-validation boundary and transport DTO. |
 | `test_catalog_page.go` | Go test-catalog transport DTO and generated-schema validation boundary. |
 | `impact_evidence_bundle.go` | Go evidence-bundle transport and schema-validation boundary. |
@@ -69,6 +76,7 @@ actually fetched.
 | `change_set.go` | Go change-set transport and generated-schema validation boundary. |
 | `capability_impact.go` | Go capability-impact transport and generated-schema validation boundary. |
 | `execution_manifest.go` | Go execution-manifest transport and generated-schema validation boundary. |
+| `functional_api_execution.go` | Go adapter-protocol and execution-attempt DTO and validation boundary. |
 | `../internal/catalog/adapters/contract/descriptor/` | Repository-descriptor-to-domain conversion and semantic validation. |
 | `../internal/catalog/` | Catalog domain vocabulary, use cases, errors, and persistence port. |
 | `../internal/change/` | Provider-neutral change invariants and ingestion use case. |
@@ -186,6 +194,24 @@ mode requires every candidate when impact is partial, empty, or unmapped.
 `uncoveredCapabilities` identifies affected behavior without a mapped
 functional API test. The manifest is an explainable selection result; it does
 not claim that execution occurred or that an early subset is release authority.
+
+## Functional API execution contracts
+
+`argus.dev/functional-api-adapter-request/v1` supplies one exact, bounded test
+set to a CI-local adapter. It binds the request to canonical manifest bytes, an
+immutable test-repository revision, an explicit selected or full-suite stage,
+and the expected adapter identity.
+
+`argus.dev/functional-api-adapter-result/v1` is untrusted adapter output. Argus
+requires one normalized result for every requested test and rejects duplicates,
+missing results, additional results, identity mismatches, invalid time ranges,
+or unbounded evidence. `argus.dev/execution-attempt/v1` is emitted only after
+that correlation succeeds. The attempt outcome is derived from per-test
+outcomes rather than accepted from the adapter.
+
+The contracts transport artifact references, not artifact bytes or proof that
+an object was uploaded. Durable registration and attempt ingestion remain a
+later M05 capability.
 
 ## Structural and domain validation
 

@@ -70,12 +70,30 @@ type SelectionReason struct {
 	Capabilities []string `json:"capabilities"`
 }
 
+// DecodeExecutionManifestV1 validates and decodes an external manifest.
+func DecodeExecutionManifestV1(data []byte) (ExecutionManifestV1, error) {
+	var document ExecutionManifestV1
+	if err := validateExecutionManifestV1JSON(data); err != nil {
+		return document, err
+	}
+	if err := json.Unmarshal(data, &document); err != nil {
+		return document, fmt.Errorf("decode execution manifest: %w", err)
+	}
+
+	return document, nil
+}
+
 // ValidateExecutionManifestV1 verifies a typed document against Effect-authored JSON Schema.
 func ValidateExecutionManifestV1(document ExecutionManifestV1) error {
 	data, err := json.Marshal(document)
 	if err != nil {
 		return fmt.Errorf("encode execution manifest for validation: %w", err)
 	}
+
+	return validateExecutionManifestV1JSON(data)
+}
+
+func validateExecutionManifestV1JSON(data []byte) error {
 	schema, err := loadExecutionManifestV1Schema()
 	if err != nil {
 		return err

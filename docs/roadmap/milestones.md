@@ -232,12 +232,19 @@ Acceptance ingredients:
 Completion means a pull request can select and execute an explainable subset
 while the full suite remains the authority.
 
-The first M05 slice now generates a versioned functional API execution manifest
+The first M05 slice generates a versioned functional API execution manifest
 from persisted OpenAPI capability impact and the approved base catalog. It
 records inclusion and omission reasons, uncovered capabilities, and a mandatory
 later full-suite path for early omissions. Partial, empty, or unmapped impact
-falls back to running every functional API candidate. CI consumption, execution
-attempts, result ingestion, and shadow-mode outcome comparison remain.
+falls back to running every functional API candidate.
+
+The second M05 slice defines a framework-neutral functional API adapter
+request/result protocol, consumes a manifest in a bounded CI-local process
+runner, correlates the exact requested result set, and emits a normalized
+execution attempt bound to canonical manifest bytes and an immutable test
+revision. Durable attempt/result ingestion, artifact registration, automated
+heterogeneous group planning, and selected-versus-full shadow comparison
+remain.
 
 ## M06 - Validated adaptation
 

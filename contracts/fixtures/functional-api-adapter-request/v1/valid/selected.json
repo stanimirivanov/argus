@@ -1,0 +1,28 @@
+{
+  "apiVersion": "argus.dev/functional-api-adapter-request/v1",
+  "attemptId": "github-123-1",
+  "manifest": {
+    "apiVersion": "argus.dev/execution-manifest/v1",
+    "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  },
+  "stage": "selected",
+  "testRepository": {
+    "provider": "github",
+    "host": "github.com",
+    "providerRepositoryId": "tests-1",
+    "owner": "example",
+    "name": "orders-tests"
+  },
+  "testRevision": {
+    "algorithm": "git-sha1",
+    "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "adapter": "playwright",
+  "tests": [
+    {
+      "suiteKey": "orders-api",
+      "testKey": "create-order-test",
+      "name": "Create order"
+    }
+  ]
+}

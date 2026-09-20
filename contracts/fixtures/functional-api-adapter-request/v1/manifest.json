@@ -1,0 +1,8 @@
+{
+  "fixtures": [
+    {
+      "path": "fixtures/functional-api-adapter-request/v1/valid/selected.json",
+      "schemaValid": true
+    }
+  ]
+}
