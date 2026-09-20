@@ -21,6 +21,7 @@ or conflicting capability-to-test relationships without discarding evidence.
 - [Product definition](docs/product/product-definition.md)
 - [Architecture overview](docs/architecture/overview.md)
 - [Contract workspace](contracts/README.md)
+- [Functional API adapter protocol](docs/integrations/functional-api-adapters.md)
 - [PostgreSQL catalog operations](docs/development/postgresql.md)
 - [Proposal decomposition and provenance](docs/proposal.md)
 - [Developer quickstart](docs/development/developer-quickstart.md)
@@ -143,7 +144,9 @@ base-revision catalog and change impact have been stored:
 
 ~~~sh
 export ARGUS_DATABASE_URL='postgres://argus_runtime:...@db.example/argus'
-go run ./cmd/select +  -provider github +  -delivery-id 01234567-89ab-cdef-0123-456789abcdef
+go run ./cmd/select \
+  -provider github \
+  -delivery-id 01234567-89ab-cdef-0123-456789abcdef
 ~~~
 
 The command emits `argus.dev/execution-manifest/v1`. With complete mapped
@@ -152,6 +155,32 @@ functional API candidates are `SKIP_FOR_NOW` in the early stage and explicitly
 required in a later full-suite control. Partial, empty, or unmapped impact
 switches to fallback mode and requires every functional API candidate. The
 manifest reports affected capabilities without a mapped test.
+
+## Run a functional API manifest group
+
+After checking out a cataloged test repository at an immutable revision, run
+one explicit repository/adapter group through a CI-local adapter:
+
+~~~sh
+go run ./cmd/run-functional-api \
+  -manifest ./execution-manifest.json \
+  -stage selected \
+  -attempt-id github-123456-1 \
+  -test-repository-id tests-1 \
+  -test-revision aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
+  -adapter playwright \
+  -- node ./tools/argus-playwright-adapter.mjs \
+  > ./execution-attempt.json
+~~~
+
+The adapter reads a versioned JSON request on stdin and writes normalized test
+results on stdout. Argus rejects missing or additional results, binds the
+attempt to the canonical manifest and test revision, and emits
+`argus.dev/execution-attempt/v1`. Use `-stage full-suite` for the later control.
+A non-passing test result is emitted as evidence before the command returns a
+non-zero CI status. See the
+[functional API adapter protocol](docs/integrations/functional-api-adapters.md)
+for conformance and security requirements.
 
 ## Query catalog tests
 

@@ -1,0 +1,12 @@
+{
+  "fixtures": [
+    {
+      "path": "fixtures/functional-api-adapter-result/v1/valid/passed.json",
+      "schemaValid": true
+    },
+    {
+      "path": "fixtures/functional-api-adapter-result/v1/invalid/unknown-outcome.json",
+      "schemaValid": false
+    }
+  ]
+}

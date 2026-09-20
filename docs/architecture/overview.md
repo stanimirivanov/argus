@@ -242,7 +242,29 @@ impact enables targeted early execution. Partial, empty, or unmapped impact
 requires every functional API candidate. Tests omitted from the early stage
 retain a mandatory full-suite path, and affected capabilities without a mapped
 test are reported as coverage gaps. The manifest is deterministic output, not
-yet execution authority.
+release authority.
+
+### Current functional API execution boundaries
+
+The second M05 slice consumes the manifest through an execution-owned process
+protocol:
+
+| Path | Owns | Must not own |
+|:--|:--|:--|
+| `internal/execution` | Attempt vocabulary, result semantics, bounds, canonical order, and evidence invariants | Process execution, JSON, CI configuration, or persistence |
+| `internal/execution/functionalapi` | Stage planning, adapter port, exact request/result correlation, and attempt assembly | Framework commands, generated contracts, or artifact upload |
+| `internal/execution/adapters/contract` | Adapter request/result and execution-attempt v1 conversion | Execution policy or process lifecycle |
+| `internal/execution/adapters/processadapter` | Bounded stdin/stdout exchange with an explicit executable | Test selection or command discovery |
+| `internal/execution/adapters/cli/executioncli` | Manifest input, explicit group arguments, timeout, and normalized output | Shell evaluation or concrete adapter construction |
+| `cmd/run-functional-api` | Process-adapter composition and operating-system streams | Execution or contract policy |
+
+The manifest chooses tests, while reviewed CI configuration chooses the
+adapter executable. Every attempt names an immutable test revision and the
+SHA-256 of the canonical manifest. The adapter cannot add tests, omit requested
+results, or declare its own aggregate outcome. Non-passing normalized evidence
+is emitted before the reference command fails the CI step. Attempt persistence,
+artifact registration, and selected-versus-full comparison remain outside this
+slice.
 
 ## End-to-end decision flow
 

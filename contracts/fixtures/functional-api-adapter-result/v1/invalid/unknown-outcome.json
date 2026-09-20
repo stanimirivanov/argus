@@ -1,0 +1,20 @@
+{
+  "apiVersion": "argus.dev/functional-api-adapter-result/v1",
+  "attemptId": "github-123-1",
+  "adapter": {
+    "id": "playwright",
+    "version": "1.58.2"
+  },
+  "startedAt": "2026-09-19T10:00:00Z",
+  "completedAt": "2026-09-19T10:00:01Z",
+  "results": [
+    {
+      "suiteKey": "orders-api",
+      "testKey": "create-order-test",
+      "outcome": "flaky",
+      "durationMs": 850,
+      "failure": null
+    }
+  ],
+  "artifacts": []
+}

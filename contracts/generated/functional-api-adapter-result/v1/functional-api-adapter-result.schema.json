@@ -1,0 +1,186 @@
+{
+  "$id": "https://argus.dev/contracts/functional-api-adapter-result/v1/schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "FunctionalAPIAdapterResultV1": {
+      "type": "object",
+      "required": [
+        "apiVersion",
+        "attemptId",
+        "adapter",
+        "startedAt",
+        "completedAt",
+        "results",
+        "artifacts"
+      ],
+      "properties": {
+        "apiVersion": {
+          "type": "string",
+          "enum": [
+            "argus.dev/functional-api-adapter-result/v1"
+          ]
+        },
+        "attemptId": {
+          "type": "string",
+          "description": "a string matching the pattern ^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+          "title": "maxLength(127)",
+          "minLength": 1,
+          "maxLength": 127,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+        },
+        "adapter": {
+          "type": "object",
+          "required": [
+            "id",
+            "version"
+          ],
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/LocalKey"
+            },
+            "version": {
+              "type": "string",
+              "description": "a string at most 127 character(s) long",
+              "title": "maxLength(127)",
+              "minLength": 1,
+              "maxLength": 127
+            }
+          },
+          "additionalProperties": false
+        },
+        "startedAt": {
+          "$ref": "#/$defs/DateTimeUtc"
+        },
+        "completedAt": {
+          "$ref": "#/$defs/DateTimeUtc"
+        },
+        "results": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "suiteKey",
+              "testKey",
+              "outcome",
+              "durationMs",
+              "failure"
+            ],
+            "properties": {
+              "suiteKey": {
+                "$ref": "#/$defs/LocalKey"
+              },
+              "testKey": {
+                "$ref": "#/$defs/LocalKey"
+              },
+              "outcome": {
+                "type": "string",
+                "enum": [
+                  "passed",
+                  "failed",
+                  "skipped",
+                  "error"
+                ]
+              },
+              "durationMs": {
+                "$ref": "#/$defs/Int",
+                "description": "a number less than or equal to 86400000",
+                "title": "lessThanOrEqualTo(86400000)",
+                "minimum": 0,
+                "maximum": 86400000
+              },
+              "failure": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "required": [
+                      "code",
+                      "message"
+                    ],
+                    "properties": {
+                      "code": {
+                        "$ref": "#/$defs/LocalKey"
+                      },
+                      "message": {
+                        "type": "string",
+                        "description": "a string at most 2000 character(s) long",
+                        "title": "maxLength(2000)",
+                        "minLength": 1,
+                        "maxLength": 2000
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "additionalProperties": false
+          },
+          "description": "an array of at most 10000 item(s)",
+          "title": "maxItems(10000)",
+          "minItems": 1,
+          "maxItems": 10000
+        },
+        "artifacts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "key",
+              "kind",
+              "uri",
+              "sha256"
+            ],
+            "properties": {
+              "key": {
+                "$ref": "#/$defs/LocalKey"
+              },
+              "kind": {
+                "$ref": "#/$defs/LocalKey"
+              },
+              "uri": {
+                "type": "string",
+                "description": "a string at most 2048 character(s) long",
+                "title": "maxLength(2048)",
+                "minLength": 1,
+                "maxLength": 2048
+              },
+              "sha256": {
+                "type": "string",
+                "description": "a string matching the pattern ^[0-9a-f]{64}$",
+                "pattern": "^[0-9a-f]{64}$"
+              }
+            },
+            "additionalProperties": false
+          },
+          "description": "an array of at most 100 item(s)",
+          "title": "maxItems(100)",
+          "maxItems": 100
+        }
+      },
+      "additionalProperties": false,
+      "description": "Untrusted functional API adapter output before exact request correlation and normalization.",
+      "title": "Argus functional API adapter result v1"
+    },
+    "LocalKey": {
+      "type": "string",
+      "description": "A stable, repository-declared key. It is scoped by its containing repository or parent declaration.",
+      "title": "maxLength(63)",
+      "minLength": 1,
+      "maxLength": 63,
+      "pattern": "^[a-z][a-z0-9._-]*$"
+    },
+    "DateTimeUtc": {
+      "type": "string",
+      "description": "a string to be decoded into a DateTime.Utc"
+    },
+    "Int": {
+      "type": "integer",
+      "description": "an integer",
+      "title": "int"
+    }
+  },
+  "$ref": "#/$defs/FunctionalAPIAdapterResultV1"
+}
