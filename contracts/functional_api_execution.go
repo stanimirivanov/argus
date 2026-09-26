@@ -166,6 +166,19 @@ func ValidateExecutionAttemptV1(document ExecutionAttemptV1) error {
 	return validateTypedExecutionDocument(document, loadExecutionAttemptV1Schema, "execution attempt")
 }
 
+// DecodeExecutionAttemptV1 validates and decodes externally supplied attempt evidence.
+func DecodeExecutionAttemptV1(data []byte) (ExecutionAttemptV1, error) {
+	var document ExecutionAttemptV1
+	if err := validateExecutionJSON(data, loadExecutionAttemptV1Schema, "execution attempt"); err != nil {
+		return document, err
+	}
+	if err := json.Unmarshal(data, &document); err != nil {
+		return document, fmt.Errorf("decode execution attempt: %w", err)
+	}
+
+	return document, nil
+}
+
 func validateTypedExecutionDocument[T any](
 	document T,
 	loader func() (*jsonschema.Schema, error),

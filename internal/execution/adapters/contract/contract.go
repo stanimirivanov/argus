@@ -73,6 +73,57 @@ func ImportResultV1(document contracts.FunctionalAPIAdapterResultV1) (execution.
 	return result, nil
 }
 
+// ImportAttemptV1 converts structurally valid persisted or uploaded evidence.
+func ImportAttemptV1(document contracts.ExecutionAttemptV1) (execution.Attempt, error) {
+	if err := contracts.ValidateExecutionAttemptV1(document); err != nil {
+		return execution.Attempt{}, err
+	}
+	startedAt, err := time.Parse(time.RFC3339Nano, document.StartedAt)
+	if err != nil {
+		return execution.Attempt{}, fmt.Errorf("parse attempt start time: %w", err)
+	}
+	completedAt, err := time.Parse(time.RFC3339Nano, document.CompletedAt)
+	if err != nil {
+		return execution.Attempt{}, fmt.Errorf("parse attempt completion time: %w", err)
+	}
+	attempt := execution.Attempt{
+		APIVersion: document.APIVersion, AttemptID: document.AttemptID,
+		Manifest: execution.ManifestReference{
+			APIVersion: document.Manifest.APIVersion, SHA256: document.Manifest.SHA256,
+		},
+		Stage: execution.Stage(document.Stage),
+		TestRepository: catalog.Repository{
+			Identity: catalog.RepositoryIdentity{
+				Provider: catalog.Provider(document.TestRepository.Provider), Host: document.TestRepository.Host,
+				ProviderRepositoryID: document.TestRepository.ProviderRepositoryID,
+			},
+			Owner: document.TestRepository.Owner, Name: document.TestRepository.Name,
+		},
+		TestRevision: catalog.Revision{
+			Algorithm: catalog.RevisionAlgorithm(document.TestRevision.Algorithm), Digest: document.TestRevision.Digest,
+		},
+		AdapterID: document.Adapter.ID, AdapterVersion: document.Adapter.Version,
+		StartedAt: startedAt, CompletedAt: completedAt,
+		Outcome:   execution.AttemptOutcome(document.Outcome),
+		Results:   make([]execution.TestResult, 0, len(document.Results)),
+		Artifacts: make([]execution.ArtifactReference, 0, len(document.Artifacts)),
+	}
+	for _, result := range document.Results {
+		attempt.Results = append(attempt.Results, importTestResult(result))
+	}
+	for _, artifact := range document.Artifacts {
+		attempt.Artifacts = append(attempt.Artifacts, execution.ArtifactReference{
+			Key: artifact.Key, Kind: artifact.Kind, URI: artifact.URI, SHA256: artifact.SHA256,
+		})
+	}
+	attempt = execution.CanonicalAttempt(attempt)
+	if err := execution.ValidateAttempt(attempt); err != nil {
+		return execution.Attempt{}, fmt.Errorf("validate execution attempt semantics: %w", err)
+	}
+
+	return attempt, nil
+}
+
 // ExportAttemptV1 converts correlated attempt evidence to its public contract.
 func ExportAttemptV1(attempt execution.Attempt) (contracts.ExecutionAttemptV1, error) {
 	attempt = execution.CanonicalAttempt(attempt)

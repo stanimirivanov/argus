@@ -211,6 +211,36 @@ The command emits `argus.dev/capability-impact/v1`. Empty capability arrays
 are deliberate unmapped-operation evidence. A `partial` status and warnings
 require conservative downstream handling.
 
+## Persist execution evidence and compare shadow runs
+
+`execution_attempts` stores one immutable normalized attempt under a globally
+unique caller-provided ID. Per-test outcomes and artifact references are child
+rows committed in the same transaction. A canonical SHA-256 distinguishes an
+exact retry from conflicting content under the same ID; concurrent first
+writes converge through the unique constraint. Reads use repeatable read so a
+caller never observes a parent without its complete child evidence.
+
+~~~sh
+export ARGUS_DATABASE_URL='postgres://argus_runtime:...@db.example/argus'
+go run ./cmd/execution-evidence ingest -file ./selected-attempt.json
+go run ./cmd/execution-evidence ingest -file ./full-suite-attempt.json
+go run ./cmd/execution-evidence shadow-report \
+  -selected-attempt github-123456-selected \
+  -full-suite-attempt github-123456-full
+~~~
+
+The shadow report is derived, not persisted. The command requires explicit
+attempt IDs and rejects incompatible manifest, repository, revision, adapter,
+or test-set provenance. Artifact rows contain only URI and checksum metadata;
+the transaction performs no artifact-system calls and does not assert object
+availability.
+
+The migration is additive and creates empty tables and constraints. It scans,
+rewrites, and backfills no existing table, and older applications
+remain compatible. Application rollback leaves unused immutable rows in place;
+forward recovery remains the schema strategy. Before production-scale history,
+define retention and external artifact-lifecycle policy from measured volume.
+
 ## Least-privilege roles
 
 The migration role owns the schema and ledger. The runtime role does not need

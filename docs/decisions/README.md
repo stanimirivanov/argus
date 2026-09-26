@@ -109,3 +109,4 @@ How will the assumptions and consequences be verified?
 | [ADR-0008](0008-derive-capability-impact-from-openapi-operations.md) | Derive capability impact from OpenAPI operations | Accepted | 2026-09-18 |
 | [ADR-0009](0009-start-functional-api-selection-with-deterministic-safe-fallbacks.md) | Start functional API selection with deterministic safe fallbacks | Accepted | 2026-09-18 |
 | [ADR-0010](0010-use-a-bounded-process-protocol-for-functional-api-execution.md) | Use a bounded process protocol for functional API execution | Accepted | 2026-09-19 |
+| [ADR-0011](0011-store-immutable-attempts-and-compare-explicit-shadow-pairs.md) | Store immutable attempts and compare explicit shadow pairs | Accepted | 2026-09-26 |

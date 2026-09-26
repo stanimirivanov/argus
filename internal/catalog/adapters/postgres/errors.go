@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/stanimirivanov/argus/internal/catalog"
 	"github.com/stanimirivanov/argus/internal/change"
+	"github.com/stanimirivanov/argus/internal/execution"
 )
 
 // classifyDatabaseError is the adapter's redaction and retry-classification
@@ -57,6 +58,18 @@ func classifyChangeDatabaseError(err error) error {
 		return change.ErrConflict
 	case errors.Is(classified, catalog.ErrUnavailable):
 		return change.ErrUnavailable
+	default:
+		return classified
+	}
+}
+
+func classifyExecutionDatabaseError(err error) error {
+	classified := classifyDatabaseError(err)
+	switch {
+	case errors.Is(classified, catalog.ErrNotFound):
+		return execution.ErrNotFound
+	case errors.Is(classified, catalog.ErrUnavailable):
+		return execution.ErrUnavailable
 	default:
 		return classified
 	}

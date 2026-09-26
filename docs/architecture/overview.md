@@ -253,18 +253,29 @@ protocol:
 |:--|:--|:--|
 | `internal/execution` | Attempt vocabulary, result semantics, bounds, canonical order, and evidence invariants | Process execution, JSON, CI configuration, or persistence |
 | `internal/execution/functionalapi` | Stage planning, adapter port, exact request/result correlation, and attempt assembly | Framework commands, generated contracts, or artifact upload |
+| `internal/execution/attempts` | Validated immutable-attempt ingestion use case and consumer-owned persistence port | SQL, JSON, or artifact upload |
+| `internal/execution/shadow` | Explicit selected/full-suite compatibility checks, duration reduction, failure recall, and miss classification | Attempt lookup SQL, implicit latest selection, or release policy |
 | `internal/execution/adapters/contract` | Adapter request/result and execution-attempt v1 conversion | Execution policy or process lifecycle |
 | `internal/execution/adapters/processadapter` | Bounded stdin/stdout exchange with an explicit executable | Test selection or command discovery |
 | `internal/execution/adapters/cli/executioncli` | Manifest input, explicit group arguments, timeout, and normalized output | Shell evaluation or concrete adapter construction |
+| `internal/execution/adapters/cli/evidencecli` | Attempt-document input, explicit comparison IDs, and JSON output through injected ports | PostgreSQL or pairing policy |
+| `internal/catalog/adapters/postgres` | Atomic attempt/result/reference persistence, exact-retry detection, and repeatable-read reconstruction | Shadow comparison policy |
 | `cmd/run-functional-api` | Process-adapter composition and operating-system streams | Execution or contract policy |
+| `cmd/execution-evidence` | PostgreSQL composition, lifecycle, and database configuration | Ingestion or comparison policy |
 
 The manifest chooses tests, while reviewed CI configuration chooses the
 adapter executable. Every attempt names an immutable test revision and the
 SHA-256 of the canonical manifest. The adapter cannot add tests, omit requested
 results, or declare its own aggregate outcome. Non-passing normalized evidence
-is emitted before the reference command fails the CI step. Attempt persistence,
-artifact registration, and selected-versus-full comparison remain outside this
-slice.
+is emitted before the reference command fails the CI step.
+
+Attempt IDs are global immutable idempotency keys. The PostgreSQL adapter
+stores normalized child evidence atomically and distinguishes exact retries
+from conflicting ID reuse. Artifact rows register metadata and checksums; they
+do not upload or guarantee external bytes. Shadow comparison loads two named
+attempts, rejects mismatched provenance or an incomplete control set, and
+reports both aggregate recall and each missed failure. It never chooses a
+control by recency. See [ADR-0011](../decisions/0011-store-immutable-attempts-and-compare-explicit-shadow-pairs.md).
 
 ## End-to-end decision flow
 
