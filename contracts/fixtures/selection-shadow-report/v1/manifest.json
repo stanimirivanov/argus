@@ -1,0 +1,12 @@
+{
+  "fixtures": [
+    {
+      "path": "fixtures/selection-shadow-report/v1/valid/missed-failure.json",
+      "schemaValid": true
+    },
+    {
+      "path": "fixtures/selection-shadow-report/v1/invalid/invalid-recall.json",
+      "schemaValid": false
+    }
+  ]
+}

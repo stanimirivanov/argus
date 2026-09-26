@@ -35,6 +35,10 @@ var (
 	ErrInvalid = errors.New("invalid execution evidence")
 	// ErrUnavailable means an adapter could not provide trustworthy evidence.
 	ErrUnavailable = errors.New("execution adapter unavailable")
+	// ErrNotFound means requested execution evidence does not exist.
+	ErrNotFound = errors.New("execution evidence not found")
+	// ErrConflict means an immutable execution identity was reused with different content.
+	ErrConflict = errors.New("execution evidence conflict")
 	// ErrAttemptNotPassed means valid evidence contains a non-passing outcome.
 	ErrAttemptNotPassed = errors.New("execution attempt did not pass")
 
@@ -256,8 +260,9 @@ func ValidateAdapterResult(result AdapterResult) error {
 		return fmt.Errorf("%w: adapter result envelope", ErrInvalid)
 	}
 	if !isUTC(result.StartedAt) || !isUTC(result.CompletedAt) || result.StartedAt.IsZero() ||
-		result.CompletedAt.Before(result.StartedAt) {
-		return fmt.Errorf("%w: adapter result time range", ErrInvalid)
+		result.CompletedAt.Before(result.StartedAt) || hasSubMicrosecondPrecision(result.StartedAt) ||
+		hasSubMicrosecondPrecision(result.CompletedAt) {
+		return fmt.Errorf("%w: adapter result timestamps", ErrInvalid)
 	}
 	if err := validateResults(result.Results); err != nil {
 		return err
@@ -422,4 +427,10 @@ func isUTC(value time.Time) bool {
 	_, offset := value.Zone()
 
 	return offset == 0
+}
+
+// Normalized timestamps stop at microseconds so portable storage boundaries
+// can round-trip immutable evidence without silent precision loss.
+func hasSubMicrosecondPrecision(value time.Time) bool {
+	return value.Nanosecond()%1_000 != 0
 }

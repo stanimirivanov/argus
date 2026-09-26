@@ -153,8 +153,13 @@ func TestHexagonalImportBoundaries(t *testing.T) {
 		},
 		{
 			name:      "execution application depends inward",
-			directory: filepath.Join(executionRoot, "functionalapi"),
+			directory: executionRoot,
 			recursive: true,
+			includeDirectories: []string{
+				filepath.Join(executionRoot, "attempts"),
+				filepath.Join(executionRoot, "functionalapi"),
+				filepath.Join(executionRoot, "shadow"),
+			},
 			forbidden: []string{
 				"github.com/jackc/pgx",
 				"github.com/stanimirivanov/argus/contracts",

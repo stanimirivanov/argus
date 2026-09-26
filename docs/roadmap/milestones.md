@@ -243,8 +243,14 @@ request/result protocol, consumes a manifest in a bounded CI-local process
 runner, correlates the exact requested result set, and emits a normalized
 execution attempt bound to canonical manifest bytes and an immutable test
 revision. Durable attempt/result ingestion, artifact registration, automated
-heterogeneous group planning, and selected-versus-full shadow comparison
-remain.
+automated heterogeneous group planning remain.
+
+The third M05 slice durably ingests immutable normalized attempts, per-test
+results, and artifact references with exact-retry semantics. It compares two
+explicit compatible selected/full-suite attempts and publishes versioned
+duration reduction, failure recall, and individual miss evidence. The full
+suite remains authoritative. Automated heterogeneous group planning and a
+reference CI workflow that wires both stages remain.
 
 ## M06 - Validated adaptation
 

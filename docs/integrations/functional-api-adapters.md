@@ -131,12 +131,38 @@ retain test failures. Artifact references in the result are metadata only;
 the CI workflow remains responsible for uploading bytes and retaining the
 referenced checksum.
 
+After artifact upload, ingest the attempt document through the control-plane
+store. Exact retries are safe; reusing an attempt ID for different normalized
+content is rejected:
+
+~~~sh
+go run ./cmd/execution-evidence ingest -file ./execution-attempt.json
+~~~
+
+Once both stages are present, name the exact pair to compare:
+
+~~~sh
+go run ./cmd/execution-evidence shadow-report \
+  -selected-attempt "github-${GITHUB_RUN_ID}-selected" \
+  -full-suite-attempt "github-${GITHUB_RUN_ID}-full"
+~~~
+
+The pair must share the manifest digest, stable test-repository identity,
+immutable test revision, and adapter ID/version. The full-suite result set must
+contain every selected test. Argus deliberately does not choose a “latest”
+control because concurrent reruns would make that comparison non-reproducible.
+The report distinguishes a failing control test that was omitted
+(`not-selected`) from one that ran early but did not fail then
+(`not-reproduced`).
+
 ## Bounds and failure behavior
 
 - Manifest input is limited to 16 MiB.
 - Adapter stdout is limited to 8 MiB.
 - One request is limited to 10,000 tests and 100 artifact references.
 - Individual reported test durations are limited to 24 hours.
+- Attempt timestamps must be UTC and have at most microsecond precision so
+  durable storage never silently rounds immutable evidence.
 - CLI timeout must be greater than zero and no more than two hours.
 - Missing, duplicate, or unrequested test results reject the whole response.
 - Artifact URIs must be absolute and cannot contain embedded user credentials.

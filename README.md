@@ -182,6 +182,32 @@ non-zero CI status. See the
 [functional API adapter protocol](docs/integrations/functional-api-adapters.md)
 for conformance and security requirements.
 
+Persist each normalized attempt after the CI job has uploaded any referenced
+artifact bytes:
+
+~~~sh
+export ARGUS_DATABASE_URL='postgres://argus_runtime:...@db.example/argus'
+go run ./cmd/execution-evidence ingest -file ./selected-attempt.json
+go run ./cmd/execution-evidence ingest -file ./full-suite-attempt.json
+~~~
+
+An exact retry reports `created: false`; different content under the same
+attempt ID is rejected. Produce a deterministic comparison by naming both
+attempts explicitly:
+
+~~~sh
+go run ./cmd/execution-evidence shadow-report \
+  -selected-attempt github-123456-selected \
+  -full-suite-attempt github-123456-full
+~~~
+
+The versioned report contains duration reduction, failure recall in basis
+points, and each full-suite failure that selection missed. Argus rejects pairs
+from different manifests, repositories, revisions, or adapter versions, and a
+full-suite attempt that is not a superset of the selected set. Artifact
+references are metadata only; ingestion does not upload or verify the external
+objects.
+
 ## Query catalog tests
 
 List a bounded page of tests from one explicitly identified immutable snapshot:

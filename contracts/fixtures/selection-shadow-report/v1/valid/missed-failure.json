@@ -1,0 +1,42 @@
+{
+  "apiVersion": "argus.dev/selection-shadow-report/v1",
+  "manifest": {
+    "apiVersion": "argus.dev/execution-manifest/v1",
+    "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  },
+  "testRepository": {
+    "provider": "github",
+    "host": "github.com",
+    "providerRepositoryId": "tests-1",
+    "owner": "example",
+    "name": "orders-tests"
+  },
+  "testRevision": {
+    "algorithm": "git-sha1",
+    "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "adapter": {
+    "id": "playwright",
+    "version": "1.58.2"
+  },
+  "selectedAttemptId": "selected-1",
+  "fullSuiteAttemptId": "full-1",
+  "selectedTestCount": 1,
+  "fullSuiteTestCount": 2,
+  "selectedDurationMs": 1000,
+  "fullSuiteDurationMs": 3000,
+  "durationReductionMs": 2000,
+  "selectedFailureCount": 0,
+  "fullSuiteFailureCount": 1,
+  "caughtFullSuiteFailureCount": 0,
+  "failureRecallBasisPoints": 0,
+  "missedFailures": [
+    {
+      "suiteKey": "orders-api",
+      "testKey": "delete-order-test",
+      "fullSuiteOutcome": "failed",
+      "selectedOutcome": null,
+      "reason": "not-selected"
+    }
+  ]
+}

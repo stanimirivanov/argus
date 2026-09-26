@@ -11,9 +11,21 @@ import {
 import { ImpactEdgePageV1 } from "../source/impact-edge-page-v1.js";
 import { ImpactEvidenceBundleV1 } from "../source/impact-evidence-bundle-v1.js";
 import { RepositoryDescriptorV1 } from "../source/repository-descriptor-v1.js";
+import { SelectionShadowReportV1 } from "../source/selection-shadow-report-v1.js";
 import { TestCatalogPageV1 } from "../source/test-catalog-page-v1.js";
 
 const artifacts = [
+  {
+    name: "selection shadow report",
+    outputPath: new URL(
+      "../generated/selection-shadow-report/v1/selection-shadow-report.schema.json",
+      import.meta.url,
+    ),
+    document: {
+      $id: "https://argus.dev/contracts/selection-shadow-report/v1/schema.json",
+      ...JSONSchema.make(SelectionShadowReportV1, { target: "jsonSchema2020-12" }),
+    },
+  },
   {
     name: "functional API adapter request",
     outputPath: new URL(
