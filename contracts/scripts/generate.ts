@@ -15,10 +15,36 @@ import {
 import { ImpactEdgePageV1 } from "../source/impact-edge-page-v1.js";
 import { ImpactEvidenceBundleV1 } from "../source/impact-evidence-bundle-v1.js";
 import { RepositoryDescriptorV1 } from "../source/repository-descriptor-v1.js";
+import {
+  ExecutionPlanAttemptBindingsV1,
+  SelectionPlanShadowReportV1,
+} from "../source/selection-plan-shadow-report-v1.js";
 import { SelectionShadowReportV1 } from "../source/selection-shadow-report-v1.js";
 import { TestCatalogPageV1 } from "../source/test-catalog-page-v1.js";
 
 const artifacts = [
+  {
+    name: "execution plan attempt bindings",
+    outputPath: new URL(
+      "../generated/execution-plan-attempt-bindings/v1/execution-plan-attempt-bindings.schema.json",
+      import.meta.url,
+    ),
+    document: {
+      $id: "https://argus.dev/contracts/execution-plan-attempt-bindings/v1/schema.json",
+      ...JSONSchema.make(ExecutionPlanAttemptBindingsV1, { target: "jsonSchema2020-12" }),
+    },
+  },
+  {
+    name: "selection plan shadow report",
+    outputPath: new URL(
+      "../generated/selection-plan-shadow-report/v1/selection-plan-shadow-report.schema.json",
+      import.meta.url,
+    ),
+    document: {
+      $id: "https://argus.dev/contracts/selection-plan-shadow-report/v1/schema.json",
+      ...JSONSchema.make(SelectionPlanShadowReportV1, { target: "jsonSchema2020-12" }),
+    },
+  },
   {
     name: "functional API execution bindings",
     outputPath: new URL(

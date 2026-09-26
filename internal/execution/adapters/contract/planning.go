@@ -1,12 +1,47 @@
 package contract
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
 
 	"github.com/stanimirivanov/argus/contracts"
 	"github.com/stanimirivanov/argus/internal/catalog"
+	"github.com/stanimirivanov/argus/internal/execution"
 	"github.com/stanimirivanov/argus/internal/execution/planning"
 )
+
+// ImportFunctionalAPIExecutionPlanV1 converts a structurally valid plan into
+// the framework-independent planning model.
+func ImportFunctionalAPIExecutionPlanV1(
+	document contracts.FunctionalAPIExecutionPlanV1,
+) (planning.Plan, error) {
+	if err := contracts.ValidateFunctionalAPIExecutionPlanV1(document); err != nil {
+		return planning.Plan{}, err
+	}
+	plan := planning.Plan{
+		APIVersion: document.APIVersion,
+		Manifest: execution.ManifestReference{
+			APIVersion: document.Manifest.APIVersion, SHA256: document.Manifest.SHA256,
+		},
+		Jobs: make([]planning.Job, 0, len(document.Jobs)),
+	}
+	for _, job := range document.Jobs {
+		plan.Jobs = append(plan.Jobs, planning.Job{
+			GroupKey: job.GroupKey, Stage: execution.Stage(job.Stage),
+			TestRepository: importExecutionRepository(job.TestRepository),
+			TestRevision:   importExecutionRevision(job.TestRevision),
+			Adapter:        job.Adapter, TestCount: job.TestCount,
+		})
+	}
+	plan = planning.CanonicalPlan(plan)
+	if err := planning.ValidatePlan(plan); err != nil {
+		return planning.Plan{}, fmt.Errorf("validate execution plan semantics: %w", err)
+	}
+
+	return plan, nil
+}
 
 // ImportFunctionalAPIExecutionBindingsV1 converts structurally valid reviewed
 // configuration into canonical planning input.
@@ -63,6 +98,21 @@ func ExportFunctionalAPIExecutionPlanV1(
 	}
 
 	return document, nil
+}
+
+// PlanSHA256V1 returns the digest of canonical execution-plan v1 JSON.
+func PlanSHA256V1(plan planning.Plan) (string, error) {
+	document, err := ExportFunctionalAPIExecutionPlanV1(plan)
+	if err != nil {
+		return "", fmt.Errorf("canonicalize functional API execution plan: %w", err)
+	}
+	data, err := json.Marshal(document)
+	if err != nil {
+		return "", fmt.Errorf("encode canonical functional API execution plan: %w", err)
+	}
+	digest := sha256.Sum256(data)
+
+	return hex.EncodeToString(digest[:]), nil
 }
 
 func importExecutionRepository(reference contracts.RepositoryReference) catalog.Repository {

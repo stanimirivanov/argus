@@ -4,6 +4,7 @@ package planning
 import (
 	"cmp"
 	"fmt"
+	"regexp"
 	"slices"
 	"strings"
 
@@ -11,6 +12,8 @@ import (
 	"github.com/stanimirivanov/argus/internal/execution"
 	"github.com/stanimirivanov/argus/internal/selection"
 )
+
+var sha256Pattern = regexp.MustCompile(`^[0-9a-f]{64}$`)
 
 const (
 	// BindingsAPIVersion identifies reviewed repository/revision bindings v1.
@@ -56,6 +59,12 @@ type Plan struct {
 	APIVersion string
 	Manifest   execution.ManifestReference
 	Jobs       []Job
+}
+
+// Reference identifies the canonical JSON representation of one execution plan.
+type Reference struct {
+	APIVersion string
+	SHA256     string
 }
 
 // CanonicalBindings deep-copies and orders bindings by stable group key.
@@ -112,6 +121,8 @@ func ValidatePlan(plan Plan) error {
 	}
 	identities := make(map[jobIdentity]struct{}, len(plan.Jobs))
 	groups := make(map[string]planGroup, len(plan.Jobs))
+	selectedTestCount := 0
+	fullSuiteTestCount := 0
 	for _, job := range plan.Jobs {
 		if err := validatePlanJob(job); err != nil {
 			return err
@@ -126,11 +137,29 @@ func ValidatePlan(plan Plan) error {
 			return err
 		}
 		groups[job.GroupKey] = group
+		if job.Stage == execution.StageSelected {
+			selectedTestCount += job.TestCount
+		} else {
+			fullSuiteTestCount += job.TestCount
+		}
+	}
+	if selectedTestCount > selection.MaxManifestDecisions ||
+		fullSuiteTestCount > selection.MaxManifestDecisions {
+		return fmt.Errorf("%w: execution plan test count", execution.ErrInvalid)
 	}
 	for _, group := range groups {
 		if !group.HasFullSuite || (group.HasSelected && group.SelectedTestCount > group.FullSuiteTestCount) {
 			return fmt.Errorf("%w: incomplete execution plan group", execution.ErrInvalid)
 		}
+	}
+
+	return nil
+}
+
+// ValidateReference verifies a canonical execution-plan version and digest.
+func ValidateReference(reference Reference) error {
+	if reference.APIVersion != PlanAPIVersion || !sha256Pattern.MatchString(reference.SHA256) {
+		return fmt.Errorf("%w: execution plan reference", execution.ErrInvalid)
 	}
 
 	return nil

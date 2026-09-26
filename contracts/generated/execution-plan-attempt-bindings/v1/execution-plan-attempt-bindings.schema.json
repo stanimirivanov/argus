@@ -1,0 +1,76 @@
+{
+  "$id": "https://argus.dev/contracts/execution-plan-attempt-bindings/v1/schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "ExecutionPlanAttemptBindingsV1": {
+      "type": "object",
+      "required": [
+        "apiVersion",
+        "groups"
+      ],
+      "properties": {
+        "apiVersion": {
+          "type": "string",
+          "enum": [
+            "argus.dev/execution-plan-attempt-bindings/v1"
+          ]
+        },
+        "groups": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "groupKey",
+              "selectedAttemptId",
+              "fullSuiteAttemptId"
+            ],
+            "properties": {
+              "groupKey": {
+                "$ref": "#/$defs/LocalKey"
+              },
+              "selectedAttemptId": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "description": "a string matching the pattern ^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+                    "title": "maxLength(127)",
+                    "minLength": 1,
+                    "maxLength": 127,
+                    "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "fullSuiteAttemptId": {
+                "type": "string",
+                "description": "a string matching the pattern ^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+                "title": "maxLength(127)",
+                "minLength": 1,
+                "maxLength": 127,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+              }
+            },
+            "additionalProperties": false
+          },
+          "description": "an array of at most 10000 item(s)",
+          "title": "maxItems(10000)",
+          "maxItems": 10000
+        }
+      },
+      "additionalProperties": false,
+      "description": "Explicit immutable attempt IDs for every selected and full-suite job in one execution plan.",
+      "title": "Argus execution plan attempt bindings v1"
+    },
+    "LocalKey": {
+      "type": "string",
+      "description": "A stable, repository-declared key. It is scoped by its containing repository or parent declaration.",
+      "title": "maxLength(63)",
+      "minLength": 1,
+      "maxLength": 63,
+      "pattern": "^[a-z][a-z0-9._-]*$"
+    }
+  },
+  "$ref": "#/$defs/ExecutionPlanAttemptBindingsV1"
+}

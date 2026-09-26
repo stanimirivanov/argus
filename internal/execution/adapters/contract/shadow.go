@@ -9,19 +9,6 @@ import (
 
 // ExportSelectionShadowReportV1 converts a derived report to its public contract.
 func ExportSelectionShadowReportV1(report shadow.Report) (contracts.SelectionShadowReportV1, error) {
-	misses := make([]contracts.ShadowFailureMiss, 0, len(report.MissedFailures))
-	for _, miss := range report.MissedFailures {
-		var selectedOutcome *string
-		if miss.SelectedOutcome != nil {
-			value := string(*miss.SelectedOutcome)
-			selectedOutcome = &value
-		}
-		misses = append(misses, contracts.ShadowFailureMiss{
-			SuiteKey: miss.SuiteKey, TestKey: miss.TestKey,
-			FullSuiteOutcome: string(miss.FullSuiteOutcome), SelectedOutcome: selectedOutcome,
-			Reason: string(miss.Reason),
-		})
-	}
 	document := contracts.SelectionShadowReportV1{
 		APIVersion: report.APIVersion,
 		Manifest: contracts.ManifestDigestReference{
@@ -39,11 +26,29 @@ func ExportSelectionShadowReportV1(report shadow.Report) (contracts.SelectionSha
 		FullSuiteFailureCount:       report.FullSuiteFailureCount,
 		CaughtFullSuiteFailureCount: report.CaughtFullSuiteFailureCount,
 		FailureRecallBasisPoints:    report.FailureRecallBasisPoints,
-		MissedFailures:              misses,
+		MissedFailures:              exportFailureMisses(report.MissedFailures),
 	}
 	if err := contracts.ValidateSelectionShadowReportV1(document); err != nil {
 		return contracts.SelectionShadowReportV1{}, fmt.Errorf("export selection shadow report: %w", err)
 	}
 
 	return document, nil
+}
+
+func exportFailureMisses(values []shadow.FailureMiss) []contracts.ShadowFailureMiss {
+	misses := make([]contracts.ShadowFailureMiss, 0, len(values))
+	for _, miss := range values {
+		var selectedOutcome *string
+		if miss.SelectedOutcome != nil {
+			value := string(*miss.SelectedOutcome)
+			selectedOutcome = &value
+		}
+		misses = append(misses, contracts.ShadowFailureMiss{
+			SuiteKey: miss.SuiteKey, TestKey: miss.TestKey,
+			FullSuiteOutcome: string(miss.FullSuiteOutcome), SelectedOutcome: selectedOutcome,
+			Reason: string(miss.Reason),
+		})
+	}
+
+	return misses
 }

@@ -1,0 +1,24 @@
+{
+  "apiVersion": "argus.dev/selection-plan-shadow-report/v1",
+  "plan": {
+    "apiVersion": "argus.dev/functional-api-execution-plan/v1",
+    "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+  },
+  "manifest": {
+    "apiVersion": "argus.dev/execution-manifest/v1",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "groupCount": 0,
+  "groupsWithSelection": 0,
+  "fullOnlyGroupCount": 0,
+  "selectedTestCount": 0,
+  "fullSuiteTestCount": 0,
+  "selectedDurationMs": 0,
+  "fullSuiteDurationMs": 0,
+  "durationReductionMs": 0,
+  "selectedFailureCount": 0,
+  "fullSuiteFailureCount": 1,
+  "caughtFullSuiteFailureCount": 0,
+  "failureRecallBasisPoints": 10001,
+  "groups": []
+}

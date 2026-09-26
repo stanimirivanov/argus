@@ -30,6 +30,10 @@ const ExecutionJob = Schema.Struct({
   testCount: PositiveTestCount,
 });
 
+export const FunctionalAPIExecutionPlanV1APIVersion = Schema.Literal(
+  "argus.dev/functional-api-execution-plan/v1",
+);
+
 export const FunctionalAPIExecutionBindingsV1 = Schema.Struct({
   apiVersion: Schema.Literal("argus.dev/functional-api-execution-bindings/v1"),
   groups: Schema.Array(ExecutionGroupBinding).pipe(Schema.maxItems(10000)),
@@ -41,7 +45,7 @@ export const FunctionalAPIExecutionBindingsV1 = Schema.Struct({
 });
 
 export const FunctionalAPIExecutionPlanV1 = Schema.Struct({
-  apiVersion: Schema.Literal("argus.dev/functional-api-execution-plan/v1"),
+  apiVersion: FunctionalAPIExecutionPlanV1APIVersion,
   manifest: ManifestReference,
   jobs: Schema.Array(ExecutionJob).pipe(Schema.maxItems(20000)),
 }).annotations({

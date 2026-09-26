@@ -27,6 +27,9 @@
   flat CI matrix with mandatory full-suite jobs.
 - Selection-shadow-report v1 compares two explicit compatible attempts and
   exposes duration reduction, failure recall, and individual misses.
+- Execution-plan attempt bindings and selection-plan shadow-report v1 evaluate
+  every heterogeneous group, including full-only groups, without implicit
+  attempt discovery.
 - Structural validity and domain validity are distinct and share one fixture
   corpus.
 - Generate language stubs only when a real producer or consumer needs them.
@@ -61,6 +64,7 @@ actually fetched.
 | `source/functional-api-execution-v1.ts` | Authoritative adapter request/result and normalized execution-attempt contracts. |
 | `source/functional-api-execution-plan-v1.ts` | Authoritative reviewed execution-bindings and generated execution-plan contracts. |
 | `source/selection-shadow-report-v1.ts` | Authoritative selected-versus-full-suite shadow report contract. |
+| `source/selection-plan-shadow-report-v1.ts` | Authoritative complete-plan attempt-binding and aggregate shadow-report contracts. |
 | `source/repository-descriptor-v1.test.ts` | Structural fixture tests through Effect Schema. |
 | `source/test-catalog-page-v1.test.ts` | Test-catalog result compatibility tests through Effect Schema. |
 | `scripts/generate.ts` | Deterministic JSON Schema compiler and drift check. |
@@ -79,6 +83,8 @@ actually fetched.
 | `fixtures/functional-api-execution-bindings/v1/` | Reviewed heterogeneous group-binding compatibility fixtures. |
 | `fixtures/functional-api-execution-plan/v1/` | Deterministic CI plan compatibility fixtures. |
 | `fixtures/selection-shadow-report/v1/` | Shadow report compatibility fixtures. |
+| `fixtures/execution-plan-attempt-bindings/v1/` | Explicit plan-to-attempt binding fixtures. |
+| `fixtures/selection-plan-shadow-report/v1/` | Complete-plan aggregate shadow-report fixtures. |
 | `repository_descriptor.go` | Go schema-validation boundary and transport DTO. |
 | `test_catalog_page.go` | Go test-catalog transport DTO and generated-schema validation boundary. |
 | `impact_evidence_bundle.go` | Go evidence-bundle transport and schema-validation boundary. |
@@ -89,6 +95,7 @@ actually fetched.
 | `functional_api_execution.go` | Go adapter-protocol and execution-attempt DTO and validation boundary. |
 | `functional_api_execution_plan.go` | Go execution-binding and plan DTO and generated-schema validation boundary. |
 | `selection_shadow_report.go` | Go shadow-report DTO and generated-schema validation boundary. |
+| `selection_plan_shadow_report.go` | Go complete-plan binding/report DTO and generated-schema validation boundary. |
 | `../internal/catalog/adapters/contract/descriptor/` | Repository-descriptor-to-domain conversion and semantic validation. |
 | `../internal/catalog/` | Catalog domain vocabulary, use cases, errors, and persistence port. |
 | `../internal/change/` | Provider-neutral change invariants and ingestion use case. |
@@ -237,6 +244,19 @@ array to the SHA-256 of the canonical manifest. A group receives a `selected`
 job only when at least one test is required and always receives a `full-suite`
 job. CI can use that array directly as a matrix while retaining authority over
 checkouts, adapter commands, credentials, isolation, and release gates.
+
+`argus.dev/execution-plan-attempt-bindings/v1` explicitly names the immutable
+attempts produced for every plan group. `selectedAttemptId` is `null` only when
+the plan has no selected job for that group; `fullSuiteAttemptId` is always
+required. Semantic validation rejects incomplete or additional groups, reused
+attempt IDs, and selected-attempt presence that disagrees with the plan.
+
+`argus.dev/selection-plan-shadow-report/v1` records the canonical execution
+plan digest and aggregates every validated group. Each loaded attempt must
+match the plan's manifest, repository, revision, adapter, stage, and exact test
+count. Full-suite failures in a full-only group are `not-selected` misses and
+remain in the aggregate recall denominator. Duration fields sum normalized
+per-test durations; they do not represent parallel CI wall-clock time.
 
 ## Structural and domain validation
 

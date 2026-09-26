@@ -1,0 +1,15 @@
+{
+  "apiVersion": "argus.dev/execution-plan-attempt-bindings/v1",
+  "groups": [
+    {
+      "groupKey": "orders-playwright",
+      "selectedAttemptId": "run-42-orders-playwright-selected",
+      "fullSuiteAttemptId": "run-42-orders-playwright-full-suite"
+    },
+    {
+      "groupKey": "payments-pytest",
+      "selectedAttemptId": null,
+      "fullSuiteAttemptId": "run-42-payments-pytest-full-suite"
+    }
+  ]
+}

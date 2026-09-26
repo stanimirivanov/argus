@@ -229,6 +229,22 @@ full-suite attempt that is not a superset of the selected set. Artifact
 references are metadata only; ingestion does not upload or verify the external
 objects.
 
+For a heterogeneous plan, bind every planned group to its explicit stored
+attempt IDs and produce one complete safety report:
+
+~~~sh
+go run ./cmd/execution-evidence plan-shadow-report \
+  -plan ./execution-plan.json \
+  -attempt-bindings ./attempt-bindings.json
+~~~
+
+`argus.dev/execution-plan-attempt-bindings/v1` uses `null` for the selected
+attempt of a full-only group and always requires a full-suite attempt. The
+aggregate report checks every attempt against the plan and counts a full-only
+failure as a `not-selected` miss. Its duration fields sum normalized per-test
+durations rather than parallel CI wall-clock time. Pairwise reports remain
+available for focused diagnosis.
+
 ## Query catalog tests
 
 List a bounded page of tests from one explicitly identified immutable snapshot:

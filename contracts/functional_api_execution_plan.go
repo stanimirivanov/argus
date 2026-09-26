@@ -84,6 +84,21 @@ func DecodeFunctionalAPIExecutionBindingsV1(data []byte) (FunctionalAPIExecution
 	return document, nil
 }
 
+// DecodeFunctionalAPIExecutionPlanV1 validates and decodes a CI execution plan.
+func DecodeFunctionalAPIExecutionPlanV1(data []byte) (FunctionalAPIExecutionPlanV1, error) {
+	var document FunctionalAPIExecutionPlanV1
+	if err := validateExecutionJSON(
+		data, loadFunctionalAPIExecutionPlanV1Schema, "functional API execution plan",
+	); err != nil {
+		return document, err
+	}
+	if err := json.Unmarshal(data, &document); err != nil {
+		return document, fmt.Errorf("decode functional API execution plan: %w", err)
+	}
+
+	return document, nil
+}
+
 // ValidateFunctionalAPIExecutionBindingsV1 validates typed reviewed bindings.
 func ValidateFunctionalAPIExecutionBindingsV1(document FunctionalAPIExecutionBindingsV1) error {
 	return validateTypedExecutionDocument(

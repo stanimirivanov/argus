@@ -221,7 +221,7 @@ func CanonicalAttempt(attempt Attempt) Attempt {
 // ValidateRequest rejects ambiguous, unbounded, or mutable execution input.
 func ValidateRequest(request Request) error {
 	if request.APIVersion != FunctionalAPIAdapterRequestAPIVersion ||
-		!attemptIDPattern.MatchString(request.AttemptID) ||
+		ValidateAttemptID(request.AttemptID) != nil ||
 		(request.Stage != StageSelected && request.Stage != StageFullSuite) ||
 		!catalog.IsLocalKey(request.Adapter) || len(request.Tests) == 0 ||
 		len(request.Tests) > MaxAttemptTests {
@@ -251,6 +251,16 @@ func ValidateRequest(request Request) error {
 	return nil
 }
 
+// ValidateAttemptID verifies a stable external attempt identity without
+// requiring the rest of an execution document.
+func ValidateAttemptID(attemptID string) error {
+	if !attemptIDPattern.MatchString(attemptID) {
+		return fmt.Errorf("%w: attempt ID", ErrInvalid)
+	}
+
+	return nil
+}
+
 // ValidateManifestReference verifies the version and digest of canonical
 // execution-manifest bytes without loading the manifest itself.
 func ValidateManifestReference(reference ManifestReference) error {
@@ -265,7 +275,7 @@ func ValidateManifestReference(reference ManifestReference) error {
 // ValidateAdapterResult verifies structural evidence before request correlation.
 func ValidateAdapterResult(result AdapterResult) error {
 	if result.APIVersion != FunctionalAPIAdapterResultAPIVersion ||
-		!attemptIDPattern.MatchString(result.AttemptID) || !catalog.IsLocalKey(result.AdapterID) ||
+		ValidateAttemptID(result.AttemptID) != nil || !catalog.IsLocalKey(result.AdapterID) ||
 		strings.TrimSpace(result.AdapterVersion) == "" || len(result.AdapterVersion) > 127 ||
 		len(result.Results) == 0 || len(result.Results) > MaxAttemptTests ||
 		len(result.Artifacts) > MaxAttemptArtifacts {
