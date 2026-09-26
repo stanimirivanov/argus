@@ -1,0 +1,17 @@
+{
+  "apiVersion": "argus.dev/functional-api-adaptation-result/v1",
+  "proposalId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "adapter": { "id": "playwright", "version": "1.2.3" },
+  "outcome": "candidate",
+  "reasonCode": null,
+  "reason": null,
+  "edit": {
+    "path": "tests/orders.spec.ts",
+    "beforeSha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "startByte": 120,
+    "endByte": 123,
+    "original": "404",
+    "replacement": "200",
+    "semanticRole": "assertion"
+  }
+}

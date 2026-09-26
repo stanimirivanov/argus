@@ -1,0 +1,54 @@
+{
+  "apiVersion": "argus.dev/functional-api-adaptation-request/v1",
+  "proposalId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "change": {
+    "sourceRepository": {
+      "provider": "github",
+      "host": "github.com",
+      "providerRepositoryId": "source-42",
+      "owner": "example",
+      "name": "orders"
+    },
+    "pullRequest": { "number": 42 },
+    "baseRevision": {
+      "algorithm": "git-sha1",
+      "digest": "0123456789abcdef0123456789abcdef01234567"
+    },
+    "headRevision": {
+      "algorithm": "git-sha1",
+      "digest": "89abcdef0123456789abcdef0123456789abcdef"
+    },
+    "observedAt": "2026-09-26T10:00:00Z",
+    "trigger": {
+      "provider": "github",
+      "deliveryId": "delivery-42",
+      "event": "pull_request",
+      "action": "synchronize"
+    }
+  },
+  "test": {
+    "repository": {
+      "provider": "github",
+      "host": "github.com",
+      "providerRepositoryId": "tests-1",
+      "owner": "example",
+      "name": "orders-tests"
+    },
+    "revision": {
+      "algorithm": "git-sha1",
+      "digest": "cccccccccccccccccccccccccccccccccccccccc"
+    },
+    "suiteKey": "orders-api",
+    "testKey": "list-orders",
+    "name": "Lists orders",
+    "adapter": "playwright",
+    "capabilities": ["list-orders"]
+  },
+  "endpointRename": {
+    "method": "GET",
+    "operationId": "listOrders",
+    "previousPath": "/v1/orders",
+    "path": "/v2/orders",
+    "capabilities": ["list-orders"]
+  }
+}

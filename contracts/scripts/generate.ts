@@ -1,5 +1,10 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { JSONSchema } from "effect";
+import {
+  AdaptationProposalV1,
+  FunctionalAPIAdaptationRequestV1,
+  FunctionalAPIAdaptationResultV1,
+} from "../source/adaptation-v1.js";
 import { CapabilityImpactV1 } from "../source/capability-impact-v1.js";
 import { ChangeSetV1 } from "../source/change-set-v1.js";
 import { ExecutionManifestV1 } from "../source/execution-manifest-v1.js";
@@ -23,6 +28,39 @@ import { SelectionShadowReportV1 } from "../source/selection-shadow-report-v1.js
 import { TestCatalogPageV1 } from "../source/test-catalog-page-v1.js";
 
 const artifacts = [
+  {
+    name: "functional API adaptation request",
+    outputPath: new URL(
+      "../generated/functional-api-adaptation-request/v1/functional-api-adaptation-request.schema.json",
+      import.meta.url,
+    ),
+    document: {
+      $id: "https://argus.dev/contracts/functional-api-adaptation-request/v1/schema.json",
+      ...JSONSchema.make(FunctionalAPIAdaptationRequestV1, { target: "jsonSchema2020-12" }),
+    },
+  },
+  {
+    name: "functional API adaptation result",
+    outputPath: new URL(
+      "../generated/functional-api-adaptation-result/v1/functional-api-adaptation-result.schema.json",
+      import.meta.url,
+    ),
+    document: {
+      $id: "https://argus.dev/contracts/functional-api-adaptation-result/v1/schema.json",
+      ...JSONSchema.make(FunctionalAPIAdaptationResultV1, { target: "jsonSchema2020-12" }),
+    },
+  },
+  {
+    name: "adaptation proposal",
+    outputPath: new URL(
+      "../generated/adaptation-proposal/v1/adaptation-proposal.schema.json",
+      import.meta.url,
+    ),
+    document: {
+      $id: "https://argus.dev/contracts/adaptation-proposal/v1/schema.json",
+      ...JSONSchema.make(AdaptationProposalV1, { target: "jsonSchema2020-12" }),
+    },
+  },
   {
     name: "execution plan attempt bindings",
     outputPath: new URL(

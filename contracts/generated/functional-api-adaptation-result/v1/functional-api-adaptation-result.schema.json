@@ -1,0 +1,168 @@
+{
+  "$id": "https://argus.dev/contracts/functional-api-adaptation-result/v1/schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "FunctionalAPIAdaptationResultV1": {
+      "type": "object",
+      "required": [
+        "apiVersion",
+        "proposalId",
+        "adapter",
+        "outcome",
+        "reasonCode",
+        "reason",
+        "edit"
+      ],
+      "properties": {
+        "apiVersion": {
+          "type": "string",
+          "enum": [
+            "argus.dev/functional-api-adaptation-result/v1"
+          ]
+        },
+        "proposalId": {
+          "type": "string",
+          "description": "a string matching the pattern ^[0-9a-f]{64}$",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "adapter": {
+          "type": "object",
+          "required": [
+            "id",
+            "version"
+          ],
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/LocalKey"
+            },
+            "version": {
+              "type": "string",
+              "description": "a string at most 127 character(s) long",
+              "title": "maxLength(127)",
+              "minLength": 1,
+              "maxLength": 127
+            }
+          },
+          "additionalProperties": false
+        },
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "candidate",
+            "abstained"
+          ]
+        },
+        "reasonCode": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LocalKey"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "a string at most 1000 character(s) long",
+              "title": "maxLength(1000)",
+              "minLength": 1,
+              "maxLength": 1000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "edit": {
+          "anyOf": [
+            {
+              "type": "object",
+              "required": [
+                "path",
+                "beforeSha256",
+                "startByte",
+                "endByte",
+                "original",
+                "replacement",
+                "semanticRole"
+              ],
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "description": "a string matching the pattern ^[^/\\\\][^\\\\]*$",
+                  "title": "maxLength(4096)",
+                  "minLength": 1,
+                  "maxLength": 4096,
+                  "pattern": "^[^/\\\\][^\\\\]*$"
+                },
+                "beforeSha256": {
+                  "type": "string",
+                  "description": "a string matching the pattern ^[0-9a-f]{64}$",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "startByte": {
+                  "$ref": "#/$defs/Int",
+                  "description": "a non-negative number",
+                  "title": "greaterThanOrEqualTo(0)",
+                  "minimum": 0
+                },
+                "endByte": {
+                  "$ref": "#/$defs/Int",
+                  "description": "a non-negative number",
+                  "title": "greaterThanOrEqualTo(0)",
+                  "minimum": 0
+                },
+                "original": {
+                  "type": "string",
+                  "description": "a string matching the pattern ^\\/",
+                  "title": "maxLength(2048)",
+                  "minLength": 1,
+                  "maxLength": 2048,
+                  "pattern": "^\\/"
+                },
+                "replacement": {
+                  "type": "string",
+                  "description": "a string matching the pattern ^\\/",
+                  "title": "maxLength(2048)",
+                  "minLength": 1,
+                  "maxLength": 2048,
+                  "pattern": "^\\/"
+                },
+                "semanticRole": {
+                  "type": "string",
+                  "enum": [
+                    "request-target"
+                  ]
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "description": "One untrusted request-target edit or explicit abstention returned by a reviewed framework adapter.",
+      "title": "Argus functional API adaptation result v1"
+    },
+    "LocalKey": {
+      "type": "string",
+      "description": "A stable, repository-declared key. It is scoped by its containing repository or parent declaration.",
+      "title": "maxLength(63)",
+      "minLength": 1,
+      "maxLength": 63,
+      "pattern": "^[a-z][a-z0-9._-]*$"
+    },
+    "Int": {
+      "type": "integer",
+      "description": "an integer",
+      "title": "int"
+    }
+  },
+  "$ref": "#/$defs/FunctionalAPIAdaptationResultV1"
+}
