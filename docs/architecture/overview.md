@@ -253,14 +253,17 @@ protocol:
 |:--|:--|:--|
 | `internal/execution` | Attempt vocabulary, result semantics, bounds, canonical order, and evidence invariants | Process execution, JSON, CI configuration, or persistence |
 | `internal/execution/functionalapi` | Stage planning, adapter port, exact request/result correlation, and attempt assembly | Framework commands, generated contracts, or artifact upload |
+| `internal/execution/planning` | Deterministic repository/adapter grouping, exact reviewed binding coverage, and flat selected/full-suite job planning | Contracts, process execution, SQL, CI syntax, commands, or credentials |
 | `internal/execution/attempts` | Validated immutable-attempt ingestion use case and consumer-owned persistence port | SQL, JSON, or artifact upload |
 | `internal/execution/shadow` | Explicit selected/full-suite compatibility checks, duration reduction, failure recall, and miss classification | Attempt lookup SQL, implicit latest selection, or release policy |
 | `internal/execution/adapters/contract` | Adapter request/result and execution-attempt v1 conversion | Execution policy or process lifecycle |
 | `internal/execution/adapters/processadapter` | Bounded stdin/stdout exchange with an explicit executable | Test selection or command discovery |
 | `internal/execution/adapters/cli/executioncli` | Manifest input, explicit group arguments, timeout, and normalized output | Shell evaluation or concrete adapter construction |
+| `internal/execution/adapters/cli/planningcli` | Bounded manifest/binding input and execution-plan JSON output | Checkout, command mapping, process execution, or persistence |
 | `internal/execution/adapters/cli/evidencecli` | Attempt-document input, explicit comparison IDs, and JSON output through injected ports | PostgreSQL or pairing policy |
 | `internal/catalog/adapters/postgres` | Atomic attempt/result/reference persistence, exact-retry detection, and repeatable-read reconstruction | Shadow comparison policy |
 | `cmd/run-functional-api` | Process-adapter composition and operating-system streams | Execution or contract policy |
+| `cmd/plan-functional-api` | Framework-free planning command composition | CI-provider APIs or adapter execution |
 | `cmd/execution-evidence` | PostgreSQL composition, lifecycle, and database configuration | Ingestion or comparison policy |
 
 The manifest chooses tests, while reviewed CI configuration chooses the
@@ -276,6 +279,15 @@ do not upload or guarantee external bytes. Shadow comparison loads two named
 attempts, rejects mismatched provenance or an incomplete control set, and
 reports both aggregate recall and each missed failure. It never chooses a
 control by recency. See [ADR-0011](../decisions/0011-store-immutable-attempts-and-compare-explicit-shadow-pairs.md).
+
+For heterogeneous manifests, the planner groups by stable test-repository
+identity and adapter. Reviewed bindings must cover that group set exactly and
+provide matching coordinates, a stable group key, and an immutable revision.
+The plan creates selected jobs only for non-empty early subsets and a
+full-suite job for every group. It carries no command or credential; reviewed
+CI maps adapter IDs to literal commands. See
+[ADR-0012](../decisions/0012-plan-execution-from-reviewed-repository-bindings.md)
+and the [reference GitHub Actions handoff](../integrations/github-actions-functional-api.md).
 
 ## End-to-end decision flow
 

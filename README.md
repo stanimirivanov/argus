@@ -22,6 +22,7 @@ or conflicting capability-to-test relationships without discarding evidence.
 - [Architecture overview](docs/architecture/overview.md)
 - [Contract workspace](contracts/README.md)
 - [Functional API adapter protocol](docs/integrations/functional-api-adapters.md)
+- [GitHub Actions functional API integration](docs/integrations/github-actions-functional-api.md)
 - [PostgreSQL catalog operations](docs/development/postgresql.md)
 - [Proposal decomposition and provenance](docs/proposal.md)
 - [Developer quickstart](docs/development/developer-quickstart.md)
@@ -155,6 +156,26 @@ functional API candidates are `SKIP_FOR_NOW` in the early stage and explicitly
 required in a later full-suite control. Partial, empty, or unmapped impact
 switches to fallback mode and requires every functional API candidate. The
 manifest reports affected capabilities without a mapped test.
+
+## Plan heterogeneous functional API execution
+
+Bind every repository/adapter group in the manifest to a reviewed immutable
+test revision, then generate the flat CI job matrix:
+
+~~~sh
+go run ./cmd/plan-functional-api \
+  -manifest ./execution-manifest.json \
+  -bindings ./.argus/functional-api-execution-bindings.json \
+  > ./execution-plan.json
+~~~
+
+The planner rejects missing, extra, duplicate, or coordinate-mismatched
+bindings. It emits a selected job only for groups with required tests and a
+full-suite job for every group. Commands and credentials remain reviewed CI
+configuration rather than manifest or plan content. See the
+[GitHub Actions functional API guide](docs/integrations/github-actions-functional-api.md)
+for immutable checkout, matrix execution, attempt upload, trusted ingestion,
+and shadow-report wiring.
 
 ## Run a functional API manifest group
 

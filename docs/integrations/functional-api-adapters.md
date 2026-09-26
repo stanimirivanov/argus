@@ -4,6 +4,8 @@
 
 - `run-functional-api` consumes an execution manifest and runs one explicit
   test-repository/adapter group.
+- `plan-functional-api` first turns heterogeneous manifest groups and reviewed
+  immutable-revision bindings into a deterministic flat CI matrix.
 - The adapter reads `argus.dev/functional-api-adapter-request/v1` from stdin and
   writes `argus.dev/functional-api-adapter-result/v1` to stdout.
 - Adapter commands are CI configuration, never manifest content, and run
@@ -23,6 +25,13 @@ stable catalog IDs to native framework filters.
 The reference runner does not clone repositories, install dependencies, upload
 artifacts, or persist results. Run it after the test repository is checked out
 at the exact revision supplied with `-test-revision`.
+
+For a heterogeneous manifest, run `plan-functional-api` first. The planner
+requires an exact reviewed binding for every repository/adapter group and
+always emits the later full-suite job. It does not choose commands or acquire
+credentials. See the
+[GitHub Actions functional API guide](github-actions-functional-api.md) for the
+complete trust boundary and matrix handoff.
 
 ## Adapter request
 
@@ -154,6 +163,10 @@ control because concurrent reruns would make that comparison non-reproducible.
 The report distinguishes a failing control test that was omitted
 (`not-selected`) from one that ran early but did not fail then
 (`not-reproduced`).
+
+A planned group with no selected tests has only a full-suite attempt. The v1
+pairwise report cannot compare that group; retain its full-suite evidence as
+authoritative until aggregate plan-level evaluation is added.
 
 ## Bounds and failure behavior
 

@@ -222,12 +222,13 @@ func CanonicalAttempt(attempt Attempt) Attempt {
 func ValidateRequest(request Request) error {
 	if request.APIVersion != FunctionalAPIAdapterRequestAPIVersion ||
 		!attemptIDPattern.MatchString(request.AttemptID) ||
-		request.Manifest.APIVersion != selection.ManifestAPIVersion ||
-		!hexSHA256Pattern.MatchString(request.Manifest.SHA256) ||
 		(request.Stage != StageSelected && request.Stage != StageFullSuite) ||
 		!catalog.IsLocalKey(request.Adapter) || len(request.Tests) == 0 ||
 		len(request.Tests) > MaxAttemptTests {
 		return fmt.Errorf("%w: request envelope", ErrInvalid)
+	}
+	if err := ValidateManifestReference(request.Manifest); err != nil {
+		return err
 	}
 	if err := validateRepository(request.TestRepository); err != nil {
 		return err
@@ -245,6 +246,17 @@ func ValidateRequest(request Request) error {
 			return fmt.Errorf("%w: duplicate requested test", ErrInvalid)
 		}
 		identities[identity] = struct{}{}
+	}
+
+	return nil
+}
+
+// ValidateManifestReference verifies the version and digest of canonical
+// execution-manifest bytes without loading the manifest itself.
+func ValidateManifestReference(reference ManifestReference) error {
+	if reference.APIVersion != selection.ManifestAPIVersion ||
+		!hexSHA256Pattern.MatchString(reference.SHA256) {
+		return fmt.Errorf("%w: manifest reference", ErrInvalid)
 	}
 
 	return nil
