@@ -14,6 +14,8 @@
   normalized attempt and then fails the CI step.
 - Use `-stage selected` for early feedback and `-stage full-suite` for the
   authoritative control.
+- Use `plan-shadow-report` after ingestion to evaluate every planned group,
+  including groups without a selected-stage job.
 
 ## Responsibilities
 
@@ -165,8 +167,20 @@ The report distinguishes a failing control test that was omitted
 (`not-reproduced`).
 
 A planned group with no selected tests has only a full-suite attempt. The v1
-pairwise report cannot compare that group; retain its full-suite evidence as
-authoritative until aggregate plan-level evaluation is added.
+pairwise report cannot compare that group. Bind all planned groups to explicit
+attempt IDs through `argus.dev/execution-plan-attempt-bindings/v1`, then run:
+
+~~~sh
+go run ./cmd/execution-evidence plan-shadow-report \
+  -plan ./execution-plan.json \
+  -attempt-bindings ./attempt-bindings.json
+~~~
+
+The aggregate report includes the full-only group and classifies each of its
+control failures as `not-selected`. It rejects incomplete bindings, reused
+attempt IDs, and attempts whose manifest, repository, revision, adapter,
+stage, or test count does not satisfy the plan. Pairwise reports remain useful
+for focused diagnosis.
 
 ## Bounds and failure behavior
 

@@ -1,0 +1,12 @@
+{
+  "cases": [
+    {
+      "path": "fixtures/execution-plan-attempt-bindings/v1/valid/heterogeneous.json",
+      "structurallyValid": true
+    },
+    {
+      "path": "fixtures/execution-plan-attempt-bindings/v1/invalid/invalid-attempt-id.json",
+      "structurallyValid": false
+    }
+  ]
+}

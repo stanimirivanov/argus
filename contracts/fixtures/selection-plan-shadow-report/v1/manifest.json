@@ -1,0 +1,12 @@
+{
+  "cases": [
+    {
+      "path": "fixtures/selection-plan-shadow-report/v1/valid/full-only-miss.json",
+      "structurallyValid": true
+    },
+    {
+      "path": "fixtures/selection-plan-shadow-report/v1/invalid/invalid-recall.json",
+      "structurallyValid": false
+    }
+  ]
+}

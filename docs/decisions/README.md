@@ -111,3 +111,4 @@ How will the assumptions and consequences be verified?
 | [ADR-0010](0010-use-a-bounded-process-protocol-for-functional-api-execution.md) | Use a bounded process protocol for functional API execution | Accepted | 2026-09-19 |
 | [ADR-0011](0011-store-immutable-attempts-and-compare-explicit-shadow-pairs.md) | Store immutable attempts and compare explicit shadow pairs | Accepted | 2026-09-26 |
 | [ADR-0012](0012-plan-execution-from-reviewed-repository-bindings.md) | Plan execution from reviewed repository bindings | Accepted | 2026-09-26 |
+| [ADR-0013](0013-evaluate-selection-across-complete-execution-plans.md) | Evaluate selection across complete execution plans | Accepted | 2026-09-26 |

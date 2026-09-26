@@ -257,9 +257,15 @@ bindings into a deterministic flat CI plan. It emits selected jobs only for
 non-empty early subsets and a full-suite job for every repository/adapter
 group, and documents a least-privilege GitHub Actions handoff for immutable
 checkout, normalized-attempt upload, trusted ingestion, and pairwise reports.
-The v1 pairwise report still cannot evaluate a group with no selected attempt;
-aggregate plan-level reporting that includes those full-only groups remains
-future selection-safety work.
+
+The fifth M05 slice binds every planned group to explicit immutable attempts
+and publishes one complete-plan shadow report. Aggregate failure recall now
+includes full-suite failures from groups with no selected attempt, while
+per-group evidence retains exact misses and provenance. Together the five
+slices complete the local M05 outcome: a pull request can produce, execute,
+persist, and evaluate an explainable heterogeneous subset while every
+full-suite control remains authoritative. Historical promotion thresholds and
+predictive optimization remain M08 concerns.
 
 ## M06 - Validated adaptation
 

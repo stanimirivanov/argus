@@ -255,7 +255,7 @@ protocol:
 | `internal/execution/functionalapi` | Stage planning, adapter port, exact request/result correlation, and attempt assembly | Framework commands, generated contracts, or artifact upload |
 | `internal/execution/planning` | Deterministic repository/adapter grouping, exact reviewed binding coverage, and flat selected/full-suite job planning | Contracts, process execution, SQL, CI syntax, commands, or credentials |
 | `internal/execution/attempts` | Validated immutable-attempt ingestion use case and consumer-owned persistence port | SQL, JSON, or artifact upload |
-| `internal/execution/shadow` | Explicit selected/full-suite compatibility checks, duration reduction, failure recall, and miss classification | Attempt lookup SQL, implicit latest selection, or release policy |
+| `internal/execution/shadow` | Explicit pair and complete-plan compatibility checks, aggregate duration/failure recall, and miss classification including full-only groups | Attempt lookup SQL, implicit latest selection, report persistence, or release policy |
 | `internal/execution/adapters/contract` | Adapter request/result and execution-attempt v1 conversion | Execution policy or process lifecycle |
 | `internal/execution/adapters/processadapter` | Bounded stdin/stdout exchange with an explicit executable | Test selection or command discovery |
 | `internal/execution/adapters/cli/executioncli` | Manifest input, explicit group arguments, timeout, and normalized output | Shell evaluation or concrete adapter construction |
@@ -288,6 +288,14 @@ full-suite job for every group. It carries no command or credential; reviewed
 CI maps adapter IDs to literal commands. See
 [ADR-0012](../decisions/0012-plan-execution-from-reviewed-repository-bindings.md)
 and the [reference GitHub Actions handoff](../integrations/github-actions-functional-api.md).
+
+Complete-plan shadow evaluation binds every planned group to explicit immutable
+attempt IDs and rejects missing, additional, reused, or provenance-mismatched
+evidence. Selected/full groups reuse pairwise semantics. A full-only group has
+zero selected work, and each failing control test is a `not-selected` miss in
+aggregate recall. Reports record the canonical plan digest and sum normalized
+per-test durations rather than parallel workflow wall time. See
+[ADR-0013](../decisions/0013-evaluate-selection-across-complete-execution-plans.md).
 
 ## End-to-end decision flow
 

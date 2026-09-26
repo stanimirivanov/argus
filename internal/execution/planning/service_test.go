@@ -119,6 +119,25 @@ func TestValidatePlanRejectsSelectedJobWithoutControl(t *testing.T) {
 	}
 }
 
+func TestValidatePlanRejectsAggregateTestCountBeyondManifestLimit(t *testing.T) {
+	t.Parallel()
+	first := planningBindings().Groups[0]
+	second := planningBindings().Groups[1]
+	plan := Plan{
+		APIVersion: PlanAPIVersion,
+		Manifest: execution.ManifestReference{
+			APIVersion: selection.ManifestAPIVersion, SHA256: manifestDigest(),
+		},
+		Jobs: []Job{
+			newJob(first, execution.StageFullSuite, selection.MaxManifestDecisions),
+			newJob(second, execution.StageFullSuite, 1),
+		},
+	}
+	if err := ValidatePlan(plan); !errors.Is(err, execution.ErrInvalid) {
+		t.Fatalf("aggregate plan count error = %v", err)
+	}
+}
+
 func planningBindings() Bindings {
 	return Bindings{
 		APIVersion: BindingsAPIVersion,

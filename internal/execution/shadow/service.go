@@ -1,4 +1,5 @@
-// Package shadow compares selected execution with its full-suite control.
+// Package shadow compares selected execution with full-suite controls for one
+// group or a complete heterogeneous execution plan.
 package shadow
 
 import (
@@ -159,7 +160,13 @@ func buildReport(selected, fullSuite execution.Attempt) Report {
 		recall := report.CaughtFullSuiteFailureCount * 10_000 / report.FullSuiteFailureCount
 		report.FailureRecallBasisPoints = &recall
 	}
-	slices.SortFunc(report.MissedFailures, func(left, right FailureMiss) int {
+	sortFailureMisses(report.MissedFailures)
+
+	return report
+}
+
+func sortFailureMisses(misses []FailureMiss) {
+	slices.SortFunc(misses, func(left, right FailureMiss) int {
 		if left.SuiteKey < right.SuiteKey {
 			return -1
 		}
@@ -175,8 +182,6 @@ func buildReport(selected, fullSuite execution.Attempt) Report {
 
 		return 0
 	})
-
-	return report
 }
 
 func newFailureMiss(

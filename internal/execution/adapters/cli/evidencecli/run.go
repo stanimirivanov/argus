@@ -17,7 +17,7 @@ import (
 	"github.com/stanimirivanov/argus/internal/execution/shadow"
 )
 
-const maxAttemptBytes = 16 << 20
+const maxEvidenceDocumentBytes = 16 << 20
 
 // Runtime owns the durable execution-evidence ports used by this command.
 type Runtime interface {
@@ -46,6 +46,8 @@ func Run(
 		return runIngest(ctx, arguments[1:], databaseURL, stdin, stdout, open)
 	case "shadow-report":
 		return runShadowReport(ctx, arguments[1:], databaseURL, stdout, open)
+	case "plan-shadow-report":
+		return runPlanShadowReport(ctx, arguments[1:], databaseURL, stdin, stdout, open)
 	default:
 		return usageError()
 	}
@@ -68,7 +70,7 @@ func runIngest(
 	if *filePath == "" || flags.NArg() != 0 {
 		return errors.New("usage: execution-evidence ingest -file <path|->")
 	}
-	data, err := readAttempt(*filePath, stdin)
+	data, err := readEvidenceDocument(*filePath, stdin, "execution attempt")
 	if err != nil {
 		return err
 	}
@@ -95,6 +97,72 @@ func runIngest(
 		AttemptID string `json:"attemptId"`
 		Created   bool   `json:"created"`
 	}{AttemptID: attempt.AttemptID, Created: created})
+}
+
+func runPlanShadowReport(
+	ctx context.Context,
+	arguments []string,
+	databaseURL string,
+	stdin io.Reader,
+	stdout io.Writer,
+	open OpenRuntime,
+) error {
+	flags := flag.NewFlagSet("execution-evidence plan-shadow-report", flag.ContinueOnError)
+	flags.SetOutput(io.Discard)
+	planPath := flags.String("plan", "", "execution plan path, or - for stdin")
+	bindingsPath := flags.String("attempt-bindings", "", "attempt bindings path, or - for stdin")
+	if err := flags.Parse(arguments); err != nil {
+		return fmt.Errorf("execution-evidence plan-shadow-report: %w", err)
+	}
+	if *planPath == "" || *bindingsPath == "" || flags.NArg() != 0 ||
+		(*planPath == "-" && *bindingsPath == "-") {
+		return errors.New("usage: execution-evidence plan-shadow-report " +
+			"-plan <path|-> -attempt-bindings <path|->")
+	}
+	planData, err := readEvidenceDocument(*planPath, stdin, "execution plan")
+	if err != nil {
+		return err
+	}
+	planDocument, err := contracts.DecodeFunctionalAPIExecutionPlanV1(planData)
+	if err != nil {
+		return fmt.Errorf("read functional API execution plan: %w", err)
+	}
+	plan, err := executioncontract.ImportFunctionalAPIExecutionPlanV1(planDocument)
+	if err != nil {
+		return fmt.Errorf("import functional API execution plan: %w", err)
+	}
+	planSHA256, err := executioncontract.PlanSHA256V1(plan)
+	if err != nil {
+		return err
+	}
+	bindingsData, err := readEvidenceDocument(*bindingsPath, stdin, "execution plan attempt bindings")
+	if err != nil {
+		return err
+	}
+	bindingsDocument, err := contracts.DecodeExecutionPlanAttemptBindingsV1(bindingsData)
+	if err != nil {
+		return fmt.Errorf("read execution plan attempt bindings: %w", err)
+	}
+	bindings, err := executioncontract.ImportExecutionPlanAttemptBindingsV1(bindingsDocument)
+	if err != nil {
+		return fmt.Errorf("import execution plan attempt bindings: %w", err)
+	}
+	runtime, err := openStore(ctx, databaseURL, open)
+	if err != nil {
+		return err
+	}
+	defer runtime.Close()
+
+	report, err := shadow.NewService(runtime).ComparePlan(ctx, plan, planSHA256, bindings)
+	if err != nil {
+		return fmt.Errorf("compare execution plan attempts: %w", err)
+	}
+	document, err := executioncontract.ExportSelectionPlanShadowReportV1(report)
+	if err != nil {
+		return err
+	}
+
+	return encodeJSON(stdout, document)
 }
 
 func runShadowReport(
@@ -148,36 +216,36 @@ func openStore(ctx context.Context, databaseURL string, open OpenRuntime) (Runti
 	return runtime, nil
 }
 
-func readAttempt(path string, stdin io.Reader) ([]byte, error) {
+func readEvidenceDocument(path string, stdin io.Reader, name string) ([]byte, error) {
 	if path == "-" {
 		if stdin == nil {
-			return nil, errors.New("execution attempt stdin is required")
+			return nil, fmt.Errorf("%s stdin is required", name)
 		}
-		return readBoundedAttempt(stdin)
+		return readBoundedEvidenceDocument(stdin, name)
 	}
 	file, err := os.Open(path)
 	if err != nil {
-		return nil, fmt.Errorf("open execution attempt: %w", err)
+		return nil, fmt.Errorf("open %s: %w", name, err)
 	}
-	data, readErr := readBoundedAttempt(file)
+	data, readErr := readBoundedEvidenceDocument(file, name)
 	closeErr := file.Close()
 	if readErr != nil {
 		return nil, readErr
 	}
 	if closeErr != nil {
-		return nil, fmt.Errorf("close execution attempt: %w", closeErr)
+		return nil, fmt.Errorf("close %s: %w", name, closeErr)
 	}
 
 	return data, nil
 }
 
-func readBoundedAttempt(reader io.Reader) ([]byte, error) {
-	data, err := io.ReadAll(io.LimitReader(reader, maxAttemptBytes+1))
+func readBoundedEvidenceDocument(reader io.Reader, name string) ([]byte, error) {
+	data, err := io.ReadAll(io.LimitReader(reader, maxEvidenceDocumentBytes+1))
 	if err != nil {
-		return nil, fmt.Errorf("read execution attempt: %w", err)
+		return nil, fmt.Errorf("read %s: %w", name, err)
 	}
-	if len(data) > maxAttemptBytes {
-		return nil, errors.New("execution attempt exceeds 16 MiB limit")
+	if len(data) > maxEvidenceDocumentBytes {
+		return nil, fmt.Errorf("%s exceeds 16 MiB limit", name)
 	}
 
 	return data, nil
@@ -194,5 +262,5 @@ func encodeJSON(output io.Writer, value any) error {
 }
 
 func usageError() error {
-	return errors.New("usage: execution-evidence <ingest|shadow-report> [options]")
+	return errors.New("usage: execution-evidence <ingest|shadow-report|plan-shadow-report> [options]")
 }

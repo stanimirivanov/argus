@@ -12,6 +12,8 @@
   them later in a trusted job.
 - Always run every planned `full-suite` job. It remains authoritative while
   selection is in shadow mode.
+- Bind every planned group to its explicit attempt IDs and publish one
+  complete-plan recall report, including full-only groups.
 
 This guide is a reference handoff, not a repository-specific turnkey workflow.
 Copy it into the repository that owns the CI trigger, replace the explicit
@@ -299,7 +301,7 @@ jobs:
           name: argus-execution-plan-${{ github.run_id }}-${{ github.run_attempt }}
           path: input
 
-      - name: Ingest immutable evidence and compare paired groups
+      - name: Ingest immutable evidence and evaluate the complete plan
         shell: bash
         env:
           ARGUS_DATABASE_URL: ${{ secrets.ARGUS_DATABASE_URL }}
@@ -316,22 +318,38 @@ jobs:
             go run ./cmd/execution-evidence ingest -file "$attempt"
           done < <(find attempts -type f -name '*.json' -print0)
 
+          prefix="${{ github.run_id }}-${{ github.run_attempt }}"
+          jq --arg prefix "$prefix" '
+            {
+              apiVersion: "argus.dev/execution-plan-attempt-bindings/v1",
+              groups: [
+                .jobs | group_by(.groupKey)[] |
+                . as $jobs | $jobs[0].groupKey as $group |
+                {
+                  groupKey: $group,
+                  selectedAttemptId: (
+                    if any($jobs[]; .stage == "selected")
+                    then ($prefix + "-" + $group + "-selected")
+                    else null
+                    end
+                  ),
+                  fullSuiteAttemptId: ($prefix + "-" + $group + "-full-suite")
+                }
+              ]
+            }
+          ' input/execution-plan.json > input/attempt-bindings.json
+
           mkdir -p reports
-          jq -r '.jobs[] | select(.stage == "selected") | .groupKey' \
-            input/execution-plan.json |
-          while IFS= read -r group; do
-            prefix="${{ github.run_id }}-${{ github.run_attempt }}-$group"
-            go run ./cmd/execution-evidence shadow-report \
-              -selected-attempt "$prefix-selected" \
-              -full-suite-attempt "$prefix-full-suite" \
-              > "reports/$group.json"
-          done
+          go run ./cmd/execution-evidence plan-shadow-report \
+            -plan input/execution-plan.json \
+            -attempt-bindings input/attempt-bindings.json \
+            > reports/plan.json
 
       - name: Upload shadow reports
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: argus-shadow-reports-${{ github.run_id }}-${{ github.run_attempt }}
+          name: argus-plan-shadow-report-${{ github.run_id }}-${{ github.run_attempt }}
           path: reports
           if-no-files-found: ignore
 ~~~
@@ -349,11 +367,11 @@ failure may fail fast according to repository policy, but a selected success
 does not replace the control. Keep `fail-fast: false` so one group cannot
 cancel the controls for other groups.
 
-The v1 shadow report compares one explicit selected/full-suite pair. A group
-with no selected tests has only a full-suite attempt and therefore no valid v1
-pair; retain that attempt as authoritative evidence. Aggregate plan-level
-recall, including these full-only groups, is deliberately deferred rather than
-misrepresented as a perfect pairwise result.
+The plan-level report validates every attempt against its planned manifest,
+repository, revision, adapter, stage, and test count. A group with no selected
+job remains in the recall denominator: every failure in its full-suite attempt
+is a `not-selected` miss. The older pairwise report remains available for
+focused diagnosis, but it is not the complete-plan safety metric.
 
 ## Security and repository-specific work
 
@@ -395,5 +413,5 @@ jq -e '
 Then run one selected and one full-suite job through
 [`run-functional-api`](functional-api-adapters.md), verify both normalized
 attempts, and test an explicit
-[`shadow-report`](functional-api-adapters.md#reference-ci-invocation) before
-granting the ingestion job database access.
+[`plan-shadow-report`](functional-api-adapters.md#reference-ci-invocation)
+before granting the ingestion job database access.

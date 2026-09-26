@@ -1,0 +1,87 @@
+{
+  "apiVersion": "argus.dev/selection-plan-shadow-report/v1",
+  "plan": {
+    "apiVersion": "argus.dev/functional-api-execution-plan/v1",
+    "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+  },
+  "manifest": {
+    "apiVersion": "argus.dev/execution-manifest/v1",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "groupCount": 2,
+  "groupsWithSelection": 1,
+  "fullOnlyGroupCount": 1,
+  "selectedTestCount": 1,
+  "fullSuiteTestCount": 3,
+  "selectedDurationMs": 1000,
+  "fullSuiteDurationMs": 6000,
+  "durationReductionMs": 5000,
+  "selectedFailureCount": 1,
+  "fullSuiteFailureCount": 2,
+  "caughtFullSuiteFailureCount": 1,
+  "failureRecallBasisPoints": 5000,
+  "groups": [
+    {
+      "groupKey": "orders-playwright",
+      "testRepository": {
+        "provider": "github",
+        "host": "github.com",
+        "providerRepositoryId": "tests-orders",
+        "owner": "example",
+        "name": "orders-tests"
+      },
+      "testRevision": {
+        "algorithm": "git-sha1",
+        "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "adapter": { "id": "playwright", "version": "1.58.2" },
+      "selectedAttemptId": "orders-selected",
+      "fullSuiteAttemptId": "orders-full",
+      "selectedTestCount": 1,
+      "fullSuiteTestCount": 2,
+      "selectedDurationMs": 1000,
+      "fullSuiteDurationMs": 3000,
+      "durationReductionMs": 2000,
+      "selectedFailureCount": 1,
+      "fullSuiteFailureCount": 1,
+      "caughtFullSuiteFailureCount": 1,
+      "failureRecallBasisPoints": 10000,
+      "missedFailures": []
+    },
+    {
+      "groupKey": "payments-pytest",
+      "testRepository": {
+        "provider": "github",
+        "host": "github.com",
+        "providerRepositoryId": "tests-payments",
+        "owner": "example",
+        "name": "payments-tests"
+      },
+      "testRevision": {
+        "algorithm": "git-sha1",
+        "digest": "dddddddddddddddddddddddddddddddddddddddd"
+      },
+      "adapter": { "id": "pytest", "version": "9.1.0" },
+      "selectedAttemptId": null,
+      "fullSuiteAttemptId": "payments-full",
+      "selectedTestCount": 0,
+      "fullSuiteTestCount": 1,
+      "selectedDurationMs": 0,
+      "fullSuiteDurationMs": 3000,
+      "durationReductionMs": 3000,
+      "selectedFailureCount": 0,
+      "fullSuiteFailureCount": 1,
+      "caughtFullSuiteFailureCount": 0,
+      "failureRecallBasisPoints": 0,
+      "missedFailures": [
+        {
+          "suiteKey": "payments",
+          "testKey": "refund",
+          "fullSuiteOutcome": "failed",
+          "selectedOutcome": null,
+          "reason": "not-selected"
+        }
+      ]
+    }
+  ]
+}
