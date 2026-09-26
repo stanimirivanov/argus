@@ -3,8 +3,6 @@ package executioncli
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -155,20 +153,5 @@ func readBoundedManifest(reader io.Reader) ([]byte, error) {
 }
 
 func manifestDigest(manifest selection.Manifest) (string, error) {
-	document, err := selectioncontract.ExportV1(manifest)
-	if err != nil {
-		return "", fmt.Errorf("canonicalize execution manifest: %w", err)
-	}
-
-	return digestDocument(document)
-}
-
-func digestDocument(document contracts.ExecutionManifestV1) (string, error) {
-	data, err := json.Marshal(document)
-	if err != nil {
-		return "", fmt.Errorf("encode canonical execution manifest: %w", err)
-	}
-	digest := sha256.Sum256(data)
-
-	return hex.EncodeToString(digest[:]), nil
+	return selectioncontract.ManifestSHA256V1(manifest)
 }

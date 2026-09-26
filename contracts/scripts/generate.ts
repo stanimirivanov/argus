@@ -4,6 +4,10 @@ import { CapabilityImpactV1 } from "../source/capability-impact-v1.js";
 import { ChangeSetV1 } from "../source/change-set-v1.js";
 import { ExecutionManifestV1 } from "../source/execution-manifest-v1.js";
 import {
+  FunctionalAPIExecutionBindingsV1,
+  FunctionalAPIExecutionPlanV1,
+} from "../source/functional-api-execution-plan-v1.js";
+import {
   ExecutionAttemptV1,
   FunctionalAPIAdapterRequestV1,
   FunctionalAPIAdapterResultV1,
@@ -15,6 +19,28 @@ import { SelectionShadowReportV1 } from "../source/selection-shadow-report-v1.js
 import { TestCatalogPageV1 } from "../source/test-catalog-page-v1.js";
 
 const artifacts = [
+  {
+    name: "functional API execution bindings",
+    outputPath: new URL(
+      "../generated/functional-api-execution-bindings/v1/functional-api-execution-bindings.schema.json",
+      import.meta.url,
+    ),
+    document: {
+      $id: "https://argus.dev/contracts/functional-api-execution-bindings/v1/schema.json",
+      ...JSONSchema.make(FunctionalAPIExecutionBindingsV1, { target: "jsonSchema2020-12" }),
+    },
+  },
+  {
+    name: "functional API execution plan",
+    outputPath: new URL(
+      "../generated/functional-api-execution-plan/v1/functional-api-execution-plan.schema.json",
+      import.meta.url,
+    ),
+    document: {
+      $id: "https://argus.dev/contracts/functional-api-execution-plan/v1/schema.json",
+      ...JSONSchema.make(FunctionalAPIExecutionPlanV1, { target: "jsonSchema2020-12" }),
+    },
+  },
   {
     name: "selection shadow report",
     outputPath: new URL(

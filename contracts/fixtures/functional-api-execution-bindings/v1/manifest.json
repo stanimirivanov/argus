@@ -1,0 +1,8 @@
+{
+  "fixtures": [
+    {
+      "path": "fixtures/functional-api-execution-bindings/v1/valid/heterogeneous.json",
+      "schemaValid": true
+    }
+  ]
+}

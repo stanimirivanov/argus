@@ -1,0 +1,35 @@
+{
+  "apiVersion": "argus.dev/functional-api-execution-bindings/v1",
+  "groups": [
+    {
+      "groupKey": "orders-playwright",
+      "testRepository": {
+        "provider": "github",
+        "host": "github.com",
+        "providerRepositoryId": "tests-orders",
+        "owner": "example",
+        "name": "orders-tests"
+      },
+      "testRevision": {
+        "algorithm": "git-sha1",
+        "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "adapter": "playwright"
+    },
+    {
+      "groupKey": "payments-pytest",
+      "testRepository": {
+        "provider": "github",
+        "host": "github.com",
+        "providerRepositoryId": "tests-payments",
+        "owner": "example",
+        "name": "payments-tests"
+      },
+      "testRevision": {
+        "algorithm": "git-sha1",
+        "digest": "cccccccccccccccccccccccccccccccccccccccc"
+      },
+      "adapter": "pytest"
+    }
+  ]
+}

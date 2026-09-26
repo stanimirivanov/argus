@@ -243,14 +243,23 @@ request/result protocol, consumes a manifest in a bounded CI-local process
 runner, correlates the exact requested result set, and emits a normalized
 execution attempt bound to canonical manifest bytes and an immutable test
 revision. Durable attempt/result ingestion, artifact registration, automated
-automated heterogeneous group planning remain.
+heterogeneous group planning remained.
 
 The third M05 slice durably ingests immutable normalized attempts, per-test
 results, and artifact references with exact-retry semantics. It compares two
 explicit compatible selected/full-suite attempts and publishes versioned
 duration reduction, failure recall, and individual miss evidence. The full
-suite remains authoritative. Automated heterogeneous group planning and a
-reference CI workflow that wires both stages remain.
+suite remains authoritative. At that point, automated heterogeneous group
+planning and a reference CI workflow that wired both stages remained.
+
+The fourth M05 slice turns a heterogeneous manifest plus reviewed repository
+bindings into a deterministic flat CI plan. It emits selected jobs only for
+non-empty early subsets and a full-suite job for every repository/adapter
+group, and documents a least-privilege GitHub Actions handoff for immutable
+checkout, normalized-attempt upload, trusted ingestion, and pairwise reports.
+The v1 pairwise report still cannot evaluate a group with no selected attempt;
+aggregate plan-level reporting that includes those full-only groups remains
+future selection-safety work.
 
 ## M06 - Validated adaptation
 

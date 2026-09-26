@@ -1,0 +1,60 @@
+{
+  "apiVersion": "argus.dev/functional-api-execution-plan/v1",
+  "manifest": {
+    "apiVersion": "argus.dev/execution-manifest/v1",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "jobs": [
+    {
+      "groupKey": "orders-playwright",
+      "stage": "selected",
+      "testRepository": {
+        "provider": "github",
+        "host": "github.com",
+        "providerRepositoryId": "tests-orders",
+        "owner": "example",
+        "name": "orders-tests"
+      },
+      "testRevision": {
+        "algorithm": "git-sha1",
+        "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "adapter": "playwright",
+      "testCount": 1
+    },
+    {
+      "groupKey": "orders-playwright",
+      "stage": "full-suite",
+      "testRepository": {
+        "provider": "github",
+        "host": "github.com",
+        "providerRepositoryId": "tests-orders",
+        "owner": "example",
+        "name": "orders-tests"
+      },
+      "testRevision": {
+        "algorithm": "git-sha1",
+        "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "adapter": "playwright",
+      "testCount": 2
+    },
+    {
+      "groupKey": "payments-pytest",
+      "stage": "full-suite",
+      "testRepository": {
+        "provider": "github",
+        "host": "github.com",
+        "providerRepositoryId": "tests-payments",
+        "owner": "example",
+        "name": "payments-tests"
+      },
+      "testRevision": {
+        "algorithm": "git-sha1",
+        "digest": "cccccccccccccccccccccccccccccccccccccccc"
+      },
+      "adapter": "pytest",
+      "testCount": 1
+    }
+  ]
+}

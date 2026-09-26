@@ -22,6 +22,9 @@
 - Functional API adapter request/result v1 and execution-attempt v1 provide a
   bounded framework-neutral CI execution boundary with exact result
   correlation.
+- Functional API execution bindings v1 map heterogeneous manifest groups to
+  reviewed immutable revisions; execution-plan v1 provides a deterministic
+  flat CI matrix with mandatory full-suite jobs.
 - Selection-shadow-report v1 compares two explicit compatible attempts and
   exposes duration reduction, failure recall, and individual misses.
 - Structural validity and domain validity are distinct and share one fixture
@@ -56,6 +59,7 @@ actually fetched.
 | `source/capability-impact-v1.ts` | Authoritative semantic OpenAPI capability-impact result. |
 | `source/execution-manifest-v1.ts` | Authoritative functional API execution-manifest result. |
 | `source/functional-api-execution-v1.ts` | Authoritative adapter request/result and normalized execution-attempt contracts. |
+| `source/functional-api-execution-plan-v1.ts` | Authoritative reviewed execution-bindings and generated execution-plan contracts. |
 | `source/selection-shadow-report-v1.ts` | Authoritative selected-versus-full-suite shadow report contract. |
 | `source/repository-descriptor-v1.test.ts` | Structural fixture tests through Effect Schema. |
 | `source/test-catalog-page-v1.test.ts` | Test-catalog result compatibility tests through Effect Schema. |
@@ -72,6 +76,8 @@ actually fetched.
 | `fixtures/functional-api-adapter-request/v1/` | Adapter request conformance fixtures. |
 | `fixtures/functional-api-adapter-result/v1/` | Adapter result conformance fixtures. |
 | `fixtures/execution-attempt/v1/` | Normalized attempt conformance fixtures. |
+| `fixtures/functional-api-execution-bindings/v1/` | Reviewed heterogeneous group-binding compatibility fixtures. |
+| `fixtures/functional-api-execution-plan/v1/` | Deterministic CI plan compatibility fixtures. |
 | `fixtures/selection-shadow-report/v1/` | Shadow report compatibility fixtures. |
 | `repository_descriptor.go` | Go schema-validation boundary and transport DTO. |
 | `test_catalog_page.go` | Go test-catalog transport DTO and generated-schema validation boundary. |
@@ -81,6 +87,7 @@ actually fetched.
 | `capability_impact.go` | Go capability-impact transport and generated-schema validation boundary. |
 | `execution_manifest.go` | Go execution-manifest transport and generated-schema validation boundary. |
 | `functional_api_execution.go` | Go adapter-protocol and execution-attempt DTO and validation boundary. |
+| `functional_api_execution_plan.go` | Go execution-binding and plan DTO and generated-schema validation boundary. |
 | `selection_shadow_report.go` | Go shadow-report DTO and generated-schema validation boundary. |
 | `../internal/catalog/adapters/contract/descriptor/` | Repository-descriptor-to-domain conversion and semantic validation. |
 | `../internal/catalog/` | Catalog domain vocabulary, use cases, errors, and persistence port. |
@@ -215,8 +222,21 @@ that correlation succeeds. The attempt outcome is derived from per-test
 outcomes rather than accepted from the adapter.
 
 The contracts transport artifact references, not artifact bytes or proof that
-an object was uploaded. Durable registration and attempt ingestion remain a
-later M05 capability.
+an object was uploaded. Attempt ingestion records immutable normalized evidence
+and artifact metadata; external object upload and checksum verification remain
+the CI or artifact-store owner's responsibility.
+
+`argus.dev/functional-api-execution-bindings/v1` is reviewed configuration for
+heterogeneous execution. Each binding gives one repository/adapter group a
+stable local group key and immutable test revision. It contains no executable,
+secret, runner label, or environment. Planning requires the binding set to
+match the manifest groups exactly.
+
+`argus.dev/functional-api-execution-plan/v1` binds a flat, deterministic job
+array to the SHA-256 of the canonical manifest. A group receives a `selected`
+job only when at least one test is required and always receives a `full-suite`
+job. CI can use that array directly as a matrix while retaining authority over
+checkouts, adapter commands, credentials, isolation, and release gates.
 
 ## Structural and domain validation
 
