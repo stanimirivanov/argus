@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/stanimirivanov/argus/internal/catalog"
 	"github.com/stanimirivanov/argus/internal/change"
@@ -44,6 +45,16 @@ var (
 	// ErrValidationRejected means the candidate did not satisfy the required
 	// original, repaired, and negative-control outcomes.
 	ErrValidationRejected = errors.New("adaptation validation rejected")
+	// ErrReviewConflict means a deterministic review branch or pull request
+	// exists but no longer represents the validated candidate.
+	ErrReviewConflict = errors.New("adaptation review conflict")
+)
+
+const (
+	// ReviewAPIVersion identifies a published, review-first repair reference.
+	ReviewAPIVersion = "argus.dev/adaptation-review/v1"
+	// ReviewProviderGitHub identifies the first supported review destination.
+	ReviewProviderGitHub = "github"
 )
 
 // Classification describes the observed state of one test.
@@ -135,6 +146,26 @@ type Proposal struct {
 	AdapterID             string
 	AdapterVersion        string
 	Edit                  TextEdit
+}
+
+// ReviewPublication records the externally visible draft created from one
+// validated proposal. It is evidence of review handoff, never merge approval.
+type ReviewPublication struct {
+	APIVersion        string
+	ReviewID          string
+	ProposalID        string
+	ValidationID      string
+	Repository        catalog.Repository
+	Provider          string
+	BaseBranch        string
+	BaseRevision      catalog.Revision
+	HeadBranch        string
+	HeadRevision      catalog.Revision
+	PullRequestNumber int
+	PullRequestURL    string
+	Draft             bool
+	State             string
+	PublishedAt       time.Time
 }
 
 // CanonicalEndpointRename deep-copies and orders set-like evidence.

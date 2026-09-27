@@ -287,17 +287,21 @@ the control plane framework-specific source knowledge or mutation authority:
 
 | Path | Owns | Must not own |
 |:--|:--|:--|
-| `internal/adaptation` | Proposal and validation vocabulary, endpoint rename and edit invariants, canonical evidence, stable errors, and policy versions | Generated contracts, process execution, filesystem access, or pull requests |
+| `internal/adaptation` | Proposal, validation, and review-publication vocabulary; endpoint rename and edit invariants; canonical evidence; stable errors; and policy versions | Generated contracts, process execution, filesystem access, or provider APIs |
 | `internal/adaptation/functionalapi` | Unique endpoint-rename proof, adapter port, proposal identity, result correlation, and constrained edit policy | Framework parsers, JSON, commands, source mutation, or review APIs |
 | `internal/adaptation/validation` | Three-phase outcome policy, exact span materialization, negative-control derivation, runner/workspace ports, restoration checks, and evidence assembly | Filesystem APIs, framework commands, JSON, persistence, or review APIs |
-| `internal/adaptation/adapters/contract` | Adaptation and validation request/result/evidence conversion | Rename inference, validation policy, or source mutation |
+| `internal/adaptation/review` | Proposal/evidence correlation, immutable-source reconstruction, deterministic review identity, review content, and the consumer-owned provider gateway | GitHub HTTP, credentials, JSON, merge policy, or reviewer outcomes |
+| `internal/adaptation/adapters/contract` | Adaptation, validation, and review request/result/evidence conversion | Rename inference, validation policy, source mutation, or provider calls |
 | `internal/adaptation/adapters/processadapter` | Bounded no-shell request/result exchange with an explicit executable | Command discovery, source mutation, or adaptation policy |
 | `internal/adaptation/adapters/fileworkspace` | Root containment, regular-file access, preimage-guarded writes, and restoration in a disposable checkout | Validation outcome policy or test execution |
 | `internal/adaptation/adapters/validationprocessadapter` | Bounded no-shell phase execution in the disposable checkout | Patch selection, source writes, or outcome policy |
+| `internal/adaptation/adapters/githubreview` | Stable repository-identity verification and idempotent GitHub branch, single-file commit, and draft-PR publication | Repair eligibility, candidate construction, merge, or review interpretation |
 | `internal/adaptation/adapters/cli/proposalcli` | Bounded impact/manifest input, exact test selection, provenance correlation, timeout, and proposal JSON output | Concrete process construction or framework parsing |
 | `internal/adaptation/adapters/cli/validationcli` | Bounded proposal input, explicit disposable root, total timeout, and validation-evidence JSON output | Concrete workspace/process construction or validation policy |
+| `internal/adaptation/adapters/cli/reviewcli` | Bounded proposal/evidence input, secret environment configuration, timeout, and review-publication JSON output | Candidate policy, GitHub HTTP, or merge authority |
 | `cmd/propose-functional-api-repair` | Process-adapter composition and operating-system streams | Adaptation or contract policy |
 | `cmd/validate-functional-api-repair` | Guarded workspace and validation-process composition | Validation, patch, or contract policy |
+| `cmd/open-functional-api-repair-pr` | GitHub review-adapter composition and operating-system streams | Review eligibility, candidate construction, or contract policy |
 
 Argus requires complete semantic impact and one contract-declared operation
 identity moving from an old path to a new path. Repository-owned adapters map
@@ -315,6 +319,17 @@ file after each modified execution. Adapters only translate stable test IDs to
 framework invocation. Successful evidence retains every executed source digest
 and the final restored digest. [ADR-0015](../decisions/0015-validate-repairs-with-a-restored-negative-control-workspace.md)
 defines the workspace and negative-control policy.
+
+Review publication reloads the source at the proposal's immutable test
+revision, verifies the complete-file preimage, reconstructs the exact candidate,
+and checks its digest against validation evidence before any external write.
+The GitHub adapter verifies stable repository identity, uses a deterministic
+branch, and treats an exact retry as the same operation. A branch, file, or
+pull request that diverges from the validated candidate is a conflict rather
+than an overwrite. Publication creates only an open draft and returns
+`argus.dev/adaptation-review/v1`; it never marks the review ready or merges it.
+[ADR-0016](../decisions/0016-publish-validated-repairs-as-idempotent-draft-pull-requests.md)
+defines the external-write and recovery boundary.
 
 For heterogeneous manifests, the planner groups by stable test-repository
 identity and adapter. Reviewed bindings must cover that group set exactly and

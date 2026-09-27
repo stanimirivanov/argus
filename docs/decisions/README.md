@@ -114,3 +114,4 @@ How will the assumptions and consequences be verified?
 | [ADR-0013](0013-evaluate-selection-across-complete-execution-plans.md) | Evaluate selection across complete execution plans | Accepted | 2026-09-26 |
 | [ADR-0014](0014-generate-endpoint-repair-proposals-through-reviewed-adapters.md) | Generate endpoint repair proposals through reviewed adapters | Accepted | 2026-09-26 |
 | [ADR-0015](0015-validate-repairs-with-a-restored-negative-control-workspace.md) | Validate repairs with a restored negative-control workspace | Accepted | 2026-09-27 |
+| [ADR-0016](0016-publish-validated-repairs-as-idempotent-draft-pull-requests.md) | Publish validated repairs as idempotent draft pull requests | Accepted | 2026-09-27 |

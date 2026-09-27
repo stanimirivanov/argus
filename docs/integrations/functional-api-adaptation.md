@@ -3,11 +3,11 @@
 ## TL;DR
 
 `propose-functional-api-repair` emits one deterministic endpoint-reference
-proposal. `validate-functional-api-repair` then verifies the source preimage
-in a disposable checkout and requires three outcomes: original failure,
-candidate success, and deterministic negative-control failure. Original bytes
-are restored after every modified phase. Neither command commits or opens a
-pull request.
+proposal. `validate-functional-api-repair` verifies it with original,
+candidate, and negative-control runs in a disposable checkout.
+`open-functional-api-repair-pr` then rechecks the immutable source and opens an
+idempotent draft GitHub pull request containing only the validated edit. No
+command merges or marks the review ready.
 
 ## Boundary and responsibilities
 
@@ -145,13 +145,50 @@ Successful stdout is `argus.dev/validation-evidence/v1` and retains:
 Validation evidence is produced only for `failed → passed → failed`. It is a
 precondition for later review automation, not merge authorization.
 
+## Draft pull-request publication
+
+Publication is an explicit external-write step and requires both prior JSON
+documents plus a caller-selected base branch:
+
+```sh
+export ARGUS_GITHUB_TOKEN='fine-grained-token'
+go run ./cmd/open-functional-api-repair-pr \
+  -proposal ./adaptation-proposal.json \
+  -validation-evidence ./validation-evidence.json \
+  -base-branch main \
+  > adaptation-review.json
+```
+
+Set `ARGUS_GITHUB_API_URL` and `ARGUS_GITHUB_HOST` for GitHub Enterprise. The
+token needs contents and pull-request write permission only in the test
+repository. It is never accepted as a command-line flag or included in output.
+
+Before writing, Argus correlates proposal, validation, test, adapter, policy,
+and edit identities. It reloads the source at the proposal's immutable test
+revision, verifies the complete-file SHA-256 and byte preimage, reconstructs
+the candidate, and requires its digest to equal the validated candidate digest.
+The provider adapter also verifies that the current owner/name coordinates
+still resolve to the cataloged GitHub repository ID.
+
+The head branch is deterministic:
+`argus/endpoint-repair-<first-12-proposal-id-characters>`. Publication creates
+or recovers that branch, commits the one validated file with an optimistic blob
+precondition, and opens a draft PR. An exact retry returns the same open draft,
+including after a prior attempt stopped between branch, commit, and PR creation.
+Existing divergent content, a non-draft PR, a different base, or a closed PR is
+reported as a conflict and is never overwritten.
+
+`argus.dev/adaptation-review/v1` records the proposal, validation, repository,
+base/head revisions, deterministic branches, PR number and URL, draft state,
+and publication time. The PR body summarizes the three validation gates and
+source digests. This evidence is a human-review handoff, not merge authority.
+
 ## Remaining non-goals
 
 This slice intentionally does not:
 
-- open a pull request; or
 - persist unsuccessful validation attempts; or
 - learn from review outcomes.
 
-Those behaviors require the review outcome and workflow integration planned in
-the remaining M06 work.
+Review-outcome ingestion must separately capture an explicit reviewer decision,
+reason code, and final edited diff. It is planned in the remaining M06 work.
