@@ -2,9 +2,12 @@ package adaptation
 
 import (
 	"cmp"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"net/url"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -120,6 +123,41 @@ func CanonicalReviewOutcome(outcome ReviewOutcome) ReviewOutcome {
 	return canonical
 }
 
+// DeriveReviewOutcomeID returns the v1 terminal-evidence identity. Its field
+// sequence is a compatibility boundary: observation time is excluded so a
+// later exact retry retains the same identity.
+func DeriveReviewOutcomeID(outcome ReviewOutcome) string {
+	outcome = CanonicalReviewOutcome(outcome)
+	hash := sha256.New()
+	writeHashField := func(value string) {
+		_, _ = hash.Write([]byte(value))
+		_, _ = hash.Write([]byte{0})
+	}
+	for _, value := range []string{
+		"argus-review-outcome-v1", outcome.ReviewID, outcome.ProposalID, outcome.ValidationID,
+		string(outcome.Decision), string(outcome.ReasonCode), outcome.ReasonNote,
+		string(outcome.FinalRevision.Algorithm), outcome.FinalRevision.Digest,
+		outcome.ClosedAt.Format(time.RFC3339Nano),
+	} {
+		writeHashField(value)
+	}
+	if outcome.MergedAt == nil {
+		writeHashField("")
+	} else {
+		writeHashField(outcome.MergedAt.Format(time.RFC3339Nano))
+	}
+	for _, edit := range outcome.ReviewerEdits {
+		for _, value := range []string{
+			edit.Path, edit.PreviousPath, string(edit.Kind), strconv.Itoa(edit.Additions),
+			strconv.Itoa(edit.Deletions), edit.Patch,
+		} {
+			writeHashField(value)
+		}
+	}
+
+	return hex.EncodeToString(hash.Sum(nil))
+}
+
 // ValidateReviewOutcome enforces terminal decision, reason, time, and complete-diff invariants.
 func ValidateReviewOutcome(outcome ReviewOutcome) error {
 	pullRequestURL, urlErr := url.Parse(outcome.PullRequestURL)
@@ -144,17 +182,23 @@ func ValidateReviewOutcome(outcome ReviewOutcome) error {
 	if outcome.Repository.Identity.Provider != catalog.ProviderGitHub ||
 		outcome.GeneratedRevision.Algorithm != outcome.FinalRevision.Algorithm ||
 		len(outcome.ReviewerEdits) > MaxReviewerEditFiles ||
-		!slices.Equal(outcome.ReviewerEdits, CanonicalReviewOutcome(outcome).ReviewerEdits) {
+		!slices.Equal(outcome.ReviewerEdits, CanonicalReviewOutcome(outcome).ReviewerEdits) ||
+		outcome.OutcomeID != DeriveReviewOutcomeID(outcome) {
 		return fmt.Errorf("%w: review outcome provenance", ErrInvalid)
 	}
 	if err := validateReviewDecision(outcome); err != nil {
 		return err
 	}
 	totalPatchBytes := 0
+	paths := make(map[string]struct{}, len(outcome.ReviewerEdits))
 	for _, edit := range outcome.ReviewerEdits {
 		if err := validateReviewFileEdit(edit); err != nil {
 			return err
 		}
+		if _, duplicate := paths[edit.Path]; duplicate {
+			return fmt.Errorf("%w: duplicate reviewer edit path", ErrInvalid)
+		}
+		paths[edit.Path] = struct{}{}
 		totalPatchBytes += len(edit.Patch)
 	}
 	if totalPatchBytes > MaxReviewerTotalPatchBytes {
@@ -165,7 +209,8 @@ func ValidateReviewOutcome(outcome ReviewOutcome) error {
 }
 
 func validateReviewDecision(outcome ReviewOutcome) error {
-	if len(outcome.ReasonNote) > 1000 || strings.TrimSpace(outcome.ReasonNote) != outcome.ReasonNote {
+	if len(outcome.ReasonNote) > 1000 || strings.TrimSpace(outcome.ReasonNote) != outcome.ReasonNote ||
+		strings.ContainsRune(outcome.ReasonNote, '\x00') {
 		return fmt.Errorf("%w: review reason note", ErrInvalid)
 	}
 	switch outcome.Decision {
@@ -193,6 +238,9 @@ func validateReviewDecision(outcome ReviewOutcome) error {
 	if outcome.ReasonCode == ReviewReasonOther && strings.TrimSpace(outcome.ReasonNote) == "" {
 		return fmt.Errorf("%w: other review reason requires note", ErrInvalid)
 	}
+	if len(outcome.ReviewerEdits) != 0 && outcome.FinalRevision == outcome.GeneratedRevision {
+		return fmt.Errorf("%w: reviewer edits require a distinct final revision", ErrInvalid)
+	}
 
 	return nil
 }
@@ -209,7 +257,8 @@ func validRejectionReason(reason ReviewReasonCode) bool {
 
 func validateReviewFileEdit(edit ReviewFileEdit) error {
 	if !validRepositoryPath(edit.Path) || edit.Additions < 0 || edit.Deletions < 0 ||
-		edit.Additions+edit.Deletions == 0 || edit.Patch == "" || len(edit.Patch) > MaxReviewerPatchBytes {
+		edit.Additions+edit.Deletions == 0 || edit.Patch == "" || len(edit.Patch) > MaxReviewerPatchBytes ||
+		strings.ContainsRune(edit.Patch, '\x00') {
 		return fmt.Errorf("%w: reviewer file edit", ErrInvalid)
 	}
 	if edit.PreviousPath != "" && !validRepositoryPath(edit.PreviousPath) {

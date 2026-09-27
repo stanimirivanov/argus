@@ -14,6 +14,8 @@
   evaluate supported, refuted, stale, or conflicting capability-to-test edges.
 - The control plane stores authenticated GitHub delivery identity and bounded
   normalized change evidence with atomic exact-retry behavior.
+- Terminal adaptation review outcomes and their complete bounded reviewer
+  patches are stored atomically with one immutable outcome per review.
 - Database-changing work runs `make db-validate` against a disposable loopback
   PostgreSQL server configured by `ARGUS_TEST_POSTGRES_URL`.
 - Migration files are immutable after merge. A checksum mismatch, unknown
@@ -29,7 +31,8 @@ container image.
 
 The Go adapter exposes runtime and migration capabilities separately.
 `postgres.Store` implements the catalog snapshot, query, impact-evidence, and
-change-ingestion ports and owns bounded read/write connections; opening it
+change-ingestion ports together with execution and adaptation evidence ports,
+and owns bounded read/write connections; opening it
 never changes schema state. `postgres.Migrator` owns a single privileged
 connection pool and can only apply the embedded migration chain. Commands
 compose one capability or the other, so a runtime dependency cannot acquire
@@ -241,6 +244,45 @@ remain compatible. Application rollback leaves unused immutable rows in place;
 forward recovery remains the schema strategy. Before production-scale history,
 define retention and external artifact-lifecycle policy from measured volume.
 
+## Persist and retrieve adaptation review outcomes
+
+After capturing `argus.dev/review-outcome/v1`, ingest it through the local
+administrative evidence boundary:
+
+~~~sh
+export ARGUS_DATABASE_URL='postgres://argus_runtime:...@db.example/argus'
+go run ./cmd/adaptation-evidence ingest -file ./review-outcome.json
+~~~
+
+The store creates one immutable outcome per adaptation `reviewId` and retains
+repository and PR provenance, generated and final revisions, terminal times,
+the explicit reason, and every bounded reviewer patch in one transaction. The
+public `outcomeId` is recomputed during import rather than trusted merely
+because it looks like a SHA-256 value.
+
+Exact semantic retries report `created: false`. The capture observation time
+is intentionally excluded from retry equality, so polling the same terminal
+review later converges on the first stored observation. Any different
+disposition, reason, revision, repository/PR provenance, or reviewer patch for
+the same `reviewId` returns an immutable conflict.
+
+Read the complete portable outcome explicitly by identity:
+
+~~~sh
+go run ./cmd/adaptation-evidence get \
+  -outcome-id 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+~~~
+
+The read uses one repeatable-read transaction and validates the reconstructed
+domain evidence before returning JSON. There is no implicit latest-outcome
+lookup, mutation, delete, provider call, or policy update.
+
+The migration adds empty outcome and reviewer-edit tables with relational,
+decision/reason, revision, timestamp, path, and patch bounds. It performs no
+backfill, scan, or rewrite of existing evidence. Older binaries ignore the new
+tables; application rollback leaves them intact. The runtime role needs only
+the existing schema/table/sequence grants.
+
 ## Least-privilege roles
 
 The migration role owns the schema and ledger. The runtime role does not need
@@ -295,7 +337,8 @@ concurrent ingestion, deterministic multi-page catalog queries, capability
 filtering, empty/missing distinction, upgrade with representative data,
 evidence retry/conflict and reference validation, temporal edge states,
 concurrent evidence ingestion, delivery retry/conflict, concurrent delivery
-claiming, and read-after-restart. Ordinary `make validate` remains
+claiming, review-outcome retry/conflict/concurrency/constraints, and read-after-
+restart. Ordinary `make validate` remains
 database-independent; CI runs `make db-validate` in a separate Ubuntu job with
 an isolated PostgreSQL 17.11 service.
 

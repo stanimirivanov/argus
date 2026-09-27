@@ -1,6 +1,6 @@
 {
   "apiVersion": "argus.dev/review-outcome/v1",
-  "outcomeId": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+  "outcomeId": "8b425fe36798a4880cfb1ffc4392a08581a9f906476e79af7d33cecb0771baae",
   "reviewId": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
   "proposalId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
   "validationId": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
@@ -18,7 +18,7 @@
   "decision": "accepted-with-edits",
   "reason": {
     "code": "corrected",
-    "note": "Kept the validated endpoint and clarified the request helper."
+    "note": "Reviewer corrected the helper."
   },
   "generatedRevision": {
     "algorithm": "git-sha1",
@@ -38,7 +38,7 @@
       "kind": "modified",
       "additions": 1,
       "deletions": 1,
-      "patch": "@@ -1 +1 @@\n-await request.get('/v2/orders')\n+await request.get('/v2/orders', options)"
+      "patch": "@@ -1 +1 @@\n-old\n+new"
     }
   ]
 }

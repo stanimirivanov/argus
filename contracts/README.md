@@ -34,6 +34,9 @@
   one correlated proposal and successful validation proof.
 - Review-outcome v1 records a terminal provider-derived disposition, explicit
   reviewer reason, and complete bounded edits after the generated commit.
+  Its published v1 identity excludes retry observation time and is verified
+  during durable ingestion; persistence separately fingerprints the complete
+  provenance.
 - Structural validity and domain validity are distinct and share one fixture
   corpus.
 - Generate language stubs only when a real producer or consumer needs them.

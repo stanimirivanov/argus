@@ -281,8 +281,21 @@ from the closed GitHub pull request and requires a compatible explicit reason
 code. When the final head differs from the generated head, it retains the
 complete bounded patch between those two commits. Open reviews, divergent
 history, missing patches, and truncated comparisons fail closed. The command
-does not infer correctness from merge state and does not yet persist the
-emitted outcome.
+does not infer correctness from merge state.
+
+After applying migrations, persist and retrieve that immutable outcome:
+
+~~~sh
+export ARGUS_DATABASE_URL='postgres://argus_runtime:...@db.example/argus'
+go run ./cmd/adaptation-evidence ingest -file ./review-outcome.json
+go run ./cmd/adaptation-evidence get \
+  -outcome-id 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+~~~
+
+An exact semantic retry reports `created: false`, even when it was observed
+again later. A different outcome, reason, or final edit under the same review
+identity is an immutable conflict. Reads reconstruct the header and complete
+reviewer edits from one repeatable-read database snapshot.
 
 Persist each normalized attempt after the CI job has uploaded any referenced
 artifact bytes:
