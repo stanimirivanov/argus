@@ -307,8 +307,15 @@ The third M06 slice now publishes a correlated proposal and successful
 validation proof as an idempotent draft GitHub pull request. It rechecks the
 immutable source preimage, commits only the validated file on a deterministic
 branch, embeds validation evidence in the PR, recovers exact retries, and
-rejects divergent provider state. Review-outcome ingestion, reason codes, final
-edited-diff capture, and evidence persistence remain.
+rejects divergent provider state.
+
+The fourth M06 slice now captures a terminal GitHub review as a portable
+`ReviewOutcome`. It correlates the complete proposal/validation/publication
+chain, derives acceptance or rejection from provider state, requires a
+compatible explicit reason code, and retains the complete bounded diff from
+the generated commit to the final reviewed head. Open, divergent, truncated,
+or patch-incomplete evidence fails closed. Durable outcome persistence,
+unsuccessful-validation evidence, and the compatible field-rename class remain.
 
 ## M07 - UI test intelligence
 

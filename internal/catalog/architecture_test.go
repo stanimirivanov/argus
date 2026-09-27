@@ -158,6 +158,7 @@ func TestHexagonalImportBoundaries(t *testing.T) {
 			recursive: true,
 			includeDirectories: []string{
 				filepath.Join(adaptationRoot, "functionalapi"),
+				filepath.Join(adaptationRoot, "outcome"),
 				filepath.Join(adaptationRoot, "review"),
 				filepath.Join(adaptationRoot, "validation"),
 			},

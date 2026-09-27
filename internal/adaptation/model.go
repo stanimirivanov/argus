@@ -48,6 +48,12 @@ var (
 	// ErrReviewConflict means a deterministic review branch or pull request
 	// exists but no longer represents the validated candidate.
 	ErrReviewConflict = errors.New("adaptation review conflict")
+	// ErrReviewNotFinal means a review is still open and cannot yet provide a
+	// terminal learning outcome.
+	ErrReviewNotFinal = errors.New("adaptation review is not final")
+	// ErrReviewEvidenceIncomplete means provider evidence cannot describe the
+	// complete final reviewer-authored diff within policy bounds.
+	ErrReviewEvidenceIncomplete = errors.New("adaptation review evidence incomplete")
 )
 
 const (
@@ -55,6 +61,8 @@ const (
 	ReviewAPIVersion = "argus.dev/adaptation-review/v1"
 	// ReviewProviderGitHub identifies the first supported review destination.
 	ReviewProviderGitHub = "github"
+	// ReviewOutcomeAPIVersion identifies terminal structured review evidence.
+	ReviewOutcomeAPIVersion = "argus.dev/review-outcome/v1"
 )
 
 // Classification describes the observed state of one test.

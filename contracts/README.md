@@ -32,6 +32,8 @@
   attempt discovery.
 - Adaptation-review v1 records the open draft GitHub pull request created from
   one correlated proposal and successful validation proof.
+- Review-outcome v1 records a terminal provider-derived disposition, explicit
+  reviewer reason, and complete bounded edits after the generated commit.
 - Structural validity and domain validity are distinct and share one fixture
   corpus.
 - Generate language stubs only when a real producer or consumer needs them.
@@ -70,6 +72,7 @@ actually fetched.
 | `source/adaptation-v1.ts` | Authoritative repair proposal and framework-adapter contracts. |
 | `source/adaptation-validation-v1.ts` | Authoritative isolated validation request, result, and evidence contracts. |
 | `source/adaptation-review-v1.ts` | Authoritative review-first publication contract. |
+| `source/review-outcome-v1.ts` | Authoritative terminal review-outcome and reviewer-edit contract. |
 | `source/repository-descriptor-v1.test.ts` | Structural fixture tests through Effect Schema. |
 | `source/test-catalog-page-v1.test.ts` | Test-catalog result compatibility tests through Effect Schema. |
 | `scripts/generate.ts` | Deterministic JSON Schema compiler and drift check. |
@@ -90,6 +93,7 @@ actually fetched.
 | `fixtures/selection-shadow-report/v1/` | Shadow report compatibility fixtures. |
 | `fixtures/execution-plan-attempt-bindings/v1/` | Explicit plan-to-attempt binding fixtures. |
 | `fixtures/selection-plan-shadow-report/v1/` | Complete-plan aggregate shadow-report fixtures. |
+| `fixtures/review-outcome/v1/` | Terminal review-outcome compatibility fixtures. |
 | `repository_descriptor.go` | Go schema-validation boundary and transport DTO. |
 | `test_catalog_page.go` | Go test-catalog transport DTO and generated-schema validation boundary. |
 | `impact_evidence_bundle.go` | Go evidence-bundle transport and schema-validation boundary. |
@@ -101,6 +105,7 @@ actually fetched.
 | `functional_api_execution_plan.go` | Go execution-binding and plan DTO and generated-schema validation boundary. |
 | `selection_shadow_report.go` | Go shadow-report DTO and generated-schema validation boundary. |
 | `selection_plan_shadow_report.go` | Go complete-plan binding/report DTO and generated-schema validation boundary. |
+| `review_outcome.go` | Go terminal review-outcome DTO and generated-schema validation boundary. |
 | `../internal/catalog/adapters/contract/descriptor/` | Repository-descriptor-to-domain conversion and semantic validation. |
 | `../internal/catalog/` | Catalog domain vocabulary, use cases, errors, and persistence port. |
 | `../internal/change/` | Provider-neutral change invariants and ingestion use case. |
