@@ -6,8 +6,10 @@
 proposal. `validate-functional-api-repair` verifies it with original,
 candidate, and negative-control runs in a disposable checkout.
 `open-functional-api-repair-pr` then rechecks the immutable source and opens an
-idempotent draft GitHub pull request containing only the validated edit. No
-command merges or marks the review ready.
+idempotent draft GitHub pull request containing only the validated edit. After
+the review closes, `capture-functional-api-review-outcome` derives its terminal
+disposition and captures any bounded reviewer edits. No command merges or
+marks the review ready.
 
 ## Boundary and responsibilities
 
@@ -183,12 +185,54 @@ base/head revisions, deterministic branches, PR number and URL, draft state,
 and publication time. The PR body summarizes the three validation gates and
 source digests. This evidence is a human-review handoff, not merge authority.
 
+## Terminal review-outcome capture
+
+After the PR closes or merges, retain an explicit reason from the reviewer
+workflow and invoke:
+
+```sh
+export ARGUS_GITHUB_TOKEN='fine-grained-token'
+go run ./cmd/capture-functional-api-review-outcome \
+  -proposal ./adaptation-proposal.json \
+  -validation-evidence ./validation-evidence.json \
+  -review ./adaptation-review.json \
+  -reason-code corrected \
+  -reason-note 'Reviewer updated the expected request headers.' \
+  > review-outcome.json
+```
+
+The command revalidates and correlates all three earlier documents before it
+reads provider state. It verifies the stable repository identity and exact PR,
+base branch, and generated head branch. An open PR returns a not-final error.
+
+The terminal decision is provider-derived, not supplied by the caller:
+
+| Provider state | Decision | Required reason code |
+|:--|:--|:--|
+| Merged at the generated head | `accepted-as-proposed` | `approved` |
+| Merged after additional commits | `accepted-with-edits` | `corrected` |
+| Closed without merge | `rejected` | `incorrect-repair`, `unsafe-repair`, `no-longer-needed`, `superseded`, or `other` |
+
+`other` requires a reason note. A note may accompany any decision but is
+bounded to 1,000 characters. A merge remains workflow evidence, not proof that
+the repair was correct.
+
+When the final head differs, Argus compares the generated head commit directly
+to the final reviewed head. The generated commit must be the merge base and
+the final head must be strictly ahead. Every changed file requires a complete
+unified patch; unknown file kinds, missing or oversized patches, comparison
+truncation, non-linear history, and excess total evidence fail closed. The
+resulting `argus.dev/review-outcome/v1` is deterministic, portable evidence for
+later evaluation and learning.
+
 ## Remaining non-goals
 
 This slice intentionally does not:
 
-- persist unsuccessful validation attempts; or
-- learn from review outcomes.
+- persist unsuccessful validation attempts or review outcomes;
+- treat a merge as automatic promotion or correctness authority; or
+- train or update an adaptation policy from a single captured outcome.
 
-Review-outcome ingestion must separately capture an explicit reviewer decision,
-reason code, and final edited diff. It is planned in the remaining M06 work.
+Durable outcome storage and aggregate learning queries are separate follow-up
+work. Until then, CI must retain `review-outcome.json` as an immutable artifact
+or pass it to a trusted downstream evidence store.

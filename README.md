@@ -262,6 +262,28 @@ validation summary. Exact retries return the same open draft; a divergent
 branch or PR is rejected. The command never marks a PR ready, merges it, or
 deletes provider state.
 
+After that pull request reaches a terminal state, capture the review result as
+portable learning evidence:
+
+~~~sh
+export ARGUS_GITHUB_TOKEN='fine-grained-token'
+go run ./cmd/capture-functional-api-review-outcome \
+  -proposal ./adaptation-proposal.json \
+  -validation-evidence ./validation-evidence.json \
+  -review ./adaptation-review.json \
+  -reason-code corrected \
+  -reason-note 'Reviewer updated the expected request headers.' \
+  > ./review-outcome.json
+~~~
+
+Argus derives `accepted-as-proposed`, `accepted-with-edits`, or `rejected`
+from the closed GitHub pull request and requires a compatible explicit reason
+code. When the final head differs from the generated head, it retains the
+complete bounded patch between those two commits. Open reviews, divergent
+history, missing patches, and truncated comparisons fail closed. The command
+does not infer correctness from merge state and does not yet persist the
+emitted outcome.
+
 Persist each normalized attempt after the CI job has uploaded any referenced
 artifact bytes:
 

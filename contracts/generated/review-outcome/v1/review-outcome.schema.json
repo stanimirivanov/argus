@@ -1,0 +1,329 @@
+{
+  "$id": "https://argus.dev/contracts/review-outcome/v1/schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "ReviewOutcomeV1": {
+      "type": "object",
+      "required": [
+        "apiVersion",
+        "outcomeId",
+        "reviewId",
+        "proposalId",
+        "validationId",
+        "repository",
+        "pullRequest",
+        "decision",
+        "reason",
+        "generatedRevision",
+        "finalRevision",
+        "closedAt",
+        "mergedAt",
+        "observedAt",
+        "reviewerEdits"
+      ],
+      "properties": {
+        "apiVersion": {
+          "type": "string",
+          "enum": [
+            "argus.dev/review-outcome/v1"
+          ]
+        },
+        "outcomeId": {
+          "type": "string",
+          "description": "a string matching the pattern ^[0-9a-f]{64}$",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "reviewId": {
+          "type": "string",
+          "description": "a string matching the pattern ^[0-9a-f]{64}$",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "proposalId": {
+          "type": "string",
+          "description": "a string matching the pattern ^[0-9a-f]{64}$",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "validationId": {
+          "type": "string",
+          "description": "a string matching the pattern ^[0-9a-f]{64}$",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "repository": {
+          "$ref": "#/$defs/RepositoryReference"
+        },
+        "pullRequest": {
+          "type": "object",
+          "required": [
+            "number",
+            "url"
+          ],
+          "properties": {
+            "number": {
+              "$ref": "#/$defs/Int",
+              "description": "a number greater than or equal to 1",
+              "title": "greaterThanOrEqualTo(1)",
+              "minimum": 1
+            },
+            "url": {
+              "type": "string",
+              "description": "a string at most 2048 character(s) long",
+              "title": "maxLength(2048)",
+              "minLength": 1,
+              "maxLength": 2048
+            }
+          },
+          "additionalProperties": false
+        },
+        "decision": {
+          "type": "string",
+          "enum": [
+            "accepted-as-proposed",
+            "accepted-with-edits",
+            "rejected"
+          ]
+        },
+        "reason": {
+          "type": "object",
+          "required": [
+            "code",
+            "note"
+          ],
+          "properties": {
+            "code": {
+              "$ref": "#/$defs/LocalKey"
+            },
+            "note": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "description": "a string at most 1000 character(s) long",
+                  "title": "maxLength(1000)",
+                  "minLength": 1,
+                  "maxLength": 1000
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        "generatedRevision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "finalRevision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "closedAt": {
+          "$ref": "#/$defs/DateTimeUtc"
+        },
+        "mergedAt": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DateTimeUtc"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "observedAt": {
+          "$ref": "#/$defs/DateTimeUtc"
+        },
+        "reviewerEdits": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "path",
+              "previousPath",
+              "kind",
+              "additions",
+              "deletions",
+              "patch"
+            ],
+            "properties": {
+              "path": {
+                "type": "string",
+                "description": "a string matching the pattern ^[^/\\\\][^\\\\]*$",
+                "title": "maxLength(4096)",
+                "minLength": 1,
+                "maxLength": 4096,
+                "pattern": "^[^/\\\\][^\\\\]*$"
+              },
+              "previousPath": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "description": "a string matching the pattern ^[^/\\\\][^\\\\]*$",
+                    "title": "maxLength(4096)",
+                    "minLength": 1,
+                    "maxLength": 4096,
+                    "pattern": "^[^/\\\\][^\\\\]*$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "added",
+                  "modified",
+                  "deleted",
+                  "renamed",
+                  "copied"
+                ]
+              },
+              "additions": {
+                "$ref": "#/$defs/Int",
+                "description": "a non-negative number",
+                "title": "greaterThanOrEqualTo(0)",
+                "minimum": 0
+              },
+              "deletions": {
+                "$ref": "#/$defs/Int",
+                "description": "a non-negative number",
+                "title": "greaterThanOrEqualTo(0)",
+                "minimum": 0
+              },
+              "patch": {
+                "type": "string",
+                "description": "a string at most 65536 character(s) long",
+                "title": "maxLength(65536)",
+                "minLength": 1,
+                "maxLength": 65536
+              }
+            },
+            "additionalProperties": false
+          },
+          "description": "an array of at most 100 item(s)",
+          "title": "maxItems(100)",
+          "maxItems": 100
+        }
+      },
+      "additionalProperties": false,
+      "description": "Terminal provider-derived review disposition, explicit reason, and complete bounded diff after Argus' generated commit.",
+      "title": "Argus review outcome v1"
+    },
+    "RepositoryReference": {
+      "type": "object",
+      "required": [
+        "provider",
+        "host",
+        "providerRepositoryId",
+        "owner",
+        "name"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": [
+            "github",
+            "gitlab",
+            "azure-devops",
+            "other"
+          ]
+        },
+        "host": {
+          "type": "string",
+          "description": "a string matching the pattern ^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$",
+          "title": "maxLength(255)",
+          "minLength": 1,
+          "maxLength": 255,
+          "pattern": "^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$"
+        },
+        "providerRepositoryId": {
+          "type": "string",
+          "description": "a string at most 255 character(s) long",
+          "title": "maxLength(255)",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "owner": {
+          "type": "string",
+          "description": "a string at most 255 character(s) long",
+          "title": "maxLength(255)",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "name": {
+          "type": "string",
+          "description": "a string at most 255 character(s) long",
+          "title": "maxLength(255)",
+          "minLength": 1,
+          "maxLength": 255
+        }
+      },
+      "additionalProperties": false,
+      "description": "A repository reference anchored by the provider-assigned identity; owner and name are mutable display coordinates."
+    },
+    "Int": {
+      "type": "integer",
+      "description": "an integer",
+      "title": "int"
+    },
+    "LocalKey": {
+      "type": "string",
+      "description": "A stable, repository-declared key. It is scoped by its containing repository or parent declaration.",
+      "title": "maxLength(63)",
+      "minLength": 1,
+      "maxLength": 63,
+      "pattern": "^[a-z][a-z0-9._-]*$"
+    },
+    "Revision": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "algorithm",
+            "digest"
+          ],
+          "properties": {
+            "algorithm": {
+              "type": "string",
+              "enum": [
+                "git-sha1"
+              ]
+            },
+            "digest": {
+              "type": "string",
+              "description": "a string matching the pattern ^[0-9a-f]{40}$",
+              "pattern": "^[0-9a-f]{40}$"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "algorithm",
+            "digest"
+          ],
+          "properties": {
+            "algorithm": {
+              "type": "string",
+              "enum": [
+                "git-sha256"
+              ]
+            },
+            "digest": {
+              "type": "string",
+              "description": "a string matching the pattern ^[0-9a-f]{64}$",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          "additionalProperties": false
+        }
+      ],
+      "description": "An immutable, normalized Git object revision."
+    },
+    "DateTimeUtc": {
+      "type": "string",
+      "description": "a string to be decoded into a DateTime.Utc"
+    }
+  },
+  "$ref": "#/$defs/ReviewOutcomeV1"
+}

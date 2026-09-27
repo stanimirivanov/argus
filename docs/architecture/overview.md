@@ -287,21 +287,24 @@ the control plane framework-specific source knowledge or mutation authority:
 
 | Path | Owns | Must not own |
 |:--|:--|:--|
-| `internal/adaptation` | Proposal, validation, and review-publication vocabulary; endpoint rename and edit invariants; canonical evidence; stable errors; and policy versions | Generated contracts, process execution, filesystem access, or provider APIs |
+| `internal/adaptation` | Proposal, validation, review-publication, and terminal-outcome vocabulary; endpoint rename and edit invariants; canonical evidence; stable errors; and policy versions | Generated contracts, process execution, filesystem access, or provider APIs |
 | `internal/adaptation/functionalapi` | Unique endpoint-rename proof, adapter port, proposal identity, result correlation, and constrained edit policy | Framework parsers, JSON, commands, source mutation, or review APIs |
 | `internal/adaptation/validation` | Three-phase outcome policy, exact span materialization, negative-control derivation, runner/workspace ports, restoration checks, and evidence assembly | Filesystem APIs, framework commands, JSON, persistence, or review APIs |
 | `internal/adaptation/review` | Proposal/evidence correlation, immutable-source reconstruction, deterministic review identity, review content, and the consumer-owned provider gateway | GitHub HTTP, credentials, JSON, merge policy, or reviewer outcomes |
-| `internal/adaptation/adapters/contract` | Adaptation, validation, and review request/result/evidence conversion | Rename inference, validation policy, source mutation, or provider calls |
+| `internal/adaptation/outcome` | Proposal/evidence/publication correlation, provider-state decision derivation, explicit reason validation, and deterministic outcome identity | GitHub HTTP, credentials, persistence, merge authority, or learning policy |
+| `internal/adaptation/adapters/contract` | Adaptation, validation, review, and terminal-outcome request/result/evidence conversion | Rename inference, validation policy, source mutation, or provider calls |
 | `internal/adaptation/adapters/processadapter` | Bounded no-shell request/result exchange with an explicit executable | Command discovery, source mutation, or adaptation policy |
 | `internal/adaptation/adapters/fileworkspace` | Root containment, regular-file access, preimage-guarded writes, and restoration in a disposable checkout | Validation outcome policy or test execution |
 | `internal/adaptation/adapters/validationprocessadapter` | Bounded no-shell phase execution in the disposable checkout | Patch selection, source writes, or outcome policy |
-| `internal/adaptation/adapters/githubreview` | Stable repository-identity verification and idempotent GitHub branch, single-file commit, and draft-PR publication | Repair eligibility, candidate construction, merge, or review interpretation |
+| `internal/adaptation/adapters/githubreview` | Stable repository-identity verification; idempotent GitHub branch, single-file commit, and draft-PR publication; and terminal PR plus complete bounded diff reads | Repair eligibility, candidate construction, merge, or correctness interpretation |
 | `internal/adaptation/adapters/cli/proposalcli` | Bounded impact/manifest input, exact test selection, provenance correlation, timeout, and proposal JSON output | Concrete process construction or framework parsing |
 | `internal/adaptation/adapters/cli/validationcli` | Bounded proposal input, explicit disposable root, total timeout, and validation-evidence JSON output | Concrete workspace/process construction or validation policy |
 | `internal/adaptation/adapters/cli/reviewcli` | Bounded proposal/evidence input, secret environment configuration, timeout, and review-publication JSON output | Candidate policy, GitHub HTTP, or merge authority |
+| `internal/adaptation/adapters/cli/outcomecli` | Bounded proposal/evidence/publication input, explicit reason capture, secret environment configuration, timeout, and review-outcome JSON output | Provider HTTP, persistence, merge authority, or learning policy |
 | `cmd/propose-functional-api-repair` | Process-adapter composition and operating-system streams | Adaptation or contract policy |
 | `cmd/validate-functional-api-repair` | Guarded workspace and validation-process composition | Validation, patch, or contract policy |
 | `cmd/open-functional-api-repair-pr` | GitHub review-adapter composition and operating-system streams | Review eligibility, candidate construction, or contract policy |
+| `cmd/capture-functional-api-review-outcome` | GitHub terminal-review composition and operating-system streams | Outcome policy, persistence, merge authority, or contract policy |
 
 Argus requires complete semantic impact and one contract-declared operation
 identity moving from an old path to a new path. Repository-owned adapters map
@@ -330,6 +333,15 @@ than an overwrite. Publication creates only an open draft and returns
 `argus.dev/adaptation-review/v1`; it never marks the review ready or merges it.
 [ADR-0016](../decisions/0016-publish-validated-repairs-as-idempotent-draft-pull-requests.md)
 defines the external-write and recovery boundary.
+
+Terminal outcome capture correlates that publication with the original
+proposal and validation proof, then derives the disposition from closed GitHub
+state. A changed final head is accepted only when it is linearly ahead of the
+generated commit and GitHub returns every bounded file patch. Explicit reason
+codes cannot contradict the derived disposition. The portable
+`argus.dev/review-outcome/v1` output is evidence for later learning, not a
+policy update or correctness verdict. [ADR-0017](../decisions/0017-capture-terminal-review-outcomes-as-bounded-evidence.md)
+defines this learning boundary.
 
 For heterogeneous manifests, the planner groups by stable test-repository
 identity and adapter. Reviewed bindings must cover that group set exactly and

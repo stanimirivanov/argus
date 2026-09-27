@@ -1,0 +1,44 @@
+{
+  "apiVersion": "argus.dev/review-outcome/v1",
+  "outcomeId": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+  "reviewId": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+  "proposalId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "validationId": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+  "repository": {
+    "provider": "github",
+    "host": "github.com",
+    "providerRepositoryId": "tests-1",
+    "owner": "example",
+    "name": "orders-tests"
+  },
+  "pullRequest": {
+    "number": 17,
+    "url": "https://github.com/example/orders-tests/pull/17"
+  },
+  "decision": "accepted-with-edits",
+  "reason": {
+    "code": "corrected",
+    "note": "Kept the validated endpoint and clarified the request helper."
+  },
+  "generatedRevision": {
+    "algorithm": "git-sha1",
+    "digest": "ffffffffffffffffffffffffffffffffffffffff"
+  },
+  "finalRevision": {
+    "algorithm": "git-sha1",
+    "digest": "9999999999999999999999999999999999999999"
+  },
+  "closedAt": "2026-09-27T16:00:00Z",
+  "mergedAt": "2026-09-27T15:59:59Z",
+  "observedAt": "2026-09-27T16:01:00Z",
+  "reviewerEdits": [
+    {
+      "path": "tests/orders.spec.ts",
+      "previousPath": null,
+      "kind": "modified",
+      "additions": 1,
+      "deletions": 1,
+      "patch": "@@ -1 +1 @@\n-await request.get('/v2/orders')\n+await request.get('/v2/orders', options)"
+    }
+  ]
+}

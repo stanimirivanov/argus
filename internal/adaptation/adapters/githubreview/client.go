@@ -3,6 +3,7 @@ package githubreview
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"crypto/sha256"
 	"encoding/base64"
@@ -13,10 +14,12 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/stanimirivanov/argus/internal/adaptation"
+	"github.com/stanimirivanov/argus/internal/adaptation/outcome"
 	"github.com/stanimirivanov/argus/internal/adaptation/review"
 	"github.com/stanimirivanov/argus/internal/catalog"
 )
@@ -33,6 +36,7 @@ type Client struct {
 	host       string
 	token      string
 	apiVersion string
+	now        func() time.Time
 }
 
 // ClientOptions configures GitHub.com or one GitHub Enterprise API endpoint.
@@ -42,6 +46,7 @@ type ClientOptions struct {
 	Host       string
 	Token      string
 	APIVersion string
+	Now        func() time.Time
 }
 
 // NewClient validates configuration without making a network request.
@@ -65,8 +70,15 @@ func NewClient(options ClientOptions) (*Client, error) {
 	if apiVersion == "" {
 		apiVersion = defaultAPIVersion
 	}
+	now := options.Now
+	if now == nil {
+		now = time.Now
+	}
 
-	return &Client{httpClient: httpClient, baseURL: baseURL, host: host, token: options.Token, apiVersion: apiVersion}, nil
+	return &Client{
+		httpClient: httpClient, baseURL: baseURL, host: host,
+		token: options.Token, apiVersion: apiVersion, now: now,
+	}, nil
 }
 
 // LoadSource returns bounded bytes from the exact immutable revision after
@@ -144,6 +156,168 @@ func (client *Client) Publish(
 	}
 
 	return client.validateExistingReview(ctx, request, existing)
+}
+
+// ObserveOutcome resolves one terminal pull request and captures the complete
+// bounded diff introduced after Argus' generated head revision.
+func (client *Client) ObserveOutcome(
+	ctx context.Context,
+	publication adaptation.ReviewPublication,
+) (outcome.TerminalReview, error) {
+	if err := adaptation.ValidateReviewPublication(publication); err != nil {
+		return outcome.TerminalReview{}, err
+	}
+	if strings.ToLower(publication.Repository.Identity.Host) != client.host {
+		return outcome.TerminalReview{}, adaptation.ErrInvalid
+	}
+	if err := client.verifyRepository(ctx, publication.Repository); err != nil {
+		return outcome.TerminalReview{}, err
+	}
+	providerReview, err := client.pullRequest(ctx, publication)
+	if err != nil {
+		return outcome.TerminalReview{}, err
+	}
+	if providerReview.State != "closed" {
+		return outcome.TerminalReview{}, adaptation.ErrReviewNotFinal
+	}
+	if providerReview.Number != publication.PullRequestNumber ||
+		providerReview.HTMLURL != publication.PullRequestURL ||
+		providerReview.Base.Ref != publication.BaseBranch || providerReview.Head.Ref != publication.HeadBranch {
+		return outcome.TerminalReview{}, adaptation.ErrReviewConflict
+	}
+	closedAt, err := parseProviderTime(providerReview.ClosedAt)
+	if err != nil {
+		return outcome.TerminalReview{}, err
+	}
+	var mergedAt *time.Time
+	if providerReview.Merged {
+		parsed, err := parseProviderTime(providerReview.MergedAt)
+		if err != nil {
+			return outcome.TerminalReview{}, err
+		}
+		mergedAt = &parsed
+	} else if providerReview.MergedAt != "" {
+		return outcome.TerminalReview{}, adaptation.ErrUnavailable
+	}
+	finalRevision := revision(publication.HeadRevision.Algorithm, providerReview.Head.SHA)
+	if adaptation.ValidateRevision(finalRevision) != nil {
+		return outcome.TerminalReview{}, adaptation.ErrUnavailable
+	}
+	edits := []adaptation.ReviewFileEdit{}
+	if finalRevision != publication.HeadRevision {
+		edits, err = client.compareReviewerEdits(
+			ctx, publication.Repository, publication.HeadRevision, finalRevision,
+		)
+		if err != nil {
+			return outcome.TerminalReview{}, err
+		}
+	}
+
+	return outcome.TerminalReview{
+		FinalRevision: finalRevision, ClosedAt: closedAt, MergedAt: mergedAt,
+		ObservedAt: client.now().UTC(), ReviewerEdits: edits,
+	}, nil
+}
+
+func (client *Client) pullRequest(
+	ctx context.Context,
+	publication adaptation.ReviewPublication,
+) (pullRequestResponse, error) {
+	var response pullRequestResponse
+	path := fmt.Sprintf(
+		"%s/pulls/%d", client.repositoryPath(publication.Repository), publication.PullRequestNumber,
+	)
+	if err := client.getJSON(ctx, path, &response); err != nil {
+		return pullRequestResponse{}, err
+	}
+
+	return response, nil
+}
+
+func (client *Client) compareReviewerEdits(
+	ctx context.Context,
+	repository catalog.Repository,
+	generated catalog.Revision,
+	final catalog.Revision,
+) ([]adaptation.ReviewFileEdit, error) {
+	var response compareResponse
+	path := fmt.Sprintf(
+		"%s/compare/%s...%s?per_page=%d&page=1",
+		client.repositoryPath(repository), generated.Digest, final.Digest, adaptation.MaxReviewerEditFiles,
+	)
+	if err := client.getJSON(ctx, path, &response); err != nil {
+		return nil, err
+	}
+	if response.Status != "ahead" || response.AheadBy < 1 ||
+		response.BaseCommit.SHA != generated.Digest || response.MergeBaseCommit.SHA != generated.Digest {
+		return nil, adaptation.ErrReviewConflict
+	}
+	if len(response.Files) >= adaptation.MaxReviewerEditFiles {
+		return nil, adaptation.ErrReviewEvidenceIncomplete
+	}
+	edits := make([]adaptation.ReviewFileEdit, 0, len(response.Files))
+	totalPatchBytes := 0
+	for _, file := range response.Files {
+		edit, err := normalizeReviewerEdit(file)
+		if err != nil {
+			return nil, err
+		}
+		totalPatchBytes += len(edit.Patch)
+		if totalPatchBytes > adaptation.MaxReviewerTotalPatchBytes {
+			return nil, adaptation.ErrReviewEvidenceIncomplete
+		}
+		edits = append(edits, edit)
+	}
+	slices.SortFunc(edits, func(left, right adaptation.ReviewFileEdit) int {
+		return cmp.Or(cmp.Compare(left.Path, right.Path), cmp.Compare(left.PreviousPath, right.PreviousPath))
+	})
+
+	return edits, nil
+}
+
+func normalizeReviewerEdit(file compareFileResponse) (adaptation.ReviewFileEdit, error) {
+	if file.Patch == nil || len(*file.Patch) > adaptation.MaxReviewerPatchBytes {
+		return adaptation.ReviewFileEdit{}, adaptation.ErrReviewEvidenceIncomplete
+	}
+	kind, err := normalizeReviewerFileKind(file.Status)
+	if err != nil {
+		return adaptation.ReviewFileEdit{}, err
+	}
+	edit := adaptation.ReviewFileEdit{
+		Path: file.Filename, Kind: kind, Additions: file.Additions,
+		Deletions: file.Deletions, Patch: *file.Patch,
+	}
+	if file.PreviousFilename != nil {
+		edit.PreviousPath = *file.PreviousFilename
+	}
+
+	return edit, nil
+}
+
+func normalizeReviewerFileKind(status string) (adaptation.ReviewFileKind, error) {
+	switch status {
+	case "added":
+		return adaptation.ReviewFileAdded, nil
+	case "modified", "changed":
+		return adaptation.ReviewFileModified, nil
+	case "removed":
+		return adaptation.ReviewFileDeleted, nil
+	case "renamed":
+		return adaptation.ReviewFileRenamed, nil
+	case "copied":
+		return adaptation.ReviewFileCopied, nil
+	default:
+		return "", adaptation.ErrReviewEvidenceIncomplete
+	}
+}
+
+func parseProviderTime(value string) (time.Time, error) {
+	parsed, err := time.Parse(time.RFC3339, value)
+	if err != nil {
+		return time.Time{}, adaptation.ErrUnavailable
+	}
+
+	return parsed.UTC(), nil
 }
 
 func (client *Client) validateRequest(request review.PublicationRequest) error {
@@ -555,6 +729,9 @@ type pullRequestResponse struct {
 	State     string `json:"state"`
 	Draft     bool   `json:"draft"`
 	CreatedAt string `json:"created_at"`
+	ClosedAt  string `json:"closed_at"`
+	MergedAt  string `json:"merged_at"`
+	Merged    bool   `json:"merged"`
 	Base      struct {
 		Ref string `json:"ref"`
 	} `json:"base"`
@@ -562,4 +739,25 @@ type pullRequestResponse struct {
 		Ref string `json:"ref"`
 		SHA string `json:"sha"`
 	} `json:"head"`
+}
+
+type compareResponse struct {
+	Status     string `json:"status"`
+	AheadBy    int    `json:"ahead_by"`
+	BaseCommit struct {
+		SHA string `json:"sha"`
+	} `json:"base_commit"`
+	MergeBaseCommit struct {
+		SHA string `json:"sha"`
+	} `json:"merge_base_commit"`
+	Files []compareFileResponse `json:"files"`
+}
+
+type compareFileResponse struct {
+	Filename         string  `json:"filename"`
+	PreviousFilename *string `json:"previous_filename"`
+	Status           string  `json:"status"`
+	Additions        int     `json:"additions"`
+	Deletions        int     `json:"deletions"`
+	Patch            *string `json:"patch"`
 }

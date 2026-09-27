@@ -1,0 +1,35 @@
+{
+  "apiVersion": "argus.dev/review-outcome/v1",
+  "outcomeId": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+  "reviewId": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+  "proposalId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "validationId": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+  "repository": {
+    "provider": "github",
+    "host": "github.com",
+    "providerRepositoryId": "tests-1",
+    "owner": "example",
+    "name": "orders-tests"
+  },
+  "pullRequest": {
+    "number": 17,
+    "url": "https://github.com/example/orders-tests/pull/17"
+  },
+  "decision": "approved",
+  "reason": {
+    "code": "approved",
+    "note": null
+  },
+  "generatedRevision": {
+    "algorithm": "git-sha1",
+    "digest": "ffffffffffffffffffffffffffffffffffffffff"
+  },
+  "finalRevision": {
+    "algorithm": "git-sha1",
+    "digest": "ffffffffffffffffffffffffffffffffffffffff"
+  },
+  "closedAt": "2026-09-27T16:00:00Z",
+  "mergedAt": "2026-09-27T15:59:59Z",
+  "observedAt": "2026-09-27T16:01:00Z",
+  "reviewerEdits": []
+}

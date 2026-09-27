@@ -26,6 +26,7 @@ import {
 import { ImpactEdgePageV1 } from "../source/impact-edge-page-v1.js";
 import { ImpactEvidenceBundleV1 } from "../source/impact-evidence-bundle-v1.js";
 import { RepositoryDescriptorV1 } from "../source/repository-descriptor-v1.js";
+import { ReviewOutcomeV1 } from "../source/review-outcome-v1.js";
 import {
   ExecutionPlanAttemptBindingsV1,
   SelectionPlanShadowReportV1,
@@ -34,6 +35,17 @@ import { SelectionShadowReportV1 } from "../source/selection-shadow-report-v1.js
 import { TestCatalogPageV1 } from "../source/test-catalog-page-v1.js";
 
 const artifacts = [
+  {
+    name: "review outcome",
+    outputPath: new URL(
+      "../generated/review-outcome/v1/review-outcome.schema.json",
+      import.meta.url,
+    ),
+    document: {
+      $id: "https://argus.dev/contracts/review-outcome/v1/schema.json",
+      ...JSONSchema.make(ReviewOutcomeV1, { target: "jsonSchema2020-12" }),
+    },
+  },
   {
     name: "adaptation review",
     outputPath: new URL(
