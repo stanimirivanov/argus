@@ -242,6 +242,26 @@ requires the original test to fail, the candidate to pass, and a deterministic
 invalid-endpoint control to fail. Original bytes are restored and verified
 after each modified run. The checkout must still be discarded after validation.
 
+Publish the correlated proposal and successful validation proof as a draft
+GitHub pull request:
+
+~~~sh
+export ARGUS_GITHUB_TOKEN='fine-grained-token'
+go run ./cmd/open-functional-api-repair-pr \
+  -proposal ./adaptation-proposal.json \
+  -validation-evidence ./validation-evidence.json \
+  -base-branch main \
+  > ./adaptation-review.json
+~~~
+
+The token is read only from the environment and needs repository contents and
+pull-request write access in the test repository. Argus verifies the immutable
+source preimage again, creates a deterministic `argus/endpoint-repair-*`
+branch, commits only the validated file, and opens a draft PR containing the
+validation summary. Exact retries return the same open draft; a divergent
+branch or PR is rejected. The command never marks a PR ready, merges it, or
+deletes provider state.
+
 Persist each normalized attempt after the CI job has uploaded any referenced
 artifact bytes:
 

@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { JSONSchema } from "effect";
+import { AdaptationReviewV1 } from "../source/adaptation-review-v1.js";
 import {
   AdaptationProposalV1,
   FunctionalAPIAdaptationRequestV1,
@@ -33,6 +34,17 @@ import { SelectionShadowReportV1 } from "../source/selection-shadow-report-v1.js
 import { TestCatalogPageV1 } from "../source/test-catalog-page-v1.js";
 
 const artifacts = [
+  {
+    name: "adaptation review",
+    outputPath: new URL(
+      "../generated/adaptation-review/v1/adaptation-review.schema.json",
+      import.meta.url,
+    ),
+    document: {
+      $id: "https://argus.dev/contracts/adaptation-review/v1/schema.json",
+      ...JSONSchema.make(AdaptationReviewV1, { target: "jsonSchema2020-12" }),
+    },
+  },
   {
     name: "functional API repair validation request",
     outputPath: new URL(

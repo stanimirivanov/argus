@@ -30,6 +30,8 @@
 - Execution-plan attempt bindings and selection-plan shadow-report v1 evaluate
   every heterogeneous group, including full-only groups, without implicit
   attempt discovery.
+- Adaptation-review v1 records the open draft GitHub pull request created from
+  one correlated proposal and successful validation proof.
 - Structural validity and domain validity are distinct and share one fixture
   corpus.
 - Generate language stubs only when a real producer or consumer needs them.
@@ -65,6 +67,9 @@ actually fetched.
 | `source/functional-api-execution-plan-v1.ts` | Authoritative reviewed execution-bindings and generated execution-plan contracts. |
 | `source/selection-shadow-report-v1.ts` | Authoritative selected-versus-full-suite shadow report contract. |
 | `source/selection-plan-shadow-report-v1.ts` | Authoritative complete-plan attempt-binding and aggregate shadow-report contracts. |
+| `source/adaptation-v1.ts` | Authoritative repair proposal and framework-adapter contracts. |
+| `source/adaptation-validation-v1.ts` | Authoritative isolated validation request, result, and evidence contracts. |
+| `source/adaptation-review-v1.ts` | Authoritative review-first publication contract. |
 | `source/repository-descriptor-v1.test.ts` | Structural fixture tests through Effect Schema. |
 | `source/test-catalog-page-v1.test.ts` | Test-catalog result compatibility tests through Effect Schema. |
 | `scripts/generate.ts` | Deterministic JSON Schema compiler and drift check. |

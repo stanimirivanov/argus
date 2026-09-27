@@ -303,6 +303,13 @@ digests after every modified phase. The resulting `ValidationEvidence` is
 portable and reviewable. Pull-request creation, evidence persistence, final
 edited-diff capture, and reviewer-outcome learning remain.
 
+The third M06 slice now publishes a correlated proposal and successful
+validation proof as an idempotent draft GitHub pull request. It rechecks the
+immutable source preimage, commits only the validated file on a deterministic
+branch, embeds validation evidence in the PR, recovers exact retries, and
+rejects divergent provider state. Review-outcome ingestion, reason codes, final
+edited-diff capture, and evidence persistence remain.
+
 ## M07 - UI test intelligence
 
 **Message:** Extend mapping and constrained adaptation to browser tests.

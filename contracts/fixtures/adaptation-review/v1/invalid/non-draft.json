@@ -1,0 +1,35 @@
+{
+  "apiVersion": "argus.dev/adaptation-review/v1",
+  "reviewId": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+  "proposalId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "validationId": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+  "repository": {
+    "provider": "github",
+    "host": "github.com",
+    "providerRepositoryId": "tests-1",
+    "owner": "example",
+    "name": "orders-tests"
+  },
+  "provider": "github",
+  "base": {
+    "branch": "main",
+    "revision": {
+      "algorithm": "git-sha1",
+      "digest": "cccccccccccccccccccccccccccccccccccccccc"
+    }
+  },
+  "head": {
+    "branch": "argus/endpoint-repair-aaaaaaaaaaaa",
+    "revision": {
+      "algorithm": "git-sha1",
+      "digest": "ffffffffffffffffffffffffffffffffffffffff"
+    }
+  },
+  "pullRequest": {
+    "number": 17,
+    "url": "https://github.com/example/orders-tests/pull/17",
+    "draft": false,
+    "state": "open"
+  },
+  "publishedAt": "2026-09-27T14:00:00Z"
+}

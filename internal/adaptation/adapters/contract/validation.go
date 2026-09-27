@@ -104,6 +104,59 @@ func ExportValidationEvidenceV1(
 	return document, nil
 }
 
+// ImportValidationEvidenceV1 converts a structurally valid successful proof.
+func ImportValidationEvidenceV1(
+	document contracts.ValidationEvidenceV1,
+) (adaptation.ValidationEvidence, error) {
+	runs := make([]adaptation.ValidationRun, 0, len(document.Runs))
+	for _, documentRun := range document.Runs {
+		startedAt, err := time.Parse(time.RFC3339Nano, documentRun.StartedAt)
+		if err != nil {
+			return adaptation.ValidationEvidence{}, fmt.Errorf("parse validation run start: %w", err)
+		}
+		completedAt, err := time.Parse(time.RFC3339Nano, documentRun.CompletedAt)
+		if err != nil {
+			return adaptation.ValidationEvidence{}, fmt.Errorf("parse validation run completion: %w", err)
+		}
+		run := adaptation.ValidationRun{
+			Phase: adaptation.ValidationPhase(documentRun.Phase), SourceSHA256: documentRun.SourceSHA256,
+			StartedAt: startedAt, CompletedAt: completedAt,
+			Outcome: adaptation.ValidationOutcome(documentRun.Outcome),
+		}
+		if documentRun.Failure != nil {
+			run.Failure = &adaptation.ValidationFailure{
+				Code: documentRun.Failure.Code, Message: documentRun.Failure.Message,
+			}
+		}
+		runs = append(runs, run)
+	}
+	evidence := adaptation.ValidationEvidence{
+		APIVersion: document.APIVersion, PolicyVersion: document.PolicyVersion,
+		ValidationID: document.ValidationID, ProposalID: document.ProposalID,
+		ProposalPolicyVersion: document.ProposalPolicyVersion, Test: importTest(document.Test),
+		AdapterID: document.Adapter.ID, AdapterVersion: document.Adapter.Version,
+		Edit: adaptation.TextEdit{
+			Path: document.Edit.Path, BeforeSHA256: document.Edit.BeforeSHA256,
+			StartByte: document.Edit.StartByte, EndByte: document.Edit.EndByte,
+			Original: document.Edit.Original, Replacement: document.Edit.Replacement,
+			SemanticRole: document.Edit.SemanticRole,
+		},
+		Source: adaptation.ValidationSourceEvidence{
+			Path: document.Source.Path, OriginalSHA256: document.Source.OriginalSHA256,
+			CandidateSHA256: document.Source.CandidateSHA256, NegativeSHA256: document.Source.NegativeSHA256,
+			RestoredSHA256:      document.Source.RestoredSHA256,
+			NegativeControlPath: document.Source.NegativeControlPath,
+		},
+		Runs: runs,
+	}
+	evidence = adaptation.CanonicalValidationEvidence(evidence)
+	if err := adaptation.ValidateValidationEvidence(evidence); err != nil {
+		return adaptation.ValidationEvidence{}, fmt.Errorf("validate imported validation evidence: %w", err)
+	}
+
+	return evidence, nil
+}
+
 func exportValidationFailure(failure *adaptation.ValidationFailure) *contracts.NormalizedFailure {
 	if failure == nil {
 		return nil
