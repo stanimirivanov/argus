@@ -8,6 +8,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/stanimirivanov/argus/internal/adaptation/outcome"
 	"github.com/stanimirivanov/argus/internal/catalog/impact"
 	"github.com/stanimirivanov/argus/internal/catalog/snapshot"
 	"github.com/stanimirivanov/argus/internal/catalog/testquery"
@@ -23,8 +24,8 @@ const (
 	migratorMaxConnections = 1
 )
 
-// Store is the bounded PostgreSQL catalog adapter. Opening a Store does not run
-// migrations. Its owner must call Close during shutdown.
+// Store is the bounded PostgreSQL runtime adapter. Opening a Store does not
+// run migrations. Its owner must call Close during shutdown.
 type Store struct {
 	pool *pgxpool.Pool
 }
@@ -37,6 +38,7 @@ var _ ingest.Store = (*Store)(nil)
 var _ changeimpact.Store = (*Store)(nil)
 var _ attempts.Store = (*Store)(nil)
 var _ shadow.AttemptReader = (*Store)(nil)
+var _ outcome.EvidenceStore = (*Store)(nil)
 
 // OpenStore validates the secret database configuration, establishes a bounded
 // connection pool, and verifies connectivity without changing schema state.

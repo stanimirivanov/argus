@@ -54,6 +54,11 @@ var (
 	// ErrReviewEvidenceIncomplete means provider evidence cannot describe the
 	// complete final reviewer-authored diff within policy bounds.
 	ErrReviewEvidenceIncomplete = errors.New("adaptation review evidence incomplete")
+	// ErrOutcomeConflict means one review identity was reused with different
+	// immutable terminal evidence.
+	ErrOutcomeConflict = errors.New("adaptation review outcome conflict")
+	// ErrOutcomeNotFound means no durable review outcome has the requested identity.
+	ErrOutcomeNotFound = errors.New("adaptation review outcome not found")
 )
 
 const (

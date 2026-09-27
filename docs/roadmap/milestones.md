@@ -317,6 +317,13 @@ the generated commit to the final reviewed head. Open, divergent, truncated,
 or patch-incomplete evidence fails closed. Durable outcome persistence,
 unsuccessful-validation evidence, and the compatible field-rename class remain.
 
+The fifth M06 slice now durably ingests and retrieves that portable outcome.
+It stores one immutable outcome per review with all bounded reviewer edits in
+one transaction, treats later observation of identical terminal evidence as
+an exact retry, rejects conflicting reason or patch reuse, and reconstructs
+the contract from a repeatable-read snapshot after restart. Unsuccessful-
+validation evidence and the compatible field-rename class remain.
+
 ## M07 - UI test intelligence
 
 **Message:** Extend mapping and constrained adaptation to browser tests.

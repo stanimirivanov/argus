@@ -291,7 +291,7 @@ the control plane framework-specific source knowledge or mutation authority:
 | `internal/adaptation/functionalapi` | Unique endpoint-rename proof, adapter port, proposal identity, result correlation, and constrained edit policy | Framework parsers, JSON, commands, source mutation, or review APIs |
 | `internal/adaptation/validation` | Three-phase outcome policy, exact span materialization, negative-control derivation, runner/workspace ports, restoration checks, and evidence assembly | Filesystem APIs, framework commands, JSON, persistence, or review APIs |
 | `internal/adaptation/review` | Proposal/evidence correlation, immutable-source reconstruction, deterministic review identity, review content, and the consumer-owned provider gateway | GitHub HTTP, credentials, JSON, merge policy, or reviewer outcomes |
-| `internal/adaptation/outcome` | Proposal/evidence/publication correlation, provider-state decision derivation, explicit reason validation, and deterministic outcome identity | GitHub HTTP, credentials, persistence, merge authority, or learning policy |
+| `internal/adaptation/outcome` | Proposal/evidence/publication correlation, provider-state decision derivation, explicit reason validation, deterministic outcome identity, and the consumer-owned immutable evidence port | GitHub HTTP, credentials, SQL, merge authority, or learning policy |
 | `internal/adaptation/adapters/contract` | Adaptation, validation, review, and terminal-outcome request/result/evidence conversion | Rename inference, validation policy, source mutation, or provider calls |
 | `internal/adaptation/adapters/processadapter` | Bounded no-shell request/result exchange with an explicit executable | Command discovery, source mutation, or adaptation policy |
 | `internal/adaptation/adapters/fileworkspace` | Root containment, regular-file access, preimage-guarded writes, and restoration in a disposable checkout | Validation outcome policy or test execution |
@@ -301,10 +301,13 @@ the control plane framework-specific source knowledge or mutation authority:
 | `internal/adaptation/adapters/cli/validationcli` | Bounded proposal input, explicit disposable root, total timeout, and validation-evidence JSON output | Concrete workspace/process construction or validation policy |
 | `internal/adaptation/adapters/cli/reviewcli` | Bounded proposal/evidence input, secret environment configuration, timeout, and review-publication JSON output | Candidate policy, GitHub HTTP, or merge authority |
 | `internal/adaptation/adapters/cli/outcomecli` | Bounded proposal/evidence/publication input, explicit reason capture, secret environment configuration, timeout, and review-outcome JSON output | Provider HTTP, persistence, merge authority, or learning policy |
+| `internal/adaptation/adapters/cli/evidencecli` | Bounded review-outcome ingestion, explicit identity lookup, and versioned JSON output through an injected evidence port | PostgreSQL, provider calls, or learning policy |
+| `internal/catalog/adapters/postgres` | Atomic outcome/edit persistence, one-outcome-per-review conflict detection, and repeatable-read reconstruction | Outcome derivation, provider calls, or learning policy |
 | `cmd/propose-functional-api-repair` | Process-adapter composition and operating-system streams | Adaptation or contract policy |
 | `cmd/validate-functional-api-repair` | Guarded workspace and validation-process composition | Validation, patch, or contract policy |
 | `cmd/open-functional-api-repair-pr` | GitHub review-adapter composition and operating-system streams | Review eligibility, candidate construction, or contract policy |
 | `cmd/capture-functional-api-review-outcome` | GitHub terminal-review composition and operating-system streams | Outcome policy, persistence, merge authority, or contract policy |
+| `cmd/adaptation-evidence` | PostgreSQL evidence composition, lifecycle, and database configuration | Outcome derivation, serialization policy, or direct SQL orchestration |
 
 Argus requires complete semantic impact and one contract-declared operation
 identity moving from an old path to a new path. Repository-owned adapters map
@@ -342,6 +345,15 @@ codes cannot contradict the derived disposition. The portable
 `argus.dev/review-outcome/v1` output is evidence for later learning, not a
 policy update or correctness verdict. [ADR-0017](../decisions/0017-capture-terminal-review-outcomes-as-bounded-evidence.md)
 defines this learning boundary.
+
+Durable ingestion validates the portable document and recomputed semantic
+identity before opening PostgreSQL. The outcome application owns the narrow
+store port; the existing PostgreSQL adapter claims one immutable record per
+review and writes all reviewer edits in the same transaction. Observation time
+is excluded from exact-retry equality, while every disposition, reason,
+revision, provenance, and patch field remains conflict-significant. Reads use
+repeatable read and revalidate reconstructed domain evidence. [ADR-0018](../decisions/0018-store-one-immutable-outcome-per-adaptation-review.md)
+defines the persisted meaning and retry boundary.
 
 For heterogeneous manifests, the planner groups by stable test-repository
 identity and adapter. Reviewed bindings must cover that group set exactly and

@@ -8,6 +8,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/stanimirivanov/argus/internal/adaptation"
 	"github.com/stanimirivanov/argus/internal/catalog"
 	"github.com/stanimirivanov/argus/internal/change"
 	"github.com/stanimirivanov/argus/internal/execution"
@@ -70,6 +71,18 @@ func classifyExecutionDatabaseError(err error) error {
 		return execution.ErrNotFound
 	case errors.Is(classified, catalog.ErrUnavailable):
 		return execution.ErrUnavailable
+	default:
+		return classified
+	}
+}
+
+func classifyAdaptationDatabaseError(err error) error {
+	classified := classifyDatabaseError(err)
+	switch {
+	case errors.Is(classified, catalog.ErrNotFound):
+		return adaptation.ErrOutcomeNotFound
+	case errors.Is(classified, catalog.ErrUnavailable):
+		return adaptation.ErrUnavailable
 	default:
 		return classified
 	}

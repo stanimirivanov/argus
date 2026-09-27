@@ -1,4 +1,5 @@
-// Package postgres implements the catalog persistence port and the explicit
-// PostgreSQL schema-administration boundary. Store has runtime data access;
-// Migrator is a separate, privileged capability used only by deployment.
+// Package postgres implements Argus runtime persistence ports over the owned
+// catalog schema and the explicit PostgreSQL schema-administration boundary.
+// Store has bounded runtime data access; Migrator is a separate, privileged
+// capability used only by deployment.
 package postgres

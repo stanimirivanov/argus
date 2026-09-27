@@ -225,14 +225,43 @@ truncation, non-linear history, and excess total evidence fail closed. The
 resulting `argus.dev/review-outcome/v1` is deterministic, portable evidence for
 later evaluation and learning.
 
+## Durable outcome evidence
+
+Apply the current PostgreSQL migration chain, then ingest the captured outcome:
+
+```sh
+export ARGUS_DATABASE_URL='postgres://argus_runtime:...@db.example/argus'
+go run ./cmd/adaptation-evidence ingest -file ./review-outcome.json
+```
+
+The command validates Effect Schema structure, domain invariants, and the
+derived outcome identity before opening the database. Persistence creates one
+immutable outcome per `reviewId` and stores all reviewer edits atomically. An
+exact retry returns `created: false`; another disposition, reason, revision,
+or patch for that review returns an outcome conflict. A later observation of
+the same terminal evidence is an exact retry, so `observedAt` does not change
+semantic identity and the first durable observation remains unchanged.
+
+Retrieve the complete portable document by `outcomeId`:
+
+```sh
+go run ./cmd/adaptation-evidence get \
+  -outcome-id 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+```
+
+Reads use a repeatable-read transaction so the outcome header and reviewer
+patches come from one database snapshot. Persistence performs no GitHub calls,
+does not update PR state, and does not convert a merge into correctness or
+promotion authority.
+
 ## Remaining non-goals
 
 This slice intentionally does not:
 
-- persist unsuccessful validation attempts or review outcomes;
+- persist unsuccessful validation attempts;
 - treat a merge as automatic promotion or correctness authority; or
 - train or update an adaptation policy from a single captured outcome.
 
-Durable outcome storage and aggregate learning queries are separate follow-up
-work. Until then, CI must retain `review-outcome.json` as an immutable artifact
-or pass it to a trusted downstream evidence store.
+Aggregate learning queries and governed policy updates remain follow-up work.
+The database stores the bounded patches contained by `review-outcome/v1`; it
+does not replace source control or an artifact-retention system.

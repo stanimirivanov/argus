@@ -3,11 +3,8 @@ package outcome
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"slices"
-	"strconv"
 	"time"
 
 	"github.com/stanimirivanov/argus/internal/adaptation"
@@ -76,7 +73,7 @@ func (service *Service) Capture(
 		ClosedAt: terminal.ClosedAt, MergedAt: terminal.MergedAt, ObservedAt: terminal.ObservedAt,
 		ReviewerEdits: terminal.ReviewerEdits,
 	})
-	outcome.OutcomeID = deriveOutcomeID(outcome)
+	outcome.OutcomeID = adaptation.DeriveReviewOutcomeID(outcome)
 	if err := adaptation.ValidateReviewOutcome(outcome); err != nil {
 		return adaptation.ReviewOutcome{}, err
 	}
@@ -107,37 +104,6 @@ func correlate(
 	}
 
 	return nil
-}
-
-func deriveOutcomeID(outcome adaptation.ReviewOutcome) string {
-	hash := sha256.New()
-	writeHash := func(value string) {
-		_, _ = hash.Write([]byte(value))
-		_, _ = hash.Write([]byte{0})
-	}
-	for _, value := range []string{
-		"argus-review-outcome-v1", outcome.ReviewID, outcome.ProposalID, outcome.ValidationID,
-		string(outcome.Decision), string(outcome.ReasonCode), outcome.ReasonNote,
-		string(outcome.FinalRevision.Algorithm), outcome.FinalRevision.Digest,
-		outcome.ClosedAt.Format(time.RFC3339Nano),
-	} {
-		writeHash(value)
-	}
-	if outcome.MergedAt != nil {
-		writeHash(outcome.MergedAt.Format(time.RFC3339Nano))
-	} else {
-		writeHash("")
-	}
-	for _, edit := range outcome.ReviewerEdits {
-		for _, value := range []string{
-			edit.Path, edit.PreviousPath, string(edit.Kind), strconv.Itoa(edit.Additions),
-			strconv.Itoa(edit.Deletions), edit.Patch,
-		} {
-			writeHash(value)
-		}
-	}
-
-	return hex.EncodeToString(hash.Sum(nil))
 }
 
 func sameTest(left, right adaptation.TestReference) bool {
