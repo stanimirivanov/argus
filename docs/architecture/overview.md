@@ -280,6 +280,29 @@ attempts, rejects mismatched provenance or an incomplete control set, and
 reports both aggregate recall and each missed failure. It never chooses a
 control by recency. See [ADR-0011](../decisions/0011-store-immutable-attempts-and-compare-explicit-shadow-pairs.md).
 
+### Current functional API adaptation boundaries
+
+The first M06 slice adds a proposal-only adaptation capability without giving
+the control plane framework-specific source knowledge or mutation authority:
+
+| Path | Owns | Must not own |
+|:--|:--|:--|
+| `internal/adaptation` | Proposal vocabulary, endpoint rename and edit invariants, stable errors, and policy versions | Generated contracts, process execution, source parsing, validation runs, or pull requests |
+| `internal/adaptation/functionalapi` | Unique endpoint-rename proof, adapter port, proposal identity, result correlation, and constrained edit policy | Framework parsers, JSON, commands, source mutation, or review APIs |
+| `internal/adaptation/adapters/contract` | Adaptation request/result and proposal v1 conversion | Rename inference or source policy |
+| `internal/adaptation/adapters/processadapter` | Bounded no-shell request/result exchange with an explicit executable | Command discovery, source mutation, or adaptation policy |
+| `internal/adaptation/adapters/cli/proposalcli` | Bounded impact/manifest input, exact test selection, provenance correlation, timeout, and proposal JSON output | Concrete process construction or framework parsing |
+| `cmd/propose-functional-api-repair` | Process-adapter composition and operating-system streams | Adaptation or contract policy |
+
+Argus requires complete semantic impact and one contract-declared operation
+identity moving from an old path to a new path. Repository-owned adapters map
+stable test IDs to native syntax and may return only one byte-addressed
+`request-target` edit. The application revalidates the old/new strings and all
+identities before emitting `PATCH_AND_VALIDATE`. Proposal generation never
+writes to the test checkout and therefore cannot silently repair, commit, or
+merge a test. [ADR-0014](../decisions/0014-generate-endpoint-repair-proposals-through-reviewed-adapters.md)
+defines the evidence threshold and adapter boundary.
+
 For heterogeneous manifests, the planner groups by stable test-repository
 identity and adapter. Reviewed bindings must cover that group set exactly and
 provide matching coordinates, a stable group key, and an immutable revision.

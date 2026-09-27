@@ -289,6 +289,13 @@ Acceptance ingredients:
 Completion means one narrow drift class can produce a small evidence-backed PR
 without silently turning a failing test green.
 
+The first M06 slice now proves a unique endpoint rename from complete OpenAPI
+impact and emits a constrained `AdaptationProposal` through a reviewed
+framework adapter. The proposal retains immutable provenance, file digest,
+byte span, and the exact old-to-new request-target replacement. It does not
+mutate source; original failure reproduction, candidate execution, negative
+control, review PR creation, and outcome learning remain in the next slice.
+
 ## M07 - UI test intelligence
 
 **Message:** Extend mapping and constrained adaptation to browser tests.

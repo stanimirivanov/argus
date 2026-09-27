@@ -22,6 +22,7 @@ or conflicting capability-to-test relationships without discarding evidence.
 - [Architecture overview](docs/architecture/overview.md)
 - [Contract workspace](contracts/README.md)
 - [Functional API adapter protocol](docs/integrations/functional-api-adapters.md)
+- [Functional API adaptation protocol](docs/integrations/functional-api-adaptation.md)
 - [GitHub Actions functional API integration](docs/integrations/github-actions-functional-api.md)
 - [PostgreSQL catalog operations](docs/development/postgresql.md)
 - [Proposal decomposition and provenance](docs/proposal.md)
@@ -202,6 +203,29 @@ A non-passing test result is emitted as evidence before the command returns a
 non-zero CI status. See the
 [functional API adapter protocol](docs/integrations/functional-api-adapters.md)
 for conformance and security requirements.
+
+## Propose a constrained functional API repair
+
+For one required test and one complete OpenAPI impact, ask a reviewed
+framework adapter to locate the request target and emit a reviewable proposal:
+
+~~~sh
+go run ./cmd/propose-functional-api-repair \
+  -impact ./capability-impact.json \
+  -manifest ./execution-manifest.json \
+  -test-repository-id tests-1 \
+  -suite-key orders-api \
+  -test-key list-orders \
+  -test-revision aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
+  -- node ./tools/argus-playwright-adaptation-adapter.mjs \
+  > ./adaptation-proposal.json
+~~~
+
+Argus proceeds only for a unique removed/added operation pair with the same
+HTTP method, `operationId`, and capability mapping. The adapter may return one
+exact request-target edit or abstain. This command never modifies source; its
+`PATCH_AND_VALIDATE` output is input to the later isolated validation stage.
+See the [functional API adaptation protocol](docs/integrations/functional-api-adaptation.md).
 
 Persist each normalized attempt after the CI job has uploaded any referenced
 artifact bytes:

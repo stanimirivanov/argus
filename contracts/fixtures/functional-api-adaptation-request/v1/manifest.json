@@ -1,0 +1,8 @@
+{
+  "fixtures": [
+    {
+      "path": "fixtures/functional-api-adaptation-request/v1/valid/endpoint-rename.json",
+      "schemaValid": true
+    }
+  ]
+}

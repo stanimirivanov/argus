@@ -1,0 +1,337 @@
+{
+  "$id": "https://argus.dev/contracts/functional-api-adaptation-request/v1/schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "FunctionalAPIAdaptationRequestV1": {
+      "type": "object",
+      "required": [
+        "apiVersion",
+        "proposalId",
+        "change",
+        "test",
+        "endpointRename"
+      ],
+      "properties": {
+        "apiVersion": {
+          "type": "string",
+          "enum": [
+            "argus.dev/functional-api-adaptation-request/v1"
+          ]
+        },
+        "proposalId": {
+          "type": "string",
+          "description": "a string matching the pattern ^[0-9a-f]{64}$",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "change": {
+          "type": "object",
+          "required": [
+            "sourceRepository",
+            "pullRequest",
+            "baseRevision",
+            "headRevision",
+            "observedAt",
+            "trigger"
+          ],
+          "properties": {
+            "sourceRepository": {
+              "$ref": "#/$defs/RepositoryReference"
+            },
+            "pullRequest": {
+              "type": "object",
+              "required": [
+                "number"
+              ],
+              "properties": {
+                "number": {
+                  "$ref": "#/$defs/Int",
+                  "description": "a number greater than or equal to 1",
+                  "title": "greaterThanOrEqualTo(1)",
+                  "minimum": 1
+                }
+              },
+              "additionalProperties": false
+            },
+            "baseRevision": {
+              "$ref": "#/$defs/Revision"
+            },
+            "headRevision": {
+              "$ref": "#/$defs/Revision"
+            },
+            "observedAt": {
+              "$ref": "#/$defs/DateTimeUtc"
+            },
+            "trigger": {
+              "type": "object",
+              "required": [
+                "provider",
+                "deliveryId",
+                "event",
+                "action"
+              ],
+              "properties": {
+                "provider": {
+                  "type": "string",
+                  "enum": [
+                    "github"
+                  ]
+                },
+                "deliveryId": {
+                  "type": "string",
+                  "description": "a string at most 255 character(s) long",
+                  "title": "maxLength(255)",
+                  "minLength": 1,
+                  "maxLength": 255
+                },
+                "event": {
+                  "type": "string",
+                  "enum": [
+                    "pull_request"
+                  ]
+                },
+                "action": {
+                  "type": "string",
+                  "enum": [
+                    "opened",
+                    "reopened",
+                    "synchronize",
+                    "ready_for_review"
+                  ]
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "test": {
+          "type": "object",
+          "required": [
+            "repository",
+            "revision",
+            "suiteKey",
+            "testKey",
+            "name",
+            "adapter",
+            "capabilities"
+          ],
+          "properties": {
+            "repository": {
+              "$ref": "#/$defs/RepositoryReference"
+            },
+            "revision": {
+              "$ref": "#/$defs/Revision"
+            },
+            "suiteKey": {
+              "$ref": "#/$defs/LocalKey"
+            },
+            "testKey": {
+              "$ref": "#/$defs/LocalKey"
+            },
+            "name": {
+              "type": "string",
+              "description": "a string at most 255 character(s) long",
+              "title": "maxLength(255)",
+              "minLength": 1,
+              "maxLength": 255
+            },
+            "adapter": {
+              "$ref": "#/$defs/LocalKey"
+            },
+            "capabilities": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/LocalKey"
+              },
+              "description": "an array of at most 5000 item(s)",
+              "title": "maxItems(5000)",
+              "minItems": 1,
+              "maxItems": 5000
+            }
+          },
+          "additionalProperties": false
+        },
+        "endpointRename": {
+          "type": "object",
+          "required": [
+            "method",
+            "operationId",
+            "previousPath",
+            "path",
+            "capabilities"
+          ],
+          "properties": {
+            "method": {
+              "type": "string",
+              "enum": [
+                "GET",
+                "PUT",
+                "POST",
+                "DELETE",
+                "OPTIONS",
+                "HEAD",
+                "PATCH",
+                "TRACE",
+                "QUERY"
+              ]
+            },
+            "operationId": {
+              "type": "string",
+              "description": "a string at most 255 character(s) long",
+              "title": "maxLength(255)",
+              "minLength": 1,
+              "maxLength": 255
+            },
+            "previousPath": {
+              "type": "string",
+              "description": "a string matching the pattern ^\\/",
+              "title": "maxLength(2048)",
+              "minLength": 1,
+              "maxLength": 2048,
+              "pattern": "^\\/"
+            },
+            "path": {
+              "type": "string",
+              "description": "a string matching the pattern ^\\/",
+              "title": "maxLength(2048)",
+              "minLength": 1,
+              "maxLength": 2048,
+              "pattern": "^\\/"
+            },
+            "capabilities": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/LocalKey"
+              },
+              "description": "an array of at most 50 item(s)",
+              "title": "maxItems(50)",
+              "minItems": 1,
+              "maxItems": 50
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false,
+      "description": "Authoritative endpoint rename evidence and one immutable test supplied to a reviewed source adapter.",
+      "title": "Argus functional API adaptation request v1"
+    },
+    "RepositoryReference": {
+      "type": "object",
+      "required": [
+        "provider",
+        "host",
+        "providerRepositoryId",
+        "owner",
+        "name"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": [
+            "github",
+            "gitlab",
+            "azure-devops",
+            "other"
+          ]
+        },
+        "host": {
+          "type": "string",
+          "description": "a string matching the pattern ^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$",
+          "title": "maxLength(255)",
+          "minLength": 1,
+          "maxLength": 255,
+          "pattern": "^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$"
+        },
+        "providerRepositoryId": {
+          "type": "string",
+          "description": "a string at most 255 character(s) long",
+          "title": "maxLength(255)",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "owner": {
+          "type": "string",
+          "description": "a string at most 255 character(s) long",
+          "title": "maxLength(255)",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "name": {
+          "type": "string",
+          "description": "a string at most 255 character(s) long",
+          "title": "maxLength(255)",
+          "minLength": 1,
+          "maxLength": 255
+        }
+      },
+      "additionalProperties": false,
+      "description": "A repository reference anchored by the provider-assigned identity; owner and name are mutable display coordinates."
+    },
+    "Int": {
+      "type": "integer",
+      "description": "an integer",
+      "title": "int"
+    },
+    "Revision": {
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "algorithm",
+            "digest"
+          ],
+          "properties": {
+            "algorithm": {
+              "type": "string",
+              "enum": [
+                "git-sha1"
+              ]
+            },
+            "digest": {
+              "type": "string",
+              "description": "a string matching the pattern ^[0-9a-f]{40}$",
+              "pattern": "^[0-9a-f]{40}$"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "algorithm",
+            "digest"
+          ],
+          "properties": {
+            "algorithm": {
+              "type": "string",
+              "enum": [
+                "git-sha256"
+              ]
+            },
+            "digest": {
+              "type": "string",
+              "description": "a string matching the pattern ^[0-9a-f]{64}$",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          "additionalProperties": false
+        }
+      ],
+      "description": "An immutable, normalized Git object revision."
+    },
+    "DateTimeUtc": {
+      "type": "string",
+      "description": "a string to be decoded into a DateTime.Utc"
+    },
+    "LocalKey": {
+      "type": "string",
+      "description": "A stable, repository-declared key. It is scoped by its containing repository or parent declaration.",
+      "title": "maxLength(63)",
+      "minLength": 1,
+      "maxLength": 63,
+      "pattern": "^[a-z][a-z0-9._-]*$"
+    }
+  },
+  "$ref": "#/$defs/FunctionalAPIAdaptationRequestV1"
+}

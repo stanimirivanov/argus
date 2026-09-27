@@ -1,0 +1,12 @@
+{
+  "fixtures": [
+    {
+      "path": "fixtures/functional-api-adaptation-result/v1/valid/candidate.json",
+      "schemaValid": true
+    },
+    {
+      "path": "fixtures/functional-api-adaptation-result/v1/invalid/assertion-edit.json",
+      "schemaValid": false
+    }
+  ]
+}

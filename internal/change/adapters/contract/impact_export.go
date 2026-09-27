@@ -5,8 +5,69 @@ import (
 	"time"
 
 	"github.com/stanimirivanov/argus/contracts"
+	"github.com/stanimirivanov/argus/internal/catalog"
 	"github.com/stanimirivanov/argus/internal/change"
 )
+
+// ImportCapabilityImpactV1 converts validated external evidence into the
+// canonical domain model used by selection and adaptation.
+func ImportCapabilityImpactV1(document contracts.CapabilityImpactV1) (change.CapabilityImpact, error) {
+	if err := contracts.ValidateCapabilityImpactV1(document); err != nil {
+		return change.CapabilityImpact{}, err
+	}
+	observedAt, err := time.Parse(time.RFC3339Nano, document.ObservedAt)
+	if err != nil {
+		return change.CapabilityImpact{}, fmt.Errorf("parse impact observation time: %w", err)
+	}
+	impact := change.CapabilityImpact{
+		APIVersion: document.APIVersion, AnalyzerVersion: document.AnalyzerVersion,
+		Change: change.Reference{
+			SourceRepository: catalog.Repository{
+				Identity: catalog.RepositoryIdentity{
+					Provider:             catalog.Provider(document.SourceRepository.Provider),
+					Host:                 document.SourceRepository.Host,
+					ProviderRepositoryID: document.SourceRepository.ProviderRepositoryID,
+				},
+				Owner: document.SourceRepository.Owner, Name: document.SourceRepository.Name,
+			},
+			PullRequestNumber: document.PullRequest.Number,
+			BaseRevision: catalog.Revision{
+				Algorithm: catalog.RevisionAlgorithm(document.BaseRevision.Algorithm), Digest: document.BaseRevision.Digest,
+			},
+			HeadRevision: catalog.Revision{
+				Algorithm: catalog.RevisionAlgorithm(document.HeadRevision.Algorithm), Digest: document.HeadRevision.Digest,
+			},
+			ObservedAt: observedAt,
+			Trigger: change.Trigger{
+				Provider: catalog.Provider(document.Trigger.Provider), DeliveryID: document.Trigger.DeliveryID,
+				Event: document.Trigger.Event, Action: document.Trigger.Action,
+			},
+		},
+		Status: change.ImpactStatus(document.Status), Warnings: append([]string{}, document.Warnings...),
+	}
+	for _, sourceDocument := range document.Documents {
+		domainDocument := change.DocumentImpact{
+			Path: sourceDocument.Path, PreviousPath: cloneString(sourceDocument.PreviousPath),
+			Kind: change.SemanticChangeKind(sourceDocument.Kind), TotalChanges: sourceDocument.TotalChanges,
+			BreakingChanges: sourceDocument.BreakingChanges,
+		}
+		for _, operation := range sourceDocument.Operations {
+			domainDocument.Operations = append(domainDocument.Operations, change.OperationImpact{
+				Method: operation.Method, Path: operation.Path, OperationID: cloneString(operation.OperationID),
+				Kind:           change.SemanticChangeKind(operation.Kind),
+				Capabilities:   append([]string{}, operation.Capabilities...),
+				PotentialBreak: operation.PotentiallyBreaking,
+			})
+		}
+		impact.Documents = append(impact.Documents, domainDocument)
+	}
+	impact = change.CanonicalCapabilityImpact(impact)
+	if err := change.ValidateCapabilityImpact(impact); err != nil {
+		return change.CapabilityImpact{}, fmt.Errorf("validate imported capability impact: %w", err)
+	}
+
+	return impact, nil
+}
 
 // ExportCapabilityImpactV1 converts validated domain evidence to its public contract.
 func ExportCapabilityImpactV1(impact change.CapabilityImpact) (contracts.CapabilityImpactV1, error) {

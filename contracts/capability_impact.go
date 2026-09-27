@@ -58,12 +58,30 @@ type OpenAPIOperationImpact struct {
 	PotentiallyBreaking bool     `json:"potentiallyBreaking"`
 }
 
+// DecodeCapabilityImpactV1 validates and decodes external semantic impact.
+func DecodeCapabilityImpactV1(data []byte) (CapabilityImpactV1, error) {
+	var document CapabilityImpactV1
+	if err := validateCapabilityImpactV1JSON(data); err != nil {
+		return document, err
+	}
+	if err := json.Unmarshal(data, &document); err != nil {
+		return document, fmt.Errorf("decode capability impact: %w", err)
+	}
+
+	return document, nil
+}
+
 // ValidateCapabilityImpactV1 verifies a typed document against the generated schema.
 func ValidateCapabilityImpactV1(document CapabilityImpactV1) error {
 	data, err := json.Marshal(document)
 	if err != nil {
 		return fmt.Errorf("encode capability impact for validation: %w", err)
 	}
+
+	return validateCapabilityImpactV1JSON(data)
+}
+
+func validateCapabilityImpactV1JSON(data []byte) error {
 	schema, err := loadCapabilityImpactV1Schema()
 	if err != nil {
 		return err
