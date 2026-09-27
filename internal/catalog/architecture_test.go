@@ -154,8 +154,12 @@ func TestHexagonalImportBoundaries(t *testing.T) {
 		},
 		{
 			name:      "adaptation application depends inward",
-			directory: filepath.Join(adaptationRoot, "functionalapi"),
+			directory: adaptationRoot,
 			recursive: true,
+			includeDirectories: []string{
+				filepath.Join(adaptationRoot, "functionalapi"),
+				filepath.Join(adaptationRoot, "validation"),
+			},
 			forbidden: []string{
 				"github.com/stanimirivanov/argus/contracts",
 				adaptationImportPath + "/adapters",
@@ -168,6 +172,7 @@ func TestHexagonalImportBoundaries(t *testing.T) {
 			forbidden: []string{
 				"os/exec",
 				adaptationImportPath + "/adapters/processadapter",
+				adaptationImportPath + "/adapters/validationprocessadapter",
 			},
 		},
 		{

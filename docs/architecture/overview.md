@@ -287,12 +287,17 @@ the control plane framework-specific source knowledge or mutation authority:
 
 | Path | Owns | Must not own |
 |:--|:--|:--|
-| `internal/adaptation` | Proposal vocabulary, endpoint rename and edit invariants, stable errors, and policy versions | Generated contracts, process execution, source parsing, validation runs, or pull requests |
+| `internal/adaptation` | Proposal and validation vocabulary, endpoint rename and edit invariants, canonical evidence, stable errors, and policy versions | Generated contracts, process execution, filesystem access, or pull requests |
 | `internal/adaptation/functionalapi` | Unique endpoint-rename proof, adapter port, proposal identity, result correlation, and constrained edit policy | Framework parsers, JSON, commands, source mutation, or review APIs |
-| `internal/adaptation/adapters/contract` | Adaptation request/result and proposal v1 conversion | Rename inference or source policy |
+| `internal/adaptation/validation` | Three-phase outcome policy, exact span materialization, negative-control derivation, runner/workspace ports, restoration checks, and evidence assembly | Filesystem APIs, framework commands, JSON, persistence, or review APIs |
+| `internal/adaptation/adapters/contract` | Adaptation and validation request/result/evidence conversion | Rename inference, validation policy, or source mutation |
 | `internal/adaptation/adapters/processadapter` | Bounded no-shell request/result exchange with an explicit executable | Command discovery, source mutation, or adaptation policy |
+| `internal/adaptation/adapters/fileworkspace` | Root containment, regular-file access, preimage-guarded writes, and restoration in a disposable checkout | Validation outcome policy or test execution |
+| `internal/adaptation/adapters/validationprocessadapter` | Bounded no-shell phase execution in the disposable checkout | Patch selection, source writes, or outcome policy |
 | `internal/adaptation/adapters/cli/proposalcli` | Bounded impact/manifest input, exact test selection, provenance correlation, timeout, and proposal JSON output | Concrete process construction or framework parsing |
+| `internal/adaptation/adapters/cli/validationcli` | Bounded proposal input, explicit disposable root, total timeout, and validation-evidence JSON output | Concrete workspace/process construction or validation policy |
 | `cmd/propose-functional-api-repair` | Process-adapter composition and operating-system streams | Adaptation or contract policy |
+| `cmd/validate-functional-api-repair` | Guarded workspace and validation-process composition | Validation, patch, or contract policy |
 
 Argus requires complete semantic impact and one contract-declared operation
 identity moving from an old path to a new path. Repository-owned adapters map
@@ -302,6 +307,14 @@ identities before emitting `PATCH_AND_VALIDATE`. Proposal generation never
 writes to the test checkout and therefore cannot silently repair, commit, or
 merge a test. [ADR-0014](../decisions/0014-generate-endpoint-repair-proposals-through-reviewed-adapters.md)
 defines the evidence threshold and adapter boundary.
+
+Validation verifies the source preimage and runs the exact test against
+unchanged, candidate, and deterministic negative-control bytes. The application
+owns the required `failed → passed → failed` sequence and restores the original
+file after each modified execution. Adapters only translate stable test IDs to
+framework invocation. Successful evidence retains every executed source digest
+and the final restored digest. [ADR-0015](../decisions/0015-validate-repairs-with-a-restored-negative-control-workspace.md)
+defines the workspace and negative-control policy.
 
 For heterogeneous manifests, the planner groups by stable test-repository
 identity and adapter. Reviewed bindings must cover that group set exactly and

@@ -5,6 +5,11 @@ import {
   FunctionalAPIAdaptationRequestV1,
   FunctionalAPIAdaptationResultV1,
 } from "../source/adaptation-v1.js";
+import {
+  FunctionalAPIRepairValidationRequestV1,
+  FunctionalAPIRepairValidationResultV1,
+  ValidationEvidenceV1,
+} from "../source/adaptation-validation-v1.js";
 import { CapabilityImpactV1 } from "../source/capability-impact-v1.js";
 import { ChangeSetV1 } from "../source/change-set-v1.js";
 import { ExecutionManifestV1 } from "../source/execution-manifest-v1.js";
@@ -28,6 +33,39 @@ import { SelectionShadowReportV1 } from "../source/selection-shadow-report-v1.js
 import { TestCatalogPageV1 } from "../source/test-catalog-page-v1.js";
 
 const artifacts = [
+  {
+    name: "functional API repair validation request",
+    outputPath: new URL(
+      "../generated/functional-api-repair-validation-request/v1/functional-api-repair-validation-request.schema.json",
+      import.meta.url,
+    ),
+    document: {
+      $id: "https://argus.dev/contracts/functional-api-repair-validation-request/v1/schema.json",
+      ...JSONSchema.make(FunctionalAPIRepairValidationRequestV1, { target: "jsonSchema2020-12" }),
+    },
+  },
+  {
+    name: "functional API repair validation result",
+    outputPath: new URL(
+      "../generated/functional-api-repair-validation-result/v1/functional-api-repair-validation-result.schema.json",
+      import.meta.url,
+    ),
+    document: {
+      $id: "https://argus.dev/contracts/functional-api-repair-validation-result/v1/schema.json",
+      ...JSONSchema.make(FunctionalAPIRepairValidationResultV1, { target: "jsonSchema2020-12" }),
+    },
+  },
+  {
+    name: "validation evidence",
+    outputPath: new URL(
+      "../generated/validation-evidence/v1/validation-evidence.schema.json",
+      import.meta.url,
+    ),
+    document: {
+      $id: "https://argus.dev/contracts/validation-evidence/v1/schema.json",
+      ...JSONSchema.make(ValidationEvidenceV1, { target: "jsonSchema2020-12" }),
+    },
+  },
   {
     name: "functional API adaptation request",
     outputPath: new URL(

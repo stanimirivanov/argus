@@ -1,0 +1,8 @@
+{
+  "fixtures": [
+    {
+      "path": "fixtures/validation-evidence/v1/valid/endpoint-rename.json",
+      "schemaValid": true
+    }
+  ]
+}

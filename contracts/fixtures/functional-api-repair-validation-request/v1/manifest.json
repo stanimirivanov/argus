@@ -1,0 +1,8 @@
+{
+  "fixtures": [
+    {
+      "path": "fixtures/functional-api-repair-validation-request/v1/valid/original.json",
+      "schemaValid": true
+    }
+  ]
+}

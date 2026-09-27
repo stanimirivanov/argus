@@ -113,3 +113,4 @@ How will the assumptions and consequences be verified?
 | [ADR-0012](0012-plan-execution-from-reviewed-repository-bindings.md) | Plan execution from reviewed repository bindings | Accepted | 2026-09-26 |
 | [ADR-0013](0013-evaluate-selection-across-complete-execution-plans.md) | Evaluate selection across complete execution plans | Accepted | 2026-09-26 |
 | [ADR-0014](0014-generate-endpoint-repair-proposals-through-reviewed-adapters.md) | Generate endpoint repair proposals through reviewed adapters | Accepted | 2026-09-26 |
+| [ADR-0015](0015-validate-repairs-with-a-restored-negative-control-workspace.md) | Validate repairs with a restored negative-control workspace | Accepted | 2026-09-27 |

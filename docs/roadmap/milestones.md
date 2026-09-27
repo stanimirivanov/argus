@@ -296,6 +296,13 @@ byte span, and the exact old-to-new request-target replacement. It does not
 mutate source; original failure reproduction, candidate execution, negative
 control, review PR creation, and outcome learning remain in the next slice.
 
+The second M06 slice now validates that proposal in an explicitly disposable
+checkout. It requires original failure, exact-candidate success, and
+deterministic invalid-endpoint failure while verifying and restoring source
+digests after every modified phase. The resulting `ValidationEvidence` is
+portable and reviewable. Pull-request creation, evidence persistence, final
+edited-diff capture, and reviewer-outcome learning remain.
+
 ## M07 - UI test intelligence
 
 **Message:** Extend mapping and constrained adaptation to browser tests.
