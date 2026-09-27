@@ -25,6 +25,8 @@ const (
 	PolicyVersion = "argus.dev/adaptation-policy/functional-api-endpoint-rename/v1"
 	// MaxSourcePathLength bounds adapter-selected repository paths.
 	MaxSourcePathLength = 4096
+	// MaxSourceBytes bounds one source file materialized for validation.
+	MaxSourceBytes = 16 << 20
 )
 
 var sha256Pattern = regexp.MustCompile(`^[0-9a-f]{64}$`)
@@ -39,6 +41,9 @@ var (
 	// ErrAdapterAbstained means the framework adapter could not prove one safe
 	// request-target occurrence.
 	ErrAdapterAbstained = errors.New("adaptation adapter abstained")
+	// ErrValidationRejected means the candidate did not satisfy the required
+	// original, repaired, and negative-control outcomes.
+	ErrValidationRejected = errors.New("adaptation validation rejected")
 )
 
 // Classification describes the observed state of one test.
@@ -291,6 +296,16 @@ func validRepositoryPath(path string) bool {
 	return path == cleaned && path != "" && path != "." && path == pathpkg.Clean(path) &&
 		len(path) <= MaxSourcePathLength && !strings.HasPrefix(path, "/") &&
 		!strings.HasPrefix(path, "../") && !strings.ContainsRune(path, '\x00')
+}
+
+// ValidateSourcePath verifies a normalized repository-relative source path for
+// workspace adapters.
+func ValidateSourcePath(path string) error {
+	if !validRepositoryPath(path) {
+		return fmt.Errorf("%w: source path", ErrInvalid)
+	}
+
+	return nil
 }
 
 func canonicalStrings(values []string) []string {

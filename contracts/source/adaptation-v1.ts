@@ -31,7 +31,7 @@ const ChangeReference = Schema.Struct({
   }),
 });
 
-const TestReference = Schema.Struct({
+export const AdaptationTestReference = Schema.Struct({
   repository: RepositoryReference,
   revision: Revision,
   suiteKey: LocalKey,
@@ -59,7 +59,7 @@ const EndpointRename = Schema.Struct({
   capabilities: Schema.Array(LocalKey).pipe(Schema.minItems(1), Schema.maxItems(50)),
 });
 
-const TextEdit = Schema.Struct({
+export const AdaptationTextEdit = Schema.Struct({
   path: SourcePath,
   beforeSha256: SHA256,
   startByte: ByteOffset,
@@ -73,7 +73,7 @@ export const FunctionalAPIAdaptationRequestV1 = Schema.Struct({
   apiVersion: Schema.Literal("argus.dev/functional-api-adaptation-request/v1"),
   proposalId: SHA256,
   change: ChangeReference,
-  test: TestReference,
+  test: AdaptationTestReference,
   endpointRename: EndpointRename,
 }).annotations({
   identifier: "FunctionalAPIAdaptationRequestV1",
@@ -89,7 +89,7 @@ export const FunctionalAPIAdaptationResultV1 = Schema.Struct({
   outcome: Schema.Literal("candidate", "abstained"),
   reasonCode: Schema.NullOr(LocalKey),
   reason: Schema.NullOr(Schema.String.pipe(Schema.minLength(1), Schema.maxLength(1000))),
-  edit: Schema.NullOr(TextEdit),
+  edit: Schema.NullOr(AdaptationTextEdit),
 }).annotations({
   identifier: "FunctionalAPIAdaptationResultV1",
   title: "Argus functional API adaptation result v1",
@@ -106,12 +106,12 @@ export const AdaptationProposalV1 = Schema.Struct({
     analyzerVersion: Schema.Literal("argus-openapi/v1+libopenapi/v0.38.7"),
   }),
   change: ChangeReference,
-  test: TestReference,
+  test: AdaptationTestReference,
   classification: Schema.Literal("INVALIDATED"),
   decision: Schema.Literal("PATCH_AND_VALIDATE"),
   endpointRename: EndpointRename,
   adapter: Schema.Struct({ id: LocalKey, version: Version }),
-  edit: TextEdit,
+  edit: AdaptationTextEdit,
 }).annotations({
   identifier: "AdaptationProposalV1",
   title: "Argus adaptation proposal v1",

@@ -1,0 +1,14 @@
+{
+  "apiVersion": "argus.dev/functional-api-repair-validation-result/v1",
+  "validationId": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+  "proposalId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "phase": "original",
+  "suiteKey": "orders-api",
+  "testKey": "list-orders",
+  "adapter": { "id": "playwright", "version": "1.2.3" },
+  "sourceSha256": "1111111111111111111111111111111111111111111111111111111111111111",
+  "startedAt": "2026-09-27T10:00:00Z",
+  "completedAt": "2026-09-27T10:00:01Z",
+  "outcome": "failed",
+  "failure": { "code": "request-failed", "message": "Expected a successful response" }
+}

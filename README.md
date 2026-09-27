@@ -227,6 +227,21 @@ exact request-target edit or abstain. This command never modifies source; its
 `PATCH_AND_VALIDATE` output is input to the later isolated validation stage.
 See the [functional API adaptation protocol](docs/integrations/functional-api-adaptation.md).
 
+Validate the proposal in an explicitly disposable checkout:
+
+~~~sh
+go run ./cmd/validate-functional-api-repair \
+  -proposal ./adaptation-proposal.json \
+  -disposable-workspace "$RUNNER_TEMP/orders-tests-validation" \
+  -- node ./tools/argus-playwright-validation-adapter.mjs \
+  > ./validation-evidence.json
+~~~
+
+Argus verifies and temporarily materializes only the proposed source span. It
+requires the original test to fail, the candidate to pass, and a deterministic
+invalid-endpoint control to fail. Original bytes are restored and verified
+after each modified run. The checkout must still be discarded after validation.
+
 Persist each normalized attempt after the CI job has uploaded any referenced
 artifact bytes:
 

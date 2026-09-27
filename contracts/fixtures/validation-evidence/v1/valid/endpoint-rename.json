@@ -1,0 +1,69 @@
+{
+  "apiVersion": "argus.dev/validation-evidence/v1",
+  "policyVersion": "argus.dev/validation-policy/functional-api-endpoint-rename/v1",
+  "validationId": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+  "proposalId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "proposalPolicyVersion": "argus.dev/adaptation-policy/functional-api-endpoint-rename/v1",
+  "test": {
+    "repository": {
+      "provider": "github",
+      "host": "github.com",
+      "providerRepositoryId": "tests-1",
+      "owner": "example",
+      "name": "orders-tests"
+    },
+    "revision": {
+      "algorithm": "git-sha1",
+      "digest": "cccccccccccccccccccccccccccccccccccccccc"
+    },
+    "suiteKey": "orders-api",
+    "testKey": "list-orders",
+    "name": "Lists orders",
+    "adapter": "playwright",
+    "capabilities": ["list-orders"]
+  },
+  "adapter": { "id": "playwright", "version": "1.2.3" },
+  "edit": {
+    "path": "tests/orders.spec.ts",
+    "beforeSha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "startByte": 120,
+    "endByte": 130,
+    "original": "/v1/orders",
+    "replacement": "/v2/orders",
+    "semanticRole": "request-target"
+  },
+  "source": {
+    "path": "tests/orders.spec.ts",
+    "originalSha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "candidateSha256": "2222222222222222222222222222222222222222222222222222222222222222",
+    "negativeSha256": "3333333333333333333333333333333333333333333333333333333333333333",
+    "restoredSha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "negativeControlPath": "/__argus_negative_control__/aaaaaaaaaaaaaaaa"
+  },
+  "runs": [
+    {
+      "phase": "original",
+      "sourceSha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "startedAt": "2026-09-27T10:00:00Z",
+      "completedAt": "2026-09-27T10:00:01Z",
+      "outcome": "failed",
+      "failure": { "code": "request-failed", "message": "Old endpoint was not found" }
+    },
+    {
+      "phase": "candidate",
+      "sourceSha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "startedAt": "2026-09-27T10:00:02Z",
+      "completedAt": "2026-09-27T10:00:03Z",
+      "outcome": "passed",
+      "failure": null
+    },
+    {
+      "phase": "negative-control",
+      "sourceSha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "startedAt": "2026-09-27T10:00:04Z",
+      "completedAt": "2026-09-27T10:00:05Z",
+      "outcome": "failed",
+      "failure": { "code": "request-failed", "message": "Control endpoint was not found" }
+    }
+  ]
+}

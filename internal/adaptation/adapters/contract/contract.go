@@ -84,6 +84,55 @@ func ExportProposalV1(proposal adaptation.Proposal) (contracts.AdaptationProposa
 	return document, nil
 }
 
+// ImportProposalV1 converts a structurally valid public proposal into the
+// canonical domain value used by isolated validation.
+func ImportProposalV1(document contracts.AdaptationProposalV1) (adaptation.Proposal, error) {
+	if err := contracts.ValidateAdaptationProposalV1(document); err != nil {
+		return adaptation.Proposal{}, err
+	}
+	observedAt, err := time.Parse(time.RFC3339Nano, document.Change.ObservedAt)
+	if err != nil {
+		return adaptation.Proposal{}, fmt.Errorf("parse proposal observation time: %w", err)
+	}
+	proposal := adaptation.Proposal{
+		APIVersion: document.APIVersion, PolicyVersion: document.PolicyVersion,
+		ProposalID: document.ProposalID, ImpactAPIVersion: document.SourceImpact.APIVersion,
+		ImpactAnalyzerVersion: document.SourceImpact.AnalyzerVersion,
+		Change: change.Reference{
+			SourceRepository:  importRepository(document.Change.SourceRepository),
+			PullRequestNumber: document.Change.PullRequest.Number,
+			BaseRevision:      importRevision(document.Change.BaseRevision),
+			HeadRevision:      importRevision(document.Change.HeadRevision), ObservedAt: observedAt,
+			Trigger: change.Trigger{
+				Provider:   catalog.Provider(document.Change.Trigger.Provider),
+				DeliveryID: document.Change.Trigger.DeliveryID,
+				Event:      document.Change.Trigger.Event, Action: document.Change.Trigger.Action,
+			},
+		},
+		Test: importTest(document.Test), Classification: adaptation.Classification(document.Classification),
+		Decision: adaptation.Decision(document.Decision),
+		Rename: adaptation.EndpointRename{
+			Method: document.EndpointRename.Method, OperationID: document.EndpointRename.OperationID,
+			PreviousPath: document.EndpointRename.PreviousPath, Path: document.EndpointRename.Path,
+			Capabilities: append([]string{}, document.EndpointRename.Capabilities...),
+		},
+		AdapterID: document.Adapter.ID, AdapterVersion: document.Adapter.Version,
+		Edit: adaptation.TextEdit{
+			Path: document.Edit.Path, BeforeSHA256: document.Edit.BeforeSHA256,
+			StartByte: document.Edit.StartByte, EndByte: document.Edit.EndByte,
+			Original: document.Edit.Original, Replacement: document.Edit.Replacement,
+			SemanticRole: document.Edit.SemanticRole,
+		},
+	}
+	proposal.Test = adaptation.CanonicalTestReference(proposal.Test)
+	proposal.Rename = adaptation.CanonicalEndpointRename(proposal.Rename)
+	if err := adaptation.ValidateProposal(proposal); err != nil {
+		return adaptation.Proposal{}, fmt.Errorf("validate imported adaptation proposal: %w", err)
+	}
+
+	return proposal, nil
+}
+
 func exportChange(reference change.Reference) contracts.AdaptationChangeReference {
 	return contracts.AdaptationChangeReference{
 		SourceRepository: exportRepository(reference.SourceRepository),
@@ -122,6 +171,28 @@ func exportRepository(repository catalog.Repository) contracts.RepositoryReferen
 
 func exportRevision(revision catalog.Revision) contracts.RevisionReference {
 	return contracts.RevisionReference{Algorithm: string(revision.Algorithm), Digest: revision.Digest}
+}
+
+func importTest(test contracts.AdaptationTestReference) adaptation.TestReference {
+	return adaptation.TestReference{
+		Repository: importRepository(test.Repository), Revision: importRevision(test.Revision),
+		SuiteKey: test.SuiteKey, TestKey: test.TestKey, Name: test.Name, Adapter: test.Adapter,
+		Capabilities: append([]string{}, test.Capabilities...),
+	}
+}
+
+func importRepository(repository contracts.RepositoryReference) catalog.Repository {
+	return catalog.Repository{
+		Identity: catalog.RepositoryIdentity{
+			Provider: catalog.Provider(repository.Provider), Host: repository.Host,
+			ProviderRepositoryID: repository.ProviderRepositoryID,
+		},
+		Owner: repository.Owner, Name: repository.Name,
+	}
+}
+
+func importRevision(revision contracts.RevisionReference) catalog.Revision {
+	return catalog.Revision{Algorithm: catalog.RevisionAlgorithm(revision.Algorithm), Digest: revision.Digest}
 }
 
 func optionalString(value *string) string {

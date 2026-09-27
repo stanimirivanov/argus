@@ -1,0 +1,25 @@
+{
+  "apiVersion": "argus.dev/functional-api-repair-validation-request/v1",
+  "validationId": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+  "proposalId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "phase": "original",
+  "test": {
+    "repository": {
+      "provider": "github",
+      "host": "github.com",
+      "providerRepositoryId": "tests-1",
+      "owner": "example",
+      "name": "orders-tests"
+    },
+    "revision": {
+      "algorithm": "git-sha1",
+      "digest": "cccccccccccccccccccccccccccccccccccccccc"
+    },
+    "suiteKey": "orders-api",
+    "testKey": "list-orders",
+    "name": "Lists orders",
+    "adapter": "playwright",
+    "capabilities": ["list-orders"]
+  },
+  "sourceSha256": "1111111111111111111111111111111111111111111111111111111111111111"
+}
