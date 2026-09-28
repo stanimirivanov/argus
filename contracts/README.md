@@ -37,6 +37,8 @@
   Its published v1 identity excludes retry observation time and is verified
   during durable ingestion; persistence separately fingerprints the complete
   provenance.
+- Validation-rejection v1 records a trustworthy completed validation prefix
+  when a policy gate disproves a candidate; it is never successful proof.
 - Structural validity and domain validity are distinct and share one fixture
   corpus.
 - Generate language stubs only when a real producer or consumer needs them.
@@ -97,6 +99,7 @@ actually fetched.
 | `fixtures/execution-plan-attempt-bindings/v1/` | Explicit plan-to-attempt binding fixtures. |
 | `fixtures/selection-plan-shadow-report/v1/` | Complete-plan aggregate shadow-report fixtures. |
 | `fixtures/review-outcome/v1/` | Terminal review-outcome compatibility fixtures. |
+| `fixtures/validation-rejection/v1/` | Trustworthy unsuccessful-validation compatibility fixtures. |
 | `repository_descriptor.go` | Go schema-validation boundary and transport DTO. |
 | `test_catalog_page.go` | Go test-catalog transport DTO and generated-schema validation boundary. |
 | `impact_evidence_bundle.go` | Go evidence-bundle transport and schema-validation boundary. |

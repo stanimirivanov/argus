@@ -157,6 +157,128 @@ func ImportValidationEvidenceV1(
 	return evidence, nil
 }
 
+// ExportValidationRejectionV1 converts trustworthy domain rejection evidence
+// to its portable contract without treating it as successful validation.
+func ExportValidationRejectionV1(
+	evidence adaptation.ValidationRejectionEvidence,
+) (contracts.ValidationRejectionV1, error) {
+	evidence = adaptation.CanonicalValidationRejectionEvidence(evidence)
+	if err := adaptation.ValidateValidationRejectionEvidence(evidence); err != nil {
+		return contracts.ValidationRejectionV1{}, err
+	}
+	document := contracts.ValidationRejectionV1{
+		APIVersion: evidence.APIVersion, PolicyVersion: evidence.PolicyVersion,
+		ValidationID: evidence.ValidationID, ProposalID: evidence.ProposalID,
+		ProposalPolicyVersion: evidence.ProposalPolicyVersion, Test: exportTest(evidence.Test),
+		Adapter: contracts.AdapterIdentity{ID: evidence.AdapterID, Version: evidence.AdapterVersion},
+		Edit:    exportValidationEdit(evidence.Edit), Source: exportValidationSource(evidence.Source),
+		Rejection: contracts.AdaptationValidationRejection{
+			Phase: string(evidence.RejectedPhase), Reason: string(evidence.Reason),
+			ExpectedOutcome: string(evidence.ExpectedOutcome), ActualOutcome: string(evidence.ActualOutcome),
+		},
+		Runs: exportValidationRuns(evidence.Runs),
+	}
+	if err := contracts.ValidateValidationRejectionV1(document); err != nil {
+		return contracts.ValidationRejectionV1{}, fmt.Errorf("export validation rejection: %w", err)
+	}
+
+	return document, nil
+}
+
+// ImportValidationRejectionV1 converts structurally valid negative evidence
+// into the canonical domain representation used by durable ingestion.
+func ImportValidationRejectionV1(
+	document contracts.ValidationRejectionV1,
+) (adaptation.ValidationRejectionEvidence, error) {
+	if err := contracts.ValidateValidationRejectionV1(document); err != nil {
+		return adaptation.ValidationRejectionEvidence{}, err
+	}
+	runs, err := importValidationRuns(document.Runs)
+	if err != nil {
+		return adaptation.ValidationRejectionEvidence{}, err
+	}
+	evidence := adaptation.ValidationRejectionEvidence{
+		APIVersion: document.APIVersion, PolicyVersion: document.PolicyVersion,
+		ValidationID: document.ValidationID, ProposalID: document.ProposalID,
+		ProposalPolicyVersion: document.ProposalPolicyVersion, Test: importTest(document.Test),
+		AdapterID: document.Adapter.ID, AdapterVersion: document.Adapter.Version,
+		Edit: adaptation.TextEdit{
+			Path: document.Edit.Path, BeforeSHA256: document.Edit.BeforeSHA256,
+			StartByte: document.Edit.StartByte, EndByte: document.Edit.EndByte,
+			Original: document.Edit.Original, Replacement: document.Edit.Replacement,
+			SemanticRole: document.Edit.SemanticRole,
+		},
+		Source: adaptation.ValidationSourceEvidence{
+			Path: document.Source.Path, OriginalSHA256: document.Source.OriginalSHA256,
+			CandidateSHA256: document.Source.CandidateSHA256, NegativeSHA256: document.Source.NegativeSHA256,
+			RestoredSHA256:      document.Source.RestoredSHA256,
+			NegativeControlPath: document.Source.NegativeControlPath,
+		},
+		RejectedPhase:   adaptation.ValidationPhase(document.Rejection.Phase),
+		Reason:          adaptation.ValidationRejectionReason(document.Rejection.Reason),
+		ExpectedOutcome: adaptation.ValidationOutcome(document.Rejection.ExpectedOutcome),
+		ActualOutcome:   adaptation.ValidationOutcome(document.Rejection.ActualOutcome), Runs: runs,
+	}
+	evidence = adaptation.CanonicalValidationRejectionEvidence(evidence)
+	if err := adaptation.ValidateValidationRejectionEvidence(evidence); err != nil {
+		return adaptation.ValidationRejectionEvidence{}, fmt.Errorf("validate imported validation rejection: %w", err)
+	}
+
+	return evidence, nil
+}
+
+func exportValidationEdit(edit adaptation.TextEdit) contracts.AdaptationTextEdit {
+	return contracts.AdaptationTextEdit{
+		Path: edit.Path, BeforeSHA256: edit.BeforeSHA256, StartByte: edit.StartByte, EndByte: edit.EndByte,
+		Original: edit.Original, Replacement: edit.Replacement, SemanticRole: edit.SemanticRole,
+	}
+}
+
+func exportValidationSource(source adaptation.ValidationSourceEvidence) contracts.AdaptationValidationSource {
+	return contracts.AdaptationValidationSource{
+		Path: source.Path, OriginalSHA256: source.OriginalSHA256,
+		CandidateSHA256: source.CandidateSHA256, NegativeSHA256: source.NegativeSHA256,
+		RestoredSHA256: source.RestoredSHA256, NegativeControlPath: source.NegativeControlPath,
+	}
+}
+
+func exportValidationRuns(runs []adaptation.ValidationRun) []contracts.AdaptationValidationRun {
+	documents := make([]contracts.AdaptationValidationRun, 0, len(runs))
+	for _, run := range runs {
+		documents = append(documents, contracts.AdaptationValidationRun{
+			Phase: string(run.Phase), SourceSHA256: run.SourceSHA256,
+			StartedAt: run.StartedAt.Format(time.RFC3339Nano), CompletedAt: run.CompletedAt.Format(time.RFC3339Nano),
+			Outcome: string(run.Outcome), Failure: exportValidationFailure(run.Failure),
+		})
+	}
+
+	return documents
+}
+
+func importValidationRuns(documents []contracts.AdaptationValidationRun) ([]adaptation.ValidationRun, error) {
+	runs := make([]adaptation.ValidationRun, 0, len(documents))
+	for _, document := range documents {
+		startedAt, err := time.Parse(time.RFC3339Nano, document.StartedAt)
+		if err != nil {
+			return nil, fmt.Errorf("parse validation rejection run start: %w", err)
+		}
+		completedAt, err := time.Parse(time.RFC3339Nano, document.CompletedAt)
+		if err != nil {
+			return nil, fmt.Errorf("parse validation rejection run completion: %w", err)
+		}
+		run := adaptation.ValidationRun{
+			Phase: adaptation.ValidationPhase(document.Phase), SourceSHA256: document.SourceSHA256,
+			StartedAt: startedAt, CompletedAt: completedAt, Outcome: adaptation.ValidationOutcome(document.Outcome),
+		}
+		if document.Failure != nil {
+			run.Failure = &adaptation.ValidationFailure{Code: document.Failure.Code, Message: document.Failure.Message}
+		}
+		runs = append(runs, run)
+	}
+
+	return runs, nil
+}
+
 func exportValidationFailure(failure *adaptation.ValidationFailure) *contracts.NormalizedFailure {
 	if failure == nil {
 		return nil

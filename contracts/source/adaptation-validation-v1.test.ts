@@ -7,6 +7,7 @@ import {
   FunctionalAPIRepairValidationRequestV1,
   FunctionalAPIRepairValidationResultV1,
   ValidationEvidenceV1,
+  ValidationRejectionV1,
 } from "./adaptation-validation-v1.js";
 
 const contractsRoot = new URL("../", import.meta.url);
@@ -33,6 +34,12 @@ const cases = [
     name: "validation evidence",
     path: "fixtures/validation-evidence/v1/valid/endpoint-rename.json",
     schema: ValidationEvidenceV1,
+    valid: true,
+  },
+  {
+    name: "validation rejection",
+    path: "fixtures/validation-rejection/v1/valid/candidate-failed.json",
+    schema: ValidationRejectionV1,
     valid: true,
   },
 ] as const;

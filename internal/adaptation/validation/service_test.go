@@ -68,6 +68,17 @@ func TestValidateRejectsWrongPhaseOutcomesWithoutLeavingPatch(t *testing.T) {
 			if !errors.Is(err, adaptation.ErrValidationRejected) {
 				t.Fatalf("expected validation rejection, got %v", err)
 			}
+			var rejection *adaptation.ValidationRejectedError
+			if !errors.As(err, &rejection) {
+				t.Fatalf("expected portable rejection evidence, got %T", err)
+			}
+			if validateErr := adaptation.ValidateValidationRejectionEvidence(rejection.Evidence); validateErr != nil {
+				t.Fatalf("invalid rejection evidence: %v", validateErr)
+			}
+			if len(rejection.Evidence.Runs) != runner.calls ||
+				rejection.Evidence.Runs[len(rejection.Evidence.Runs)-1].Phase != rejection.Evidence.RejectedPhase {
+				t.Fatalf("rejection did not retain completed run prefix: %+v", rejection.Evidence)
+			}
 			if !bytes.Equal(workspace.data, source) {
 				t.Fatalf("source was not restored: %q", workspace.data)
 			}

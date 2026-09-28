@@ -59,6 +59,12 @@ var (
 	ErrOutcomeConflict = errors.New("adaptation review outcome conflict")
 	// ErrOutcomeNotFound means no durable review outcome has the requested identity.
 	ErrOutcomeNotFound = errors.New("adaptation review outcome not found")
+	// ErrValidationRejectionConflict means one validation identity was reused
+	// with different trustworthy rejection evidence.
+	ErrValidationRejectionConflict = errors.New("adaptation validation rejection conflict")
+	// ErrValidationRejectionNotFound means no durable validation rejection has
+	// the requested validation identity.
+	ErrValidationRejectionNotFound = errors.New("adaptation validation rejection not found")
 )
 
 const (

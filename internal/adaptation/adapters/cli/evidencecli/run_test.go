@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"os"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/stanimirivanov/argus/contracts"
 	"github.com/stanimirivanov/argus/internal/adaptation"
 	adaptationcontract "github.com/stanimirivanov/argus/internal/adaptation/adapters/contract"
 	"github.com/stanimirivanov/argus/internal/catalog"
@@ -95,11 +97,72 @@ func TestRunGetEmitsStoredContract(t *testing.T) {
 	}
 }
 
+func TestRunIngestAndGetValidationRejection(t *testing.T) {
+	t.Parallel()
+	data, err := os.ReadFile("../../../../../contracts/fixtures/validation-rejection/v1/valid/candidate-failed.json")
+	if err != nil {
+		t.Fatalf("read validation rejection: %v", err)
+	}
+	document, err := contracts.DecodeValidationRejectionV1(data)
+	if err != nil {
+		t.Fatalf("decode validation rejection: %v", err)
+	}
+	evidence, err := adaptationcontract.ImportValidationRejectionV1(document)
+	if err != nil {
+		t.Fatalf("import validation rejection: %v", err)
+	}
+	runtime := &runtimeStub{foundRejection: evidence}
+	var ingestOutput bytes.Buffer
+	if err := Run(
+		t.Context(), []string{"ingest-validation-rejection", "-file", "-"}, "postgres://configured",
+		bytes.NewReader(data), &ingestOutput,
+		func(context.Context, string) (Runtime, error) { return runtime, nil },
+	); err != nil {
+		t.Fatalf("ingest validation rejection: %v", err)
+	}
+	if runtime.savedRejection.ValidationID != evidence.ValidationID ||
+		!strings.Contains(ingestOutput.String(), `"created": true`) {
+		t.Fatalf("unexpected rejection ingest: runtime=%+v output=%s", runtime, ingestOutput.String())
+	}
+	runtime.closed = false
+	var getOutput bytes.Buffer
+	if err := Run(
+		t.Context(), []string{"get-validation-rejection", "-validation-id", evidence.ValidationID},
+		"postgres://configured", nil, &getOutput,
+		func(context.Context, string) (Runtime, error) { return runtime, nil },
+	); err != nil {
+		t.Fatalf("get validation rejection: %v", err)
+	}
+	if runtime.findValidationID != evidence.ValidationID || !runtime.closed ||
+		!strings.Contains(getOutput.String(), `"candidate-failed"`) {
+		t.Fatalf("unexpected rejection get: runtime=%+v output=%s", runtime, getOutput.String())
+	}
+}
+
 type runtimeStub struct {
-	saved  adaptation.ReviewOutcome
-	found  adaptation.ReviewOutcome
-	findID string
-	closed bool
+	saved            adaptation.ReviewOutcome
+	found            adaptation.ReviewOutcome
+	findID           string
+	savedRejection   adaptation.ValidationRejectionEvidence
+	foundRejection   adaptation.ValidationRejectionEvidence
+	findValidationID string
+	closed           bool
+}
+
+func (runtime *runtimeStub) SaveValidationRejection(
+	_ context.Context,
+	evidence adaptation.ValidationRejectionEvidence,
+) (bool, error) {
+	runtime.savedRejection = evidence
+	return true, nil
+}
+
+func (runtime *runtimeStub) FindValidationRejection(
+	_ context.Context,
+	validationID string,
+) (adaptation.ValidationRejectionEvidence, error) {
+	runtime.findValidationID = validationID
+	return runtime.foundRejection, nil
 }
 
 func (runtime *runtimeStub) SaveReviewOutcome(

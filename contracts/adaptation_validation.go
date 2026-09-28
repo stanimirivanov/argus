@@ -16,6 +16,8 @@ const (
 	FunctionalAPIRepairValidationResultV1APIVersion = "argus.dev/functional-api-repair-validation-result/v1"
 	// ValidationEvidenceV1APIVersion identifies successful validation evidence v1.
 	ValidationEvidenceV1APIVersion = "argus.dev/validation-evidence/v1"
+	// ValidationRejectionV1APIVersion identifies trustworthy rejected validation v1.
+	ValidationRejectionV1APIVersion = "argus.dev/validation-rejection/v1"
 )
 
 //go:embed generated/functional-api-repair-validation-request/v1/functional-api-repair-validation-request.schema.json
@@ -26,6 +28,9 @@ var functionalAPIRepairValidationResultV1SchemaJSON []byte
 
 //go:embed generated/validation-evidence/v1/validation-evidence.schema.json
 var validationEvidenceV1SchemaJSON []byte
+
+//go:embed generated/validation-rejection/v1/validation-rejection.schema.json
+var validationRejectionV1SchemaJSON []byte
 
 var loadFunctionalAPIRepairValidationRequestV1Schema = sync.OnceValues(func() (*jsonschema.Schema, error) {
 	return compileEmbeddedSchema(
@@ -48,6 +53,14 @@ var loadValidationEvidenceV1Schema = sync.OnceValues(func() (*jsonschema.Schema,
 		validationEvidenceV1SchemaJSON,
 		"https://argus.dev/contracts/validation-evidence/v1/schema.json",
 		"validation evidence",
+	)
+})
+
+var loadValidationRejectionV1Schema = sync.OnceValues(func() (*jsonschema.Schema, error) {
+	return compileEmbeddedSchema(
+		validationRejectionV1SchemaJSON,
+		"https://argus.dev/contracts/validation-rejection/v1/schema.json",
+		"validation rejection",
 	)
 })
 
@@ -111,6 +124,29 @@ type ValidationEvidenceV1 struct {
 	Runs                  []AdaptationValidationRun  `json:"runs"`
 }
 
+// AdaptationValidationRejection identifies the policy gate and observed mismatch.
+type AdaptationValidationRejection struct {
+	Phase           string `json:"phase"`
+	Reason          string `json:"reason"`
+	ExpectedOutcome string `json:"expectedOutcome"`
+	ActualOutcome   string `json:"actualOutcome"`
+}
+
+// ValidationRejectionV1 is a trustworthy completed prefix that disproves a candidate.
+type ValidationRejectionV1 struct {
+	APIVersion            string                        `json:"apiVersion"`
+	PolicyVersion         string                        `json:"policyVersion"`
+	ValidationID          string                        `json:"validationId"`
+	ProposalID            string                        `json:"proposalId"`
+	ProposalPolicyVersion string                        `json:"proposalPolicyVersion"`
+	Test                  AdaptationTestReference       `json:"test"`
+	Adapter               AdapterIdentity               `json:"adapter"`
+	Edit                  AdaptationTextEdit            `json:"edit"`
+	Source                AdaptationValidationSource    `json:"source"`
+	Rejection             AdaptationValidationRejection `json:"rejection"`
+	Runs                  []AdaptationValidationRun     `json:"runs"`
+}
+
 // ValidateFunctionalAPIRepairValidationRequestV1 validates a typed request.
 func ValidateFunctionalAPIRepairValidationRequestV1(document FunctionalAPIRepairValidationRequestV1) error {
 	return validateTypedAdaptationDocument(
@@ -148,6 +184,24 @@ func DecodeValidationEvidenceV1(data []byte) (ValidationEvidenceV1, error) {
 	}
 	if err := json.Unmarshal(data, &document); err != nil {
 		return document, fmt.Errorf("decode validation evidence: %w", err)
+	}
+
+	return document, nil
+}
+
+// ValidateValidationRejectionV1 validates typed rejection evidence.
+func ValidateValidationRejectionV1(document ValidationRejectionV1) error {
+	return validateTypedAdaptationDocument(document, loadValidationRejectionV1Schema, "validation rejection")
+}
+
+// DecodeValidationRejectionV1 validates and decodes public rejection evidence.
+func DecodeValidationRejectionV1(data []byte) (ValidationRejectionV1, error) {
+	var document ValidationRejectionV1
+	if err := validateAdaptationJSON(data, loadValidationRejectionV1Schema, "validation rejection"); err != nil {
+		return document, err
+	}
+	if err := json.Unmarshal(data, &document); err != nil {
+		return document, fmt.Errorf("decode validation rejection: %w", err)
 	}
 
 	return document, nil

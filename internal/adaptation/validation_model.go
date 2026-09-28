@@ -18,8 +18,24 @@ const (
 	ValidationResultAPIVersion = "argus.dev/functional-api-repair-validation-result/v1"
 	// ValidationEvidenceAPIVersion identifies a successful three-phase proof.
 	ValidationEvidenceAPIVersion = "argus.dev/validation-evidence/v1"
+	// ValidationRejectionAPIVersion identifies a trustworthy policy rejection.
+	ValidationRejectionAPIVersion = "argus.dev/validation-rejection/v1"
 	// ValidationPolicyVersion identifies the original/candidate/negative-control policy.
 	ValidationPolicyVersion = "argus.dev/validation-policy/functional-api-endpoint-rename/v1"
+)
+
+// ValidationRejectionReason explains which discriminating gate rejected a
+// candidate. Infrastructure and evidence-integrity errors are deliberately not
+// represented as policy rejections.
+type ValidationRejectionReason string
+
+const (
+	// ValidationOriginalPassed means the unchanged test did not reproduce the diagnosed failure.
+	ValidationOriginalPassed ValidationRejectionReason = "original-passed"
+	// ValidationCandidateFailed means the exact proposed edit did not repair the test.
+	ValidationCandidateFailed ValidationRejectionReason = "candidate-failed"
+	// ValidationNegativeControlPassed means the test did not discriminate an invalid target.
+	ValidationNegativeControlPassed ValidationRejectionReason = "negative-control-passed"
 )
 
 // ValidationPhase identifies one isolated execution state.
@@ -117,6 +133,44 @@ type ValidationEvidence struct {
 	Runs                  []ValidationRun
 }
 
+// ValidationRejectionEvidence preserves a completed, trustworthy prefix of
+// the validation protocol when an observed outcome disproves the candidate.
+// It is negative learning evidence and never authorizes review publication.
+type ValidationRejectionEvidence struct {
+	APIVersion            string
+	PolicyVersion         string
+	ValidationID          string
+	ProposalID            string
+	ProposalPolicyVersion string
+	Test                  TestReference
+	AdapterID             string
+	AdapterVersion        string
+	Edit                  TextEdit
+	Source                ValidationSourceEvidence
+	RejectedPhase         ValidationPhase
+	Reason                ValidationRejectionReason
+	ExpectedOutcome       ValidationOutcome
+	ActualOutcome         ValidationOutcome
+	Runs                  []ValidationRun
+}
+
+// ValidationRejectedError returns portable rejection evidence while retaining
+// errors.Is compatibility with ErrValidationRejected.
+type ValidationRejectedError struct {
+	Evidence ValidationRejectionEvidence
+}
+
+func (rejection *ValidationRejectedError) Error() string {
+	return fmt.Sprintf("%s: %s outcome is %s, expected %s",
+		ErrValidationRejected,
+		rejection.Evidence.RejectedPhase,
+		rejection.Evidence.ActualOutcome,
+		rejection.Evidence.ExpectedOutcome,
+	)
+}
+
+func (rejection *ValidationRejectedError) Unwrap() error { return ErrValidationRejected }
+
 // CanonicalValidationEvidence deep-copies runs and orders them by required phase.
 func CanonicalValidationEvidence(evidence ValidationEvidence) ValidationEvidence {
 	canonical := evidence
@@ -131,6 +185,15 @@ func CanonicalValidationEvidence(evidence ValidationEvidence) ValidationEvidence
 	slices.SortFunc(canonical.Runs, func(left, right ValidationRun) int {
 		return cmp.Compare(validationPhaseOrder(left.Phase), validationPhaseOrder(right.Phase))
 	})
+
+	return canonical
+}
+
+// CanonicalValidationRejectionEvidence deep-copies and orders completed runs.
+func CanonicalValidationRejectionEvidence(evidence ValidationRejectionEvidence) ValidationRejectionEvidence {
+	canonical := evidence
+	canonical.Test = CanonicalTestReference(evidence.Test)
+	canonical.Runs = canonicalValidationRuns(evidence.Runs)
 
 	return canonical
 }
@@ -223,6 +286,133 @@ func ValidateValidationEvidence(evidence ValidationEvidence) error {
 	}
 
 	return nil
+}
+
+// ValidateValidationRejectionEvidence accepts only the three expected policy
+// mismatches and requires the complete ordered run prefix through rejection.
+func ValidateValidationRejectionEvidence(evidence ValidationRejectionEvidence) error {
+	if evidence.APIVersion != ValidationRejectionAPIVersion ||
+		evidence.PolicyVersion != ValidationPolicyVersion ||
+		!sha256Pattern.MatchString(evidence.ValidationID) || !sha256Pattern.MatchString(evidence.ProposalID) ||
+		evidence.ProposalPolicyVersion != PolicyVersion || !catalogKey(evidence.AdapterID) ||
+		strings.TrimSpace(evidence.AdapterVersion) == "" || len(evidence.AdapterVersion) > 127 {
+		return fmt.Errorf("%w: validation rejection envelope", ErrInvalid)
+	}
+	if err := ValidateTestReference(evidence.Test); err != nil {
+		return err
+	}
+	if err := validateValidationSource(evidence.AdapterID, evidence.Test, evidence.Edit, evidence.Source); err != nil {
+		return err
+	}
+	expectedPhase, expectedOutcome, runCount, valid := rejectionPolicy(evidence.Reason)
+	if !valid || evidence.RejectedPhase != expectedPhase || evidence.ExpectedOutcome != expectedOutcome ||
+		evidence.ActualOutcome == expectedOutcome || evidence.ActualOutcome == ValidationError ||
+		len(evidence.Runs) != runCount {
+		return fmt.Errorf("%w: validation rejection policy", ErrInvalid)
+	}
+	canonical := CanonicalValidationRejectionEvidence(evidence)
+	if !equalValidationRuns(evidence.Runs, canonical.Runs) {
+		return fmt.Errorf("%w: validation rejection runs", ErrInvalid)
+	}
+	if err := validateValidationRejectionRuns(evidence); err != nil {
+		return err
+	}
+	last := evidence.Runs[len(evidence.Runs)-1]
+	if last.Phase != evidence.RejectedPhase || last.Outcome != evidence.ActualOutcome {
+		return fmt.Errorf("%w: validation rejection correlation", ErrInvalid)
+	}
+
+	return nil
+}
+
+func validateValidationRejectionRuns(evidence ValidationRejectionEvidence) error {
+	expectedPhases := []ValidationPhase{ValidationOriginal, ValidationCandidate, ValidationNegativeControl}
+	expectedHashes := []string{
+		evidence.Source.OriginalSHA256, evidence.Source.CandidateSHA256, evidence.Source.NegativeSHA256,
+	}
+	for index, run := range evidence.Runs {
+		if run.Phase != expectedPhases[index] || run.SourceSHA256 != expectedHashes[index] ||
+			run.StartedAt.IsZero() || run.CompletedAt.Before(run.StartedAt) {
+			return fmt.Errorf("%w: validation rejection run policy", ErrInvalid)
+		}
+		if index < len(evidence.Runs)-1 {
+			required := []ValidationOutcome{ValidationFailed, ValidationPassed}[index]
+			if run.Outcome != required {
+				return fmt.Errorf("%w: validation rejection prefix", ErrInvalid)
+			}
+		}
+		if err := validateValidationRejectionRun(run); err != nil {
+			return err
+		}
+		if index > 0 && run.StartedAt.Before(evidence.Runs[index-1].CompletedAt) {
+			return fmt.Errorf("%w: overlapping validation rejection runs", ErrInvalid)
+		}
+	}
+
+	return nil
+}
+
+func validateValidationRejectionRun(run ValidationRun) error {
+	switch run.Outcome {
+	case ValidationPassed:
+		if run.Failure != nil {
+			return fmt.Errorf("%w: passing rejection run has failure", ErrInvalid)
+		}
+	case ValidationFailed:
+		return validateValidationFailure(run.Failure)
+	default:
+		return fmt.Errorf("%w: validation rejection run outcome", ErrInvalid)
+	}
+
+	return nil
+}
+
+func validateValidationSource(
+	adapterID string,
+	test TestReference,
+	edit TextEdit,
+	source ValidationSourceEvidence,
+) error {
+	if adapterID != test.Adapter || !validRepositoryPath(source.Path) ||
+		validateTextEdit(edit) != nil || edit.Path != source.Path ||
+		edit.BeforeSHA256 != source.OriginalSHA256 ||
+		!sha256Pattern.MatchString(source.OriginalSHA256) ||
+		!sha256Pattern.MatchString(source.CandidateSHA256) ||
+		!sha256Pattern.MatchString(source.NegativeSHA256) ||
+		source.RestoredSHA256 != source.OriginalSHA256 ||
+		!strings.HasPrefix(source.NegativeControlPath, "/__argus_negative_control__/") {
+		return fmt.Errorf("%w: validation source evidence", ErrInvalid)
+	}
+
+	return nil
+}
+
+func rejectionPolicy(reason ValidationRejectionReason) (ValidationPhase, ValidationOutcome, int, bool) {
+	switch reason {
+	case ValidationOriginalPassed:
+		return ValidationOriginal, ValidationFailed, 1, true
+	case ValidationCandidateFailed:
+		return ValidationCandidate, ValidationPassed, 2, true
+	case ValidationNegativeControlPassed:
+		return ValidationNegativeControl, ValidationFailed, 3, true
+	default:
+		return "", "", 0, false
+	}
+}
+
+func canonicalValidationRuns(runs []ValidationRun) []ValidationRun {
+	canonical := make([]ValidationRun, len(runs))
+	for index, run := range runs {
+		canonical[index] = run
+		canonical[index].StartedAt = run.StartedAt.UTC()
+		canonical[index].CompletedAt = run.CompletedAt.UTC()
+		canonical[index].Failure = cloneValidationFailure(run.Failure)
+	}
+	slices.SortFunc(canonical, func(left, right ValidationRun) int {
+		return cmp.Compare(validationPhaseOrder(left.Phase), validationPhaseOrder(right.Phase))
+	})
+
+	return canonical
 }
 
 func validateValidationFailure(failure *ValidationFailure) error {

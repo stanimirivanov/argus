@@ -283,6 +283,30 @@ backfill, scan, or rewrite of existing evidence. Older binaries ignore the new
 tables; application rollback leaves them intact. The runtime role needs only
 the existing schema/table/sequence grants.
 
+## Persist validation rejections
+
+When isolated validation emits `argus.dev/validation-rejection/v1`, retain the
+negative evidence separately from successful proof:
+
+~~~sh
+go run ./cmd/adaptation-evidence ingest-validation-rejection \
+  -file ./validation-rejection.json
+go run ./cmd/adaptation-evidence get-validation-rejection \
+  -validation-id 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+~~~
+
+The store claims one immutable header per deterministic `validationId` and
+writes its completed ordered run prefix in the same transaction. Exact retries
+return `created: false`; different diagnostics or outcomes under that identity
+are conflicts. Repeatable-read retrieval reconstructs and revalidates the
+portable contract.
+
+Migration `20260928121500_add_validation_rejections.sql` is additive: it
+creates empty rejection and run tables, scans or rewrites no existing data,
+and leaves earlier applications compatible. Application rollback leaves the
+unused evidence intact. Infrastructure and integrity failures never enter
+these tables because they do not produce a rejection contract.
+
 ## Least-privilege roles
 
 The migration role owns the schema and ledger. The runtime role does not need

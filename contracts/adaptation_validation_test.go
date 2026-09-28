@@ -32,3 +32,19 @@ func TestValidationResultSchemaRejectsUnknownPhase(t *testing.T) {
 		t.Fatal("unknown validation phase unexpectedly passed contract validation")
 	}
 }
+
+func TestValidationRejectionFixtureConformsToGeneratedSchema(t *testing.T) {
+	t.Parallel()
+
+	data, err := os.ReadFile("fixtures/validation-rejection/v1/valid/candidate-failed.json")
+	if err != nil {
+		t.Fatalf("read validation rejection fixture: %v", err)
+	}
+	document, err := DecodeValidationRejectionV1(data)
+	if err != nil {
+		t.Fatalf("decode validation rejection: %v", err)
+	}
+	if document.Rejection.Reason != "candidate-failed" || len(document.Runs) != 2 {
+		t.Fatalf("unexpected validation rejection: %+v", document)
+	}
+}

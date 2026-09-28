@@ -1,4 +1,4 @@
-// Command adaptation-evidence persists and retrieves terminal review outcomes.
+// Command adaptation-evidence persists and retrieves bounded adaptation evidence.
 package main
 
 import (

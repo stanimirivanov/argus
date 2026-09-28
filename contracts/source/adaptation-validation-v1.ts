@@ -89,8 +89,46 @@ export const ValidationEvidenceV1 = Schema.Struct({
     "Successful original-failure, repaired-success, negative-control-failure evidence for one proposal.",
 });
 
+export const ValidationRejectionV1 = Schema.Struct({
+  apiVersion: Schema.Literal("argus.dev/validation-rejection/v1"),
+  policyVersion: Schema.Literal("argus.dev/validation-policy/functional-api-endpoint-rename/v1"),
+  validationId: SHA256,
+  proposalId: SHA256,
+  proposalPolicyVersion: Schema.Literal(
+    "argus.dev/adaptation-policy/functional-api-endpoint-rename/v1",
+  ),
+  test: AdaptationTestReference,
+  adapter: Schema.Struct({ id: LocalKey, version: Version }),
+  edit: AdaptationTextEdit,
+  source: Schema.Struct({
+    path: SourcePath,
+    originalSha256: SHA256,
+    candidateSha256: SHA256,
+    negativeSha256: SHA256,
+    restoredSha256: SHA256,
+    negativeControlPath: Schema.String.pipe(
+      Schema.minLength(1),
+      Schema.maxLength(2048),
+      Schema.pattern(/^\/__argus_negative_control__\//),
+    ),
+  }),
+  rejection: Schema.Struct({
+    phase: Phase,
+    reason: Schema.Literal("original-passed", "candidate-failed", "negative-control-passed"),
+    expectedOutcome: Schema.Literal("passed", "failed"),
+    actualOutcome: Schema.Literal("passed", "failed"),
+  }),
+  runs: Schema.Array(ValidationRun).pipe(Schema.minItems(1), Schema.maxItems(3)),
+}).annotations({
+  identifier: "ValidationRejectionV1",
+  title: "Argus validation rejection v1",
+  description:
+    "A trustworthy completed validation prefix that disproves a repair candidate without treating infrastructure errors as policy evidence.",
+});
+
 export type FunctionalAPIRepairValidationRequestV1 =
   typeof FunctionalAPIRepairValidationRequestV1.Type;
 export type FunctionalAPIRepairValidationResultV1 =
   typeof FunctionalAPIRepairValidationResultV1.Type;
 export type ValidationEvidenceV1 = typeof ValidationEvidenceV1.Type;
+export type ValidationRejectionV1 = typeof ValidationRejectionV1.Type;
