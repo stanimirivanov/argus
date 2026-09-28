@@ -15,6 +15,9 @@
   evidence remains visible.
 - Argus does not execute or analyze performance workloads directly. Perfeng
   retains that authority behind versioned asynchronous contracts.
+- Argus may expose immutable change, selection, execution, and adaptation
+  evidence to an independently authorized incident-intelligence product. It
+  does not own production investigation or remediation authority.
 - [ADR-0001](../decisions/0001-use-go-and-evidence-based-cross-project-reuse.md)
   selects Go for the operational control plane, permits a later versioned
   Python analysis boundary, and requires evidence before cross-project code
@@ -70,6 +73,7 @@ flowchart LR
     ARGUS --> RUNNERS[Functional and UI test runners]
     RUNNERS --> ARGUS
     ARGUS <--> PERFENG[Perfeng performance platform]
+    ARGUS <--> INCIDENT[Incident intelligence system]
     ARGUS --> ARTIFACTS[Evidence and artifact stores]
     ARGUS --> DEV
 ~~~
@@ -458,6 +462,32 @@ or service requires the semantic, ownership, compatibility, and operational
 evidence defined by
 [ADR-0001](../decisions/0001-use-go-and-evidence-based-cross-project-reuse.md).
 
+## Incident-intelligence boundary
+
+An independently deployed incident-intelligence product MAY consume published
+Argus evidence to correlate a production symptom with an immutable change,
+affected capabilities, tests selected or omitted, execution attempts, observed
+misses, adaptations, and review outcomes. Argus remains the authority for the
+meaning of those decisions and MUST expose them through versioned contracts or
+authenticated reads rather than private packages or tables.
+
+The incident system remains authoritative for incident hypotheses, action
+proposals, approvals, operational execution, and recovery verification. Argus
+MUST NOT receive production credentials through this integration, execute a
+remediation, or treat an incident system's confidence as permission to alter
+selection policy or approve a test repair.
+
+A reviewed incident outcome MAY enter Argus as a new immutable impact or
+validation observation with source, time, provenance, confidence, and
+contradictions. It does not rewrite existing evidence. Promotion into selection
+or adaptation policy follows ordinary evaluation and review gates.
+
+The M09 Argus-Perfeng integration SHOULD establish service, capability,
+deployment, environment, and evidence-reference semantics that a later incident
+consumer can reuse. It MUST NOT make that third product a prerequisite for the
+Argus-Perfeng flow or move ownership of the shared meaning into Argus without a
+separate decision.
+
 ## External adapters
 
 Adapters MAY exist in this repository initially and split only when independent
@@ -471,7 +501,9 @@ it. Expected adapter boundaries include:
 - artifact stores and evidence retrieval;
 - deterministic transform engines;
 - model gateways with structured output validation; and
-- Perfeng request/result exchange.
+- Perfeng request/result exchange;
+- read-only evidence publication for authorized external consumers; and
+- reviewed incident-outcome ingestion.
 
 Each adapter MUST normalize untrusted external data before it reaches domain
 policy and MUST preserve provider-specific identities needed for idempotency and

@@ -11,6 +11,9 @@
 - Predictive selection follows measured shadow-mode baselines.
 - Performance execution and analysis remain owned by Perfeng and integrate
   through versioned contracts in M09.
+- M09 establishes reusable identity and evidence semantics for a later
+  independent incident-intelligence consumer; M10 protects their network
+  exposure. Argus does not take on incident response.
 
 ## Milestone index
 
@@ -76,7 +79,7 @@ schema-only phase.
 | M07 | Constrained locator repair | Diagnose locator failures, generate and reject candidates, validate repeatedly with a negative control, and open an evidence-backed PR. |
 | M08 | Offline predictive evaluation | Build chronological data, baselines, replay, ranking, calibration, and abstention evidence. |
 | M08 | Safe budgeted scheduling | Estimate cost and dependencies, schedule diverse stages, execute relevant-now/remaining-later modes, and monitor safety. |
-| M09 | Perfeng contract and catalog integration | Agree on versioned messages and synchronize workload, environment, baseline, and capability references. |
+| M09 | Perfeng contract and catalog integration | Agree on versioned messages and synchronize workload, environment, deployment, baseline, capability, and evidence references without preventing later independent consumers. |
 | M09 | Performance evidence lifecycle | Dispatch and correlate idempotent requests, consume quality/regression evidence, and demonstrate the end-to-end decision flow. |
 | M10 | Security, tenancy, and resource controls | Establish identity, authorization, tenancy, least privilege, and bounded resource/model use. |
 | M10 | Durable operations and recovery | Add observability, worker leasing, retries, dead letters, backup, restore, retention, and operator recovery. |
@@ -381,6 +384,9 @@ duplicating Perfeng.
 Acceptance ingredients:
 
 - Define and jointly review the versioned Argus–Perfeng contract boundary.
+- Define stable service, capability, deployment, environment, and evidence
+  correlation semantics without assigning incident-response authority to
+  either product.
 - Define PerformanceEvidenceRequested and compatibility fixtures.
 - Define run accepted/rejected and analysis-completed result contracts.
 - Define PerformanceWorkloadInvalidated and maintenance-routing semantics.
@@ -392,10 +398,14 @@ Acceptance ingredients:
 - Consume measurement-quality, SLO, regression, uncertainty, and evidence links
   without reading raw k6 output.
 - Demonstrate an end-to-end change-to-Perfeng-evidence decision flow.
+- Publish a read-only versioned projection of the resulting change, selection,
+  and performance decision evidence that does not expose private tables or raw
+  performance artifacts.
 
 Completion means Argus can request and use performance evidence while Perfeng
 retains authority over workloads, execution, baselines, statistics, and raw
-artifacts.
+artifacts, and a later authorized consumer can correlate the decision without
+inventing a competing identity or provenance model.
 
 ## M10 - Production readiness
 
@@ -405,6 +415,8 @@ Acceptance ingredients:
 
 - Define authentication, authorization, repository tenancy, and service
   identity.
+- Protect external evidence reads and reviewed outcome ingestion with explicit
+  audience, tenant, repository, and operation authorization.
 - Enforce least-privilege GitHub and CI permissions.
 - Add structured logs, traces, metrics, correlation, and decision audit views.
 - Add durable worker leasing, bounded retries, dead-letter handling, and
