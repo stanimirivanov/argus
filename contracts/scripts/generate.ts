@@ -10,6 +10,7 @@ import {
   FunctionalAPIRepairValidationRequestV1,
   FunctionalAPIRepairValidationResultV1,
   ValidationEvidenceV1,
+  ValidationRejectionV1,
 } from "../source/adaptation-validation-v1.js";
 import { CapabilityImpactV1 } from "../source/capability-impact-v1.js";
 import { ChangeSetV1 } from "../source/change-set-v1.js";
@@ -35,6 +36,17 @@ import { SelectionShadowReportV1 } from "../source/selection-shadow-report-v1.js
 import { TestCatalogPageV1 } from "../source/test-catalog-page-v1.js";
 
 const artifacts = [
+  {
+    name: "validation rejection",
+    outputPath: new URL(
+      "../generated/validation-rejection/v1/validation-rejection.schema.json",
+      import.meta.url,
+    ),
+    document: {
+      $id: "https://argus.dev/contracts/validation-rejection/v1/schema.json",
+      ...JSONSchema.make(ValidationRejectionV1, { target: "jsonSchema2020-12" }),
+    },
+  },
   {
     name: "review outcome",
     outputPath: new URL(

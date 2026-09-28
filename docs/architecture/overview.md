@@ -326,6 +326,12 @@ framework invocation. Successful evidence retains every executed source digest
 and the final restored digest. [ADR-0015](../decisions/0015-validate-repairs-with-a-restored-negative-control-workspace.md)
 defines the workspace and negative-control policy.
 
+Trustworthy outcome mismatches are emitted and stored as a distinct validation
+rejection, never as successful proof. Only correlated pass/fail outcomes with a
+verified restored source qualify; infrastructure and integrity errors remain
+operational failures. [ADR-0019](../decisions/0019-preserve-trustworthy-validation-rejections.md)
+defines this negative-evidence boundary and its exact-retry persistence.
+
 Review publication reloads the source at the proposal's immutable test
 revision, verifies the complete-file preimage, reconstructs the exact candidate,
 and checks its digest against validation evidence before any external write.

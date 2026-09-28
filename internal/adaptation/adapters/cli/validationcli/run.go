@@ -68,16 +68,32 @@ func Run(
 	defer cancel()
 	evidence, err := validation.NewService(workspace, runner).Validate(validationContext, proposal)
 	if err != nil {
+		var rejection *adaptation.ValidationRejectedError
+		if errors.As(err, &rejection) {
+			document, exportErr := adaptationcontract.ExportValidationRejectionV1(rejection.Evidence)
+			if exportErr != nil {
+				return exportErr
+			}
+			if encodeErr := encodeDocument(stdout, document, "validation rejection"); encodeErr != nil {
+				return encodeErr
+			}
+		}
+
 		return fmt.Errorf("validate functional API repair: %w", err)
 	}
 	document, err := adaptationcontract.ExportValidationEvidenceV1(evidence)
 	if err != nil {
 		return err
 	}
-	encoder := json.NewEncoder(stdout)
+
+	return encodeDocument(stdout, document, "validation evidence")
+}
+
+func encodeDocument(output io.Writer, document any, label string) error {
+	encoder := json.NewEncoder(output)
 	encoder.SetIndent("", "  ")
 	if err := encoder.Encode(document); err != nil {
-		return fmt.Errorf("encode validation evidence: %w", err)
+		return fmt.Errorf("encode %s: %w", label, err)
 	}
 
 	return nil

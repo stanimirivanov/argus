@@ -147,6 +147,28 @@ Successful stdout is `argus.dev/validation-evidence/v1` and retains:
 Validation evidence is produced only for `failed → passed → failed`. It is a
 precondition for later review automation, not merge authorization.
 
+When a trustworthy phase disproves the candidate, the command still exits
+non-zero but writes `argus.dev/validation-rejection/v1` to stdout. The document
+records the completed run prefix and one of `original-passed`,
+`candidate-failed`, or `negative-control-passed`, plus the verified restoration
+digest. Capture stdout on failure if this evidence should be retained. Process,
+adapter, correlation, source-integrity, and restoration errors do not produce a
+rejection document because they are not candidate-quality evidence.
+
+Persist or retrieve the rejection after applying migrations:
+
+```sh
+go run ./cmd/adaptation-evidence ingest-validation-rejection \
+  -file ./validation-rejection.json
+go run ./cmd/adaptation-evidence get-validation-rejection \
+  -validation-id 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+```
+
+Persistence admits one immutable document per validation ID. Exact retries
+report `created: false`; different runs or diagnostics under the same identity
+are conflicts. Successful evidence remains a separate contract and is the only
+kind accepted by draft pull-request publication.
+
 ## Draft pull-request publication
 
 Publication is an explicit external-write step and requires both prior JSON
@@ -258,7 +280,7 @@ promotion authority.
 
 This slice intentionally does not:
 
-- persist unsuccessful validation attempts;
+- persist infrastructure or evidence-integrity failures as candidate labels;
 - treat a merge as automatic promotion or correctness authority; or
 - train or update an adaptation policy from a single captured outcome.
 

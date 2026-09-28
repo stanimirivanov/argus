@@ -241,6 +241,11 @@ Argus verifies and temporarily materializes only the proposed source span. It
 requires the original test to fail, the candidate to pass, and a deterministic
 invalid-endpoint control to fail. Original bytes are restored and verified
 after each modified run. The checkout must still be discarded after validation.
+If a trustworthy phase has the wrong pass/fail outcome, the command exits
+non-zero but writes a `validation-rejection/v1` document to stdout. Capture
+that output separately from stderr, then persist it with
+`adaptation-evidence ingest-validation-rejection`; infrastructure and
+integrity failures intentionally produce no rejection document.
 
 Publish the correlated proposal and successful validation proof as a draft
 GitHub pull request:

@@ -117,3 +117,4 @@ How will the assumptions and consequences be verified?
 | [ADR-0016](0016-publish-validated-repairs-as-idempotent-draft-pull-requests.md) | Publish validated repairs as idempotent draft pull requests | Accepted | 2026-09-27 |
 | [ADR-0017](0017-capture-terminal-review-outcomes-as-bounded-evidence.md) | Capture terminal review outcomes as bounded evidence | Accepted | 2026-09-27 |
 | [ADR-0018](0018-store-one-immutable-outcome-per-adaptation-review.md) | Store one immutable outcome per adaptation review | Accepted | 2026-09-27 |
+| [ADR-0019](0019-preserve-trustworthy-validation-rejections.md) | Preserve trustworthy validation rejections | Accepted | 2026-09-28 |

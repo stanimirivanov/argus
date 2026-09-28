@@ -15,6 +15,7 @@ import (
 	"github.com/stanimirivanov/argus/contracts"
 	adaptationcontract "github.com/stanimirivanov/argus/internal/adaptation/adapters/contract"
 	"github.com/stanimirivanov/argus/internal/adaptation/outcome"
+	"github.com/stanimirivanov/argus/internal/adaptation/validation"
 )
 
 const maxEvidenceDocumentBytes = 16 << 20
@@ -22,6 +23,7 @@ const maxEvidenceDocumentBytes = 16 << 20
 // Runtime owns the durable adaptation evidence ports used by this command.
 type Runtime interface {
 	outcome.EvidenceStore
+	validation.RejectionStore
 	Close()
 }
 
@@ -45,9 +47,93 @@ func Run(
 		return runIngest(ctx, arguments[1:], databaseURL, stdin, stdout, open)
 	case "get":
 		return runGet(ctx, arguments[1:], databaseURL, stdout, open)
+	case "ingest-validation-rejection":
+		return runIngestValidationRejection(ctx, arguments[1:], databaseURL, stdin, stdout, open)
+	case "get-validation-rejection":
+		return runGetValidationRejection(ctx, arguments[1:], databaseURL, stdout, open)
 	default:
 		return usageError()
 	}
+}
+
+func runIngestValidationRejection(
+	ctx context.Context,
+	arguments []string,
+	databaseURL string,
+	stdin io.Reader,
+	stdout io.Writer,
+	open OpenRuntime,
+) error {
+	flags := flag.NewFlagSet("adaptation-evidence ingest-validation-rejection", flag.ContinueOnError)
+	flags.SetOutput(io.Discard)
+	filePath := flags.String("file", "", "validation rejection path, or - for stdin")
+	if err := flags.Parse(arguments); err != nil {
+		return fmt.Errorf("adaptation-evidence ingest-validation-rejection: %w", err)
+	}
+	if *filePath == "" || flags.NArg() != 0 {
+		return errors.New("usage: adaptation-evidence ingest-validation-rejection -file <path|->")
+	}
+	data, err := readEvidenceDocument(*filePath, stdin)
+	if err != nil {
+		return err
+	}
+	document, err := contracts.DecodeValidationRejectionV1(data)
+	if err != nil {
+		return fmt.Errorf("read validation rejection: %w", err)
+	}
+	evidence, err := adaptationcontract.ImportValidationRejectionV1(document)
+	if err != nil {
+		return fmt.Errorf("import validation rejection: %w", err)
+	}
+	runtime, err := openStore(ctx, databaseURL, open)
+	if err != nil {
+		return err
+	}
+	defer runtime.Close()
+
+	created, err := validation.NewEvidenceService(runtime).Ingest(ctx, evidence)
+	if err != nil {
+		return fmt.Errorf("ingest validation rejection: %w", err)
+	}
+
+	return encodeJSON(stdout, struct {
+		ValidationID string `json:"validationId"`
+		Created      bool   `json:"created"`
+	}{ValidationID: evidence.ValidationID, Created: created})
+}
+
+func runGetValidationRejection(
+	ctx context.Context,
+	arguments []string,
+	databaseURL string,
+	stdout io.Writer,
+	open OpenRuntime,
+) error {
+	flags := flag.NewFlagSet("adaptation-evidence get-validation-rejection", flag.ContinueOnError)
+	flags.SetOutput(io.Discard)
+	validationID := flags.String("validation-id", "", "validation rejection SHA-256 identity")
+	if err := flags.Parse(arguments); err != nil {
+		return fmt.Errorf("adaptation-evidence get-validation-rejection: %w", err)
+	}
+	if !validOutcomeID(*validationID) || flags.NArg() != 0 {
+		return errors.New("usage: adaptation-evidence get-validation-rejection -validation-id <sha256>")
+	}
+	runtime, err := openStore(ctx, databaseURL, open)
+	if err != nil {
+		return err
+	}
+	defer runtime.Close()
+
+	evidence, err := validation.NewEvidenceService(runtime).Get(ctx, *validationID)
+	if err != nil {
+		return fmt.Errorf("get validation rejection: %w", err)
+	}
+	document, err := adaptationcontract.ExportValidationRejectionV1(evidence)
+	if err != nil {
+		return err
+	}
+
+	return encodeJSON(stdout, document)
 }
 
 func runIngest(
@@ -200,5 +286,6 @@ func encodeJSON(output io.Writer, value any) error {
 }
 
 func usageError() error {
-	return errors.New("usage: adaptation-evidence <ingest|get> [options]")
+	return errors.New("usage: adaptation-evidence " +
+		"<ingest|get|ingest-validation-rejection|get-validation-rejection> [options]")
 }

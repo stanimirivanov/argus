@@ -324,6 +324,13 @@ an exact retry, rejects conflicting reason or patch reuse, and reconstructs
 the contract from a repeatable-read snapshot after restart. Unsuccessful-
 validation evidence and the compatible field-rename class remain.
 
+The sixth M06 slice now emits and durably stores trustworthy unsuccessful-
+validation evidence. Original-pass, candidate-fail, and negative-control-pass
+outcomes retain the completed run prefix and verified source restoration under
+a separate rejection contract, while infrastructure and integrity failures
+remain errors rather than learning labels. The compatible field-rename class
+remains.
+
 ## M07 - UI test intelligence
 
 **Message:** Extend mapping and constrained adaptation to browser tests.

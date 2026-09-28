@@ -53,13 +53,21 @@ func (service *Service) Validate(
 	if err != nil {
 		return adaptation.ValidationEvidence{}, err
 	}
-	runs, err := service.executePhases(ctx, proposal, material)
+	runs, rejection, err := service.executePhases(ctx, proposal, material)
 	if err != nil {
 		return adaptation.ValidationEvidence{}, err
 	}
 	restoredSHA, err := service.verifyRestored(ctx, proposal.Edit.Path, material.originalSHA)
 	if err != nil {
 		return adaptation.ValidationEvidence{}, err
+	}
+	if rejection != nil {
+		evidence, evidenceErr := buildRejectionEvidence(proposal, material, runs, *rejection, restoredSHA)
+		if evidenceErr != nil {
+			return adaptation.ValidationEvidence{}, evidenceErr
+		}
+
+		return adaptation.ValidationEvidence{}, &adaptation.ValidationRejectedError{Evidence: evidence}
 	}
 
 	return buildEvidence(proposal, material, runs, restoredSHA)
@@ -80,6 +88,14 @@ type phaseRuns struct {
 	original  adaptation.ValidationAdapterResult
 	candidate adaptation.ValidationAdapterResult
 	negative  adaptation.ValidationAdapterResult
+	completed int
+}
+
+type policyRejection struct {
+	phase    adaptation.ValidationPhase
+	reason   adaptation.ValidationRejectionReason
+	expected adaptation.ValidationOutcome
+	actual   adaptation.ValidationOutcome
 }
 
 func (service *Service) prepare(
@@ -126,42 +142,65 @@ func (service *Service) executePhases(
 	ctx context.Context,
 	proposal adaptation.Proposal,
 	material validationMaterial,
-) (phaseRuns, error) {
+) (phaseRuns, *policyRejection, error) {
 	originalRun, err := service.runOriginal(
 		ctx, proposal, material.validationID, material.original, material.originalSHA,
 	)
 	if err != nil {
-		return phaseRuns{}, err
+		return phaseRuns{}, nil, err
 	}
-	if err := requireOutcome("original", originalRun.Outcome, adaptation.ValidationFailed); err != nil {
-		return phaseRuns{}, err
+	runs := phaseRuns{original: originalRun, completed: 1}
+	if originalRun.Outcome == adaptation.ValidationError {
+		return phaseRuns{}, nil, fmt.Errorf("%w: original validation adapter reported an error", adaptation.ErrUnavailable)
+	}
+	if originalRun.Outcome != adaptation.ValidationFailed {
+		return runs, &policyRejection{
+			phase: adaptation.ValidationOriginal, reason: adaptation.ValidationOriginalPassed,
+			expected: adaptation.ValidationFailed, actual: originalRun.Outcome,
+		}, nil
 	}
 	candidateRun, err := service.runVariant(
 		ctx, proposal, material.validationID, adaptation.ValidationCandidate,
 		material.original, material.originalSHA, material.candidate, material.candidateSHA,
 	)
 	if err != nil {
-		return phaseRuns{}, err
+		return phaseRuns{}, nil, err
 	}
-	if err := requireOutcome("candidate", candidateRun.Outcome, adaptation.ValidationPassed); err != nil {
-		return phaseRuns{}, err
+	if candidateRun.AdapterVersion != originalRun.AdapterVersion {
+		return phaseRuns{}, nil, fmt.Errorf("%w: adapter version changed between phases", adaptation.ErrInvalid)
+	}
+	runs.candidate, runs.completed = candidateRun, 2
+	if candidateRun.Outcome == adaptation.ValidationError {
+		return phaseRuns{}, nil, fmt.Errorf("%w: candidate validation adapter reported an error", adaptation.ErrUnavailable)
+	}
+	if candidateRun.Outcome != adaptation.ValidationPassed {
+		return runs, &policyRejection{
+			phase: adaptation.ValidationCandidate, reason: adaptation.ValidationCandidateFailed,
+			expected: adaptation.ValidationPassed, actual: candidateRun.Outcome,
+		}, nil
 	}
 	negativeRun, err := service.runVariant(
 		ctx, proposal, material.validationID, adaptation.ValidationNegativeControl,
 		material.original, material.originalSHA, material.negative, material.negativeSHA,
 	)
 	if err != nil {
-		return phaseRuns{}, err
+		return phaseRuns{}, nil, err
 	}
-	if err := requireOutcome("negative-control", negativeRun.Outcome, adaptation.ValidationFailed); err != nil {
-		return phaseRuns{}, err
+	if negativeRun.AdapterVersion != originalRun.AdapterVersion {
+		return phaseRuns{}, nil, fmt.Errorf("%w: adapter version changed between phases", adaptation.ErrInvalid)
 	}
-	if candidateRun.AdapterVersion != originalRun.AdapterVersion ||
-		negativeRun.AdapterVersion != originalRun.AdapterVersion {
-		return phaseRuns{}, fmt.Errorf("%w: adapter version changed between phases", adaptation.ErrInvalid)
+	runs.negative, runs.completed = negativeRun, 3
+	if negativeRun.Outcome == adaptation.ValidationError {
+		return phaseRuns{}, nil, fmt.Errorf("%w: negative-control validation adapter reported an error", adaptation.ErrUnavailable)
+	}
+	if negativeRun.Outcome != adaptation.ValidationFailed {
+		return runs, &policyRejection{
+			phase: adaptation.ValidationNegativeControl, reason: adaptation.ValidationNegativeControlPassed,
+			expected: adaptation.ValidationFailed, actual: negativeRun.Outcome,
+		}, nil
 	}
 
-	return phaseRuns{original: originalRun, candidate: candidateRun, negative: negativeRun}, nil
+	return runs, nil, nil
 }
 
 func (service *Service) verifyRestored(ctx context.Context, path string, originalSHA string) (string, error) {
@@ -205,12 +244,36 @@ func buildEvidence(
 	return evidence, nil
 }
 
-func requireOutcome(label string, actual adaptation.ValidationOutcome, expected adaptation.ValidationOutcome) error {
-	if actual != expected {
-		return fmt.Errorf("%w: %s test outcome is %s", adaptation.ErrValidationRejected, label, actual)
+func buildRejectionEvidence(
+	proposal adaptation.Proposal,
+	material validationMaterial,
+	runs phaseRuns,
+	rejection policyRejection,
+	restoredSHA string,
+) (adaptation.ValidationRejectionEvidence, error) {
+	completed := []adaptation.ValidationAdapterResult{runs.original, runs.candidate, runs.negative}
+	normalized := make([]adaptation.ValidationRun, 0, runs.completed)
+	for _, run := range completed[:runs.completed] {
+		normalized = append(normalized, normalizeRun(run))
+	}
+	evidence := adaptation.CanonicalValidationRejectionEvidence(adaptation.ValidationRejectionEvidence{
+		APIVersion: adaptation.ValidationRejectionAPIVersion, PolicyVersion: adaptation.ValidationPolicyVersion,
+		ValidationID: material.validationID, ProposalID: proposal.ProposalID,
+		ProposalPolicyVersion: proposal.PolicyVersion, Test: proposal.Test,
+		AdapterID: proposal.AdapterID, AdapterVersion: runs.original.AdapterVersion, Edit: proposal.Edit,
+		Source: adaptation.ValidationSourceEvidence{
+			Path: proposal.Edit.Path, OriginalSHA256: material.originalSHA,
+			CandidateSHA256: material.candidateSHA, NegativeSHA256: material.negativeSHA,
+			RestoredSHA256: restoredSHA, NegativeControlPath: material.negativePath,
+		},
+		RejectedPhase: rejection.phase, Reason: rejection.reason,
+		ExpectedOutcome: rejection.expected, ActualOutcome: rejection.actual, Runs: normalized,
+	})
+	if err := adaptation.ValidateValidationRejectionEvidence(evidence); err != nil {
+		return adaptation.ValidationRejectionEvidence{}, err
 	}
 
-	return nil
+	return evidence, nil
 }
 
 func (service *Service) runOriginal(

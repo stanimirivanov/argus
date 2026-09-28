@@ -89,8 +89,8 @@ func TestMigrateEmptyDatabaseAndRepeat(t *testing.T) {
 	).Scan(&count); err != nil {
 		t.Fatalf("count migration ledger: %v", err)
 	}
-	if count != 6 {
-		t.Fatalf("migration ledger count = %d, want 6", count)
+	if count != 7 {
+		t.Fatalf("migration ledger count = %d, want 7", count)
 	}
 }
 
@@ -130,8 +130,8 @@ func TestMigrationUpgradesReleasedCatalogWithRepresentativeData(t *testing.T) {
 	).Scan(&migrationCount); err != nil {
 		t.Fatalf("count upgraded migration ledger: %v", err)
 	}
-	if migrationCount != 6 {
-		t.Fatalf("upgraded migration count = %d, want 6", migrationCount)
+	if migrationCount != 7 {
+		t.Fatalf("upgraded migration count = %d, want 7", migrationCount)
 	}
 }
 
@@ -656,6 +656,52 @@ func TestReviewOutcomeConstraintsRejectInvalidChildEvidence(t *testing.T) {
 	var postgresError *pgconn.PgError
 	if !errors.As(err, &postgresError) || postgresError.Code != "23514" {
 		t.Fatalf("invalid review edit error = %v, want SQLSTATE 23514", err)
+	}
+}
+
+func TestValidationRejectionRoundTripRetryConflictAndRestart(t *testing.T) {
+	databaseURL := newTestDatabase(t)
+	migrateTestDatabase(t, databaseURL)
+	store := openTestStore(t, databaseURL)
+	evidence := loadValidationRejectionFixture(t)
+
+	if _, err := store.FindValidationRejection(
+		t.Context(), evidence.ValidationID,
+	); !errors.Is(err, adaptation.ErrValidationRejectionNotFound) {
+		t.Fatalf("find missing validation rejection = %v", err)
+	}
+	created, err := store.SaveValidationRejection(t.Context(), evidence)
+	if err != nil || !created {
+		t.Fatalf("save validation rejection: created=%t err=%v", created, err)
+	}
+	created, err = store.SaveValidationRejection(t.Context(), evidence)
+	if err != nil || created {
+		t.Fatalf("retry validation rejection: created=%t err=%v", created, err)
+	}
+	got, err := store.FindValidationRejection(t.Context(), evidence.ValidationID)
+	if err != nil {
+		t.Fatalf("find validation rejection: %v", err)
+	}
+	if !reflect.DeepEqual(got, adaptation.CanonicalValidationRejectionEvidence(evidence)) {
+		t.Fatalf("validation rejection round trip differs:\ngot:  %#v\nwant: %#v", got, evidence)
+	}
+
+	conflict := evidence
+	conflict.Runs[1].Failure.Message = "Different immutable diagnostic"
+	if _, err := store.SaveValidationRejection(
+		t.Context(), conflict,
+	); !errors.Is(err, adaptation.ErrValidationRejectionConflict) {
+		t.Fatalf("save conflicting validation rejection = %v", err)
+	}
+
+	store.Close()
+	reopened, err := OpenStore(t.Context(), databaseURL)
+	if err != nil {
+		t.Fatalf("reopen validation rejection store: %v", err)
+	}
+	t.Cleanup(reopened.Close)
+	if _, err := reopened.FindValidationRejection(t.Context(), evidence.ValidationID); err != nil {
+		t.Fatalf("find validation rejection after restart: %v", err)
 	}
 }
 
