@@ -14,6 +14,9 @@
 - Unit-test generation and maintenance are excluded from the initial product.
 - Performance execution and analysis belong to Perfeng; Argus will later
   request and consume versioned performance evidence.
+- Production-incident investigation and remediation belong to an independent
+  incident-intelligence product; Argus may publish change and test evidence and
+  ingest reviewed incident outcomes without acquiring production authority.
 - Argus MUST prefer abstention or broader execution over an unsupported
   confident answer, and MUST never weaken a test oracle to obtain a green run.
 
@@ -227,6 +230,8 @@ The first releases do not attempt to:
   approved baselines;
 - generate or maintain unit tests;
 - autonomously run destructive, chaos, penetration, or high-load tests;
+- investigate production incidents, approve or execute operational remediation,
+  or verify production recovery;
 - train a foundation model; or
 - support every SCM, CI provider, framework, language, and test family.
 
