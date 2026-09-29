@@ -4,9 +4,10 @@
 
 - Application, test, build-tool, and GitHub Actions dependencies MUST be pinned,
   necessary, maintained, license-compatible, and reviewed before admission.
-- Go tools use native `tool` directives and checksum files; incompatible build
-  graphs use a checked-in isolated tool module. GitHub Actions use major
-  semantic release tags. Ambient global binaries are not authoritative.
+- Runtime dependencies stay in the root Go module. Quality tools use native
+  `tool` directives in `tools/quality`; actionlint keeps a second isolated
+  module for its incompatible parser graph. GitHub Actions use major semantic
+  release tags. Ambient global binaries are not authoritative.
 - Dependabot proposes grouped non-major and security updates for Go modules,
   npm/pnpm dependencies, and GitHub Actions. Updates are reviewed and validated;
   they are never implicitly trusted or auto-merged by repository policy.
@@ -30,7 +31,8 @@ supported public API.
 |:--|:--|
 | Go version and application module | Root [`go.mod`](../../go.mod) and [`go.sum`](../../go.sum) |
 | Node.js version and dependency graph | [`.node-version`](../../.node-version), [`package.json`](../../package.json), and [`pnpm-lock.yaml`](../../pnpm-lock.yaml) |
-| Isolated tool graphs | [`tools`](../../tools) module and checksum files |
+| Quality-tool graph | [`tools/quality/go.mod`](../../tools/quality/go.mod) and [`tools/quality/go.sum`](../../tools/quality/go.sum) |
+| Incompatible actionlint graph | [`tools/actionlint/go.mod`](../../tools/actionlint/go.mod) and [`tools/actionlint/go.sum`](../../tools/actionlint/go.sum) |
 | Executable local checks and license exceptions | Root [`Makefile`](../../Makefile) |
 | GitHub Actions versions | Major semantic `uses` tags in [workflow files](../../.github/workflows) |
 | Automated update grouping and cadence | [`.github/dependabot.yml`](../../.github/dependabot.yml) |
@@ -85,13 +87,16 @@ to the library. The import is isolated under
 `internal/change/adapters/openapi`; removal means replacing that adapter while
 preserving analyzer conformance and persisted analyzer-version semantics.
 
-Tools SHOULD share the root tool graph when their selected versions compile
+The root module MUST contain only product and test dependencies. Repository
+quality tools live in `tools/quality` so linter and scanner transitive packages
+cannot obscure the deployable dependency graph or affect its version selection.
+Tools SHOULD share that quality-tool graph when their selected versions compile
 together. A tool MUST move to a dedicated module when minimal-version selection
-would otherwise make one pinned tool fail to build. The isolated module remains
-owned, checksummed, updated, vulnerability-reviewed, and license-checked; it is
-not an escape from dependency policy. actionlint currently uses this boundary
-because its pinned prerelease YAML parser API is incompatible with the version
-selected by the main quality-tool graph.
+would otherwise make one pinned tool fail to build. Every isolated module
+remains owned, checksummed, updated, vulnerability-reviewed, and
+license-checked; isolation is not an escape from dependency policy. actionlint
+uses a separate module because its pinned prerelease YAML parser API is
+incompatible with the version selected by the main quality-tool graph.
 
 Local replacements, forks, pseudo-versions, pre-releases, abandoned projects,
 and dependencies that execute untrusted repository content require explicit
@@ -155,7 +160,7 @@ prefixes:
 |:--|:--|:--|
 | `github.com/golangci/golangci-lint/v2` | GPL-3.0 | Standalone development executable; never linked into or shipped with Argus. |
 | `github.com/OpenPeeDeeP/depguard/v2`, `github.com/denis-tingaikin/go-header`, `github.com/firefart/nonamedreturns`, `github.com/ldez/structtags`, `github.com/leonklingele/grouper`, `github.com/xen0n/gosmopolitan` | GPL-3.0 | Linter implementations reachable only inside the standalone golangci-lint tool. |
-| `github.com/alecthomas/chroma/v2` | OFL-1.1 classified as unknown | Development-tool rendering dependency; no font or package is distributed by Argus. |
+| `github.com/alecthomas/chroma/v2` | OFL-1.1 (outside allowlist) | Development-tool rendering dependency; no font or package is distributed by Argus. |
 | `github.com/ashanbrown/forbidigo/v2`, `github.com/ashanbrown/makezero/v2` | Classifier reports unknown; module license is Apache-2.0 | Upstream module archives contain Apache-2.0 license files, but package-level discovery misses them. |
 | `github.com/golangci/gofmt` | Unknown | Development-only Go formatter fork; the selected module archive lacks classifier-visible license metadata and is not distributed. |
 
@@ -186,11 +191,11 @@ current policy prevents incompatible dependencies from entering unnoticed.
 ## Vulnerability policy
 
 `make vuln` uses the pinned `govulncheck` tool for vulnerabilities reachable
-from Argus packages and the isolated actionlint graph, and `pnpm audit --prod`
-for high-severity or critical advisories in the production Node graph. It is
-the current executable vulnerability gate and does not depend on optional
-GitHub dependency-graph features. Repository-hosted advisory review may be
-evaluated as part of M10 production readiness.
+from Argus packages, the quality-tool graph, and the isolated actionlint graph,
+and `pnpm audit --prod` for high-severity or critical advisories in the
+production Node graph. It is the current executable vulnerability gate and does
+not depend on optional GitHub dependency-graph features. Repository-hosted
+advisory review may be evaluated as part of M10 production readiness.
 
 A maintainer reviewing an alert MUST establish the affected version, scope,
 reachability, exploit preconditions, available fix, and operational exposure.

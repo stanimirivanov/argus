@@ -7,8 +7,9 @@
 - Use the exact effective Go version declared by `go.mod`, Node.js 24.18.0,
   pnpm 11.19.0, GNU Make 4.3 or newer, a supported Git release, and either Bash
   or PowerShell 7.
-- Run `make doctor` to report the effective toolchain, then run `make fmt` and
-  `make validate` before review.
+- Run `make doctor` to report the effective toolchain and `make bootstrap` for
+  first-time dependency setup. Use `make verify` during development and run
+  `make fmt` plus `make validate` before review.
 - Ordinary validation needs no database, container runtime, cloud account, or
   credentials. Catalog persistence development additionally needs a local
   PostgreSQL 17 server; database integration tests create disposable databases
@@ -25,7 +26,7 @@ editor, terminal, package manager, or host customization.
 
 | Tier | Environment | Contract |
 |:--|:--|:--|
-| Verified CI | Ubuntu 24.04 x86-64 with Bash; Windows Server 2025 x86-64 with PowerShell 7 | Every pull request MUST pass `make validate` on both. Database changes additionally pass `make db-validate` against PostgreSQL 17.11 on Ubuntu. A failure blocks merge unless the check itself is deliberately changed and reviewed. |
+| Verified CI | Ubuntu 24.04 x86-64 with Bash; Windows Server 2025 x86-64 with PowerShell 7 | Every pull request MUST pass cross-platform `make verify` and `make race`, Linux `make supply-chain`, and `make db-validate` against PostgreSQL 17.11 on Ubuntu. A failure blocks merge unless the check itself is deliberately changed and reviewed. |
 | Supported local | Ubuntu 24.04 x86-64 with Bash; Windows 11 x86-64 with PowerShell 7 | Contributors SHOULD be able to run the complete workflow. Reproducible platform defects are project defects. |
 | Best-effort | Other maintained Linux distributions, macOS, WSL2, ARM64, Git Bash, and other shells | The project accepts fixes that preserve the verified lanes, but does not promise platform-specific diagnosis or make these environments release gates. |
 | Outside the contract | End-of-life operating systems or toolchains, 32-bit hosts, and environments that cannot execute the required checks | Contributors MAY use them for editing, but MUST verify through a supported environment or report checks as not run. |
@@ -51,10 +52,12 @@ an ADR unless it also changes a foundational technology or deployment boundary.
 
 Globally installed `golangci-lint`, `actionlint`, `govulncheck`, `go-licenses`,
 `biome`, `tsx`, and `typescript` binaries are neither required nor
-authoritative. Their versions are declared as Go tools or exact pnpm
-dependencies and invoked by the Makefile. IDE formatting, linting, and test
-integrations are optional feedback; their success does not replace `make
-validate`.
+authoritative. Go quality-tool versions live in
+[`tools/quality/go.mod`](../../tools/quality/go.mod), while actionlint and its
+supply-chain tools live in
+[`tools/actionlint/go.mod`](../../tools/actionlint/go.mod). Node tools remain
+exact pnpm dependencies. The Makefile invokes all of them; IDE integrations are
+optional feedback and do not replace `make validate`.
 
 `make doctor` reports Git, Go, platform, toolchain mode, CGO, Node.js, pnpm, and
 GNU Make information without printing repository paths, proxy URLs,
@@ -87,17 +90,20 @@ Confirm that:
 - GNU Make is version 4.3 or newer; and
 - Git is a maintained vendor release.
 
-Then format and run the complete acceptance suite:
+Resolve every pinned dependency, then format and run the complete acceptance
+suite:
 
 ~~~sh
-pnpm install --frozen-lockfile
+make bootstrap
 make fmt
 git diff --check
 make validate
 ~~~
 
 The first run can be slower because Go and pnpm resolve pinned dependencies.
-The build writes platform-native executables under ignored `bin/`.
+`make build` checks compilation without writing repository artifacts. Run
+`make binaries` only when platform-native executables are needed under the
+ignored `bin/` directory.
 Start the current control-plane scaffold with:
 
 ~~~sh
@@ -160,15 +166,17 @@ pull-request-sized outcome. For an established environment, the normal loop is:
 git status --short
 make generate-contracts
 make fmt
-make check
-make test
+make verify
 make validate
 git diff --check
 git status --short
 ~~~
 
-`make check` and `make test` provide useful intermediate feedback.
-`make validate` remains the required complete, non-mutating acceptance suite.
+`make verify` combines build, repository checks, and ordinary tests as the
+cross-platform inner loop and remains network-independent after a successful
+bootstrap. Focused `make check` and `make test` targets remain available while
+editing. `make validate` is the required complete, non-mutating local
+acceptance suite; it additionally runs `make race` and `make supply-chain`.
 Database or persistence changes MUST also run `make db-validate` with
 `ARGUS_TEST_POSTGRES_URL` pointing to a disposable loopback PostgreSQL server.
 Run `make doctor` again after changing Go, Git, Make, the host OS, architecture,
@@ -176,18 +184,19 @@ shell, or CI image.
 
 ## Network, credentials, and services
 
-Ordinary builds and `make validate` require no credentials, local database,
-Kubernetes cluster, container runtime, object store, message broker, or GitHub
-token. Catalog integration work uses the PostgreSQL setup documented in
-[the database guide](postgresql.md). Do not add placeholder infrastructure
-merely to anticipate later roadmap work.
+Ordinary builds, `make verify`, and `make validate` require no credentials,
+local database, Kubernetes cluster, container runtime, object store, message
+broker, or GitHub token. Catalog integration work uses the PostgreSQL setup
+documented in [the database guide](postgresql.md). Do not add placeholder
+infrastructure merely to anticipate later roadmap work.
 
-The first validation run needs access to Go module sources, checksum services,
-and the package registry used by pnpm. Vulnerability checks need the Go and npm
-advisory databases unless already cached. Corporate proxies and certificate
-authorities SHOULD be configured through approved host, Go, Node.js, and pnpm
-settings. Do not disable checksum, certificate, lock, lint, test, race, or
-vulnerability checks to bypass a network or trust failure.
+`make bootstrap` needs access to Go module sources, checksum services, and the
+package registry used by pnpm. After that, `make verify` is network-independent.
+The `make supply-chain` portion of `make validate` needs the Go and npm advisory
+databases unless they are current in local caches. Corporate proxies and
+certificate authorities SHOULD be configured through approved host, Go,
+Node.js, and pnpm settings. Do not disable checksum, certificate, lock, lint,
+test, race, or vulnerability checks to bypass a network or trust failure.
 
 When a required check cannot run, follow the
 [constrained-environment protocol](../../CONTRIBUTING.md#verification-and-constrained-environments):
