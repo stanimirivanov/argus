@@ -2,6 +2,7 @@ package functionalapi
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -12,10 +13,7 @@ import (
 
 func TestSelectTargetsMappedTestsAndExplainsOmissions(t *testing.T) {
 	t.Parallel()
-	impact := validImpact(change.ImpactComplete, []change.OperationImpact{
-		{Method: "POST", Path: "/orders", Kind: change.SemanticModified, Capabilities: []string{"create-order"}},
-		{Method: "DELETE", Path: "/orders/{id}", Kind: change.SemanticAdded, Capabilities: []string{"cancel-order"}},
-	})
+	impact := validImpact(selection.ImpactComplete, []string{"create-order", "cancel-order"})
 	service := NewService(
 		&stubImpactReader{impact: impact},
 		&stubCatalogReader{catalog: candidateCatalog(impact.Change, []selection.TestReference{
@@ -46,9 +44,9 @@ func TestSelectTargetsMappedTestsAndExplainsOmissions(t *testing.T) {
 
 func TestSelectFallsBackToEveryCandidateForUnmappedImpact(t *testing.T) {
 	t.Parallel()
-	impact := validImpact(change.ImpactComplete, []change.OperationImpact{
-		{Method: "POST", Path: "/orders", Kind: change.SemanticModified},
-	})
+	impact := validImpact(selection.ImpactIncomplete, nil)
+	impact.UnresolvedCount = 1
+	impact.UnresolvedEvidence = []selection.ImpactEvidenceReference{{Source: "api", Path: "orders"}}
 	service := NewService(
 		&stubImpactReader{impact: impact},
 		&stubCatalogReader{catalog: candidateCatalog(impact.Change, []selection.TestReference{
@@ -72,20 +70,38 @@ func TestSelectFallsBackToEveryCandidateForUnmappedImpact(t *testing.T) {
 	}
 }
 
-type stubImpactReader struct {
-	impact change.CapabilityImpact
+func TestSelectRejectsInvalidProjectionBeforeReadingCatalog(t *testing.T) {
+	t.Parallel()
+	impact := validImpact(selection.ImpactComplete, nil)
+	catalogReader := &countingCatalogReader{}
+	service := NewService(&stubImpactReader{impact: impact}, catalogReader)
+	_, err := service.Select(t.Context(), validRequest())
+	if !errors.Is(err, selection.ErrUnavailable) || catalogReader.calls != 0 {
+		t.Fatalf("select error = %v; catalog calls = %d", err, catalogReader.calls)
+	}
 }
 
-func (reader *stubImpactReader) FindCapabilityImpact(
+type stubImpactReader struct {
+	impact selection.ImpactProjection
+}
+
+func (reader *stubImpactReader) ReadImpact(
 	context.Context,
 	catalog.Provider,
 	string,
-) (change.CapabilityImpact, error) {
+) (selection.ImpactProjection, error) {
 	return reader.impact, nil
 }
 
 type stubCatalogReader struct {
 	catalog Catalog
+}
+
+type countingCatalogReader struct{ calls int }
+
+func (reader *countingCatalogReader) ReadFunctionalAPICatalog(context.Context, catalog.SnapshotKey) (Catalog, error) {
+	reader.calls++
+	return Catalog{}, nil
 }
 
 func (reader *stubCatalogReader) ReadFunctionalAPICatalog(
@@ -102,7 +118,7 @@ func validRequest() Request {
 	}
 }
 
-func validImpact(status change.ImpactStatus, operations []change.OperationImpact) change.CapabilityImpact {
+func validImpact(status selection.ImpactCompleteness, capabilities []string) selection.ImpactProjection {
 	repository := catalog.Repository{
 		Identity: catalog.RepositoryIdentity{
 			Provider: catalog.ProviderGitHub, Host: "github.com", ProviderRepositoryID: "source-42",
@@ -110,8 +126,8 @@ func validImpact(status change.ImpactStatus, operations []change.OperationImpact
 		Owner: "example", Name: "orders",
 	}
 
-	return change.CapabilityImpact{
-		APIVersion: change.ImpactAPIVersion, AnalyzerVersion: change.OpenAPIAnalyzerVersion,
+	return selection.ImpactProjection{
+		ProducerAPIVersion: change.ImpactAPIVersion, ProducerVersion: change.OpenAPIAnalyzerVersion,
 		Change: change.Reference{
 			SourceRepository: repository, PullRequestNumber: 42,
 			BaseRevision: catalog.Revision{Algorithm: catalog.RevisionGitSHA1, Digest: "0123456789abcdef0123456789abcdef01234567"},
@@ -122,11 +138,9 @@ func validImpact(status change.ImpactStatus, operations []change.OperationImpact
 				Event: "pull_request", Action: "synchronize",
 			},
 		},
-		Status: status,
-		Documents: []change.DocumentImpact{{
-			Path: "api/openapi.yaml", Kind: change.SemanticModified,
-			TotalChanges: max(1, len(operations)), Operations: operations,
-		}},
+		Completeness:         status,
+		AffectedCapabilities: capabilities,
+		Evidence:             []selection.ImpactEvidenceReference{{Source: "api", Path: "orders"}},
 	}
 }
 

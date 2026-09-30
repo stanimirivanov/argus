@@ -14,12 +14,13 @@ import (
 	"github.com/stanimirivanov/argus/internal/catalog/testquery"
 	"github.com/stanimirivanov/argus/internal/selection/adapters/catalogreader"
 	selectioncontract "github.com/stanimirivanov/argus/internal/selection/adapters/contract"
+	"github.com/stanimirivanov/argus/internal/selection/adapters/impactreader"
 	"github.com/stanimirivanov/argus/internal/selection/functionalapi"
 )
 
 // Runtime is the infrastructure required by the selection command.
 type Runtime interface {
-	functionalapi.ImpactReader
+	impactreader.Source
 	testquery.TestCatalogReader
 	Close()
 }
@@ -62,7 +63,7 @@ func Run(
 	}
 	defer runtime.Close()
 
-	service := functionalapi.NewService(runtime, catalogreader.New(runtime))
+	service := functionalapi.NewService(impactreader.New(runtime), catalogreader.New(runtime))
 	manifest, err := service.Select(ctx, functionalapi.Request{
 		Provider: catalog.Provider(*provider), DeliveryID: *deliveryID,
 		DescriptorAPIVersion: *descriptorVersion,

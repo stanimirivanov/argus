@@ -107,6 +107,7 @@ var productionPackagePolicy = map[string]packagePolicy{
 	modulePath + "/internal/selection/adapters/catalogreader":             {adapterLayer, selectionCapability},
 	modulePath + "/internal/selection/adapters/cli/selectioncli":          {adapterLayer, selectionCapability},
 	modulePath + "/internal/selection/adapters/contract":                  {adapterLayer, selectionCapability},
+	modulePath + "/internal/selection/adapters/impactreader":              {adapterLayer, selectionCapability},
 	modulePath + "/cmd/adaptation-evidence":                               {compositionRootLayer, productCapability},
 	modulePath + "/cmd/capture-functional-api-review-outcome":             {compositionRootLayer, productCapability},
 	modulePath + "/cmd/catalog":                                           {compositionRootLayer, productCapability},
@@ -155,6 +156,7 @@ var adapterPolicy = map[string]adapterKind{
 	modulePath + "/internal/selection/adapters/catalogreader":             bridgeAdapter,
 	modulePath + "/internal/selection/adapters/cli/selectioncli":          drivingAdapter,
 	modulePath + "/internal/selection/adapters/contract":                  contractAdapter,
+	modulePath + "/internal/selection/adapters/impactreader":              bridgeAdapter,
 }
 
 // generatedContractImporters is deliberately narrower than the adapter layer.
@@ -823,5 +825,33 @@ func TestSharedAdapterUtilitiesHaveExactImporters(t *testing.T) {
 				t.Fatalf("validateInternalDependency(%s, %s) = %v; allow = %v", test.source, test.target, err, test.allow)
 			}
 		})
+	}
+}
+
+func TestSelectionImpactProjectionBoundary(t *testing.T) {
+	t.Parallel()
+
+	packages := discoverProductionPackages(t)
+	changePath := modulePath + "/internal/change"
+	bridgePath := modulePath + "/internal/selection/adapters/impactreader"
+	// The domain still uses the shared change reference and the v1 contract
+	// converter still translates it. Only the impact bridge may interpret the
+	// producer's assessment; application policy has no change dependency.
+	approvedChangeImporters := map[string]bool{
+		modulePath + "/internal/selection":                   true,
+		modulePath + "/internal/selection/adapters/contract": true,
+		bridgePath: true,
+	}
+	for _, path := range sortedPackagePaths(packages) {
+		if productionPackagePolicy[path].capability != selectionCapability {
+			continue
+		}
+		_, importsChange := packages[path].imports[changePath]
+		if importsChange != approvedChangeImporters[path] {
+			t.Errorf("%s change dependency = %t; allowed = %t; keep impact interpretation in the bridge", path, importsChange, approvedChangeImporters[path])
+		}
+	}
+	if adapterPolicy[bridgePath] != bridgeAdapter {
+		t.Fatalf("%s must remain a classified application bridge", bridgePath)
 	}
 }

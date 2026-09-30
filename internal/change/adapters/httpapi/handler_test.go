@@ -79,9 +79,29 @@ func TestHandlerReturnsOKForStoredDelivery(t *testing.T) {
 	}
 }
 
+func TestHandlerDoesNotAcknowledgeFailedIngestion(t *testing.T) {
+	t.Parallel()
+
+	secret := []byte("webhook secret")
+	decoder, err := githubadapter.NewWebhookDecoder(secret, "github.com")
+	if err != nil {
+		t.Fatalf("create decoder: %v", err)
+	}
+	service := &recordingService{err: change.ErrUnavailable}
+	response := httptest.NewRecorder()
+	httpapi.NewHandler(decoder, service).ServeHTTP(response, signedRequest(secret, webhookBody()))
+	if response.Code != http.StatusBadGateway || service.calls != 1 {
+		t.Fatalf("status=%d calls=%d body=%s", response.Code, service.calls, response.Body.String())
+	}
+	if bytes.Contains(response.Body.Bytes(), []byte(`"apiVersion"`)) {
+		t.Fatalf("failed ingestion was acknowledged as persisted: %s", response.Body.String())
+	}
+}
+
 type recordingService struct {
 	calls   int
 	created bool
+	err     error
 }
 
 func (service *recordingService) Ingest(
@@ -89,6 +109,9 @@ func (service *recordingService) Ingest(
 	delivery ingest.Delivery,
 ) (ingest.Result, error) {
 	service.calls++
+	if service.err != nil {
+		return ingest.Result{}, service.err
+	}
 
 	return ingest.Result{Created: service.created, ChangeSet: change.Set{
 		APIVersion:        change.SetAPIVersion,

@@ -21,6 +21,8 @@ const (
 	MaxManifestDecisions = 10_000
 	// MaxManifestCapabilities bounds affected and per-test mapping evidence.
 	MaxManifestCapabilities = 5_000
+	// MaxManifestWarnings bounds explanations copied from impact evidence.
+	MaxManifestWarnings = 100
 )
 
 var (
@@ -153,8 +155,9 @@ func CanonicalManifest(manifest Manifest) Manifest {
 func ValidateManifest(manifest Manifest) error {
 	if manifest.APIVersion != ManifestAPIVersion ||
 		manifest.PolicyVersion != FunctionalAPIPolicyVersion ||
-		manifest.ImpactAPIVersion != change.ImpactAPIVersion ||
-		manifest.ImpactAnalyzerVersion != change.OpenAPIAnalyzerVersion {
+		strings.TrimSpace(manifest.ImpactAPIVersion) == "" ||
+		strings.TrimSpace(manifest.ImpactAnalyzerVersion) == "" ||
+		len(manifest.ImpactAPIVersion) > 255 || len(manifest.ImpactAnalyzerVersion) > 255 {
 		return fmt.Errorf("%w: version", ErrInvalid)
 	}
 	if manifest.Family != catalog.TestFamilyFunctionalAPI ||
@@ -195,7 +198,7 @@ func ValidateManifest(manifest Manifest) error {
 func validateCapabilitySets(manifest Manifest) error {
 	if len(manifest.AffectedCapabilities) > MaxManifestCapabilities ||
 		len(manifest.UncoveredCapabilities) > MaxManifestCapabilities ||
-		len(manifest.Warnings) > change.MaxImpactWarnings {
+		len(manifest.Warnings) > MaxManifestWarnings {
 		return fmt.Errorf("%w: manifest bounds", ErrInvalid)
 	}
 	if manifest.Mode == ModeTargeted && len(manifest.AffectedCapabilities) == 0 {
