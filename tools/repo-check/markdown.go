@@ -241,7 +241,7 @@ func (r *repository) checkMarkdownLink(source *markdownDocument, link markdownLi
 
 	targetRelative := filepath.FromSlash(decodedPath)
 	if filepath.IsAbs(targetRelative) || strings.HasPrefix(decodedPath, "/") {
-		targetRelative = strings.TrimLeft(filepath.FromSlash(decodedPath), string(filepath.Separator)+"/")
+		targetRelative = strings.TrimLeft(targetRelative, string(filepath.Separator))
 	} else {
 		targetRelative = filepath.Join(filepath.Dir(filepath.FromSlash(source.path)), targetRelative)
 	}
