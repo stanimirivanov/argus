@@ -45,6 +45,19 @@ func TestCheckRepositoryAcceptsReferenceDefinitionWithAngleBracketsAndTitle(t *t
 	}
 }
 
+func TestCheckRepositoryAcceptsRootRelativeMarkdownLinks(t *testing.T) {
+	t.Parallel()
+
+	root := validRepository(t)
+	writeFixture(t, root, "docs/guide.md", "# Guide\n\n## Target section\n")
+	writeFixture(t, root, "docs/index.md", "# Index\n\n[guide](/docs/guide.md#target-section)\n")
+
+	violations := mustCheck(t, root)
+	if len(violations) != 0 {
+		t.Fatalf("expected valid root-relative link, got:\n%s", formatViolations(violations))
+	}
+}
+
 func TestCheckRepositoryReportsBrokenReferenceDefinitionsOutsideCodeFences(t *testing.T) {
 	t.Parallel()
 
