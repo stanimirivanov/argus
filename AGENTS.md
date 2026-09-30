@@ -12,10 +12,9 @@ Normative terms such as MUST, SHOULD, and MAY have the meanings defined there.
    [verification](CONTRIBUTING.md#verification-and-constrained-environments)
    rules.
 2. You MUST inspect the working tree and preserve pre-existing changes.
-3. You MUST read the [product definition](docs/product/product-definition.md),
-   [architecture overview](docs/architecture/overview.md), relevant material
-   under [docs/development](docs/development), and accepted decisions in
-   [docs/decisions](docs/decisions/README.md).
+3. You MUST use the [documentation map](docs/README.md) to load the canonical
+   product, architecture, development, integration, and decision sources that
+   apply to the task. Do not bulk-read unrelated guides or ADRs.
 4. You MUST use the repository-local build and verification commands. You
    MUST NOT claim that an unavailable or unexecuted check passed.
 
@@ -58,6 +57,8 @@ escalation rules in CONTRIBUTING; they do not automatically require an ADR.
   prompts/evaluation contracts are compatibility boundaries.
 
 Follow [engineering standards](docs/development/engineering-standards.md) and
+the task-specific routes in the [documentation map](docs/README.md). Database
+changes additionally follow the
 [SQL migration criteria](docs/development/sql-migrations.md).
 
 ## Quality and documentation
@@ -74,6 +75,9 @@ Follow [engineering standards](docs/development/engineering-standards.md) and
   troubleshooting documentation MUST change in the same pull request as code.
 - Secrets, customer data, production evidence, machine-specific paths, and
   unreviewed generated binaries MUST NOT be committed.
+
+The [coding harness guide](docs/development/harness.md) maps repository guidance
+to its executable feedback sensors and verification tiers.
 
 ## Completion
 

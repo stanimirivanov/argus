@@ -107,7 +107,7 @@ func (service *recordingService) Ingest(
 }
 
 func signedRequest(secret, body []byte) *http.Request {
-	request := httptest.NewRequest(http.MethodPost, "/webhooks/github", bytes.NewReader(body))
+	request := httptest.NewRequestWithContext(context.Background(), http.MethodPost, "/webhooks/github", bytes.NewReader(body))
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("X-GitHub-Event", "pull_request")
 	request.Header.Set("X-GitHub-Delivery", "delivery-42")

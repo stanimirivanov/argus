@@ -1,5 +1,19 @@
 # Argus
 
+## TL;DR
+
+- Argus selects tests for a software change, explains the evidence, and
+  proposes constrained, reviewable maintenance when tests become stale.
+- Start with the [documentation map](docs/README.md), then use the task-specific
+  product, architecture, development, integration, and decision sources it
+  routes to.
+- Run `make bootstrap` for first-time dependency setup, `make verify` during
+  development, and `make validate` before handoff; database work additionally
+  runs `make db-validate`.
+- The current end-to-end slice covers functional API cataloging, impact,
+  selection, execution evidence, bounded repair, validation, and review
+  outcomes; later test families remain planned work.
+
 Argus is an adaptive test intelligence and evolution platform. It determines
 which tests should run for a software change, identifies stale or missing test
 coverage, and produces evidence-backed maintenance proposals.
@@ -49,19 +63,20 @@ Run `make doctor` to report the effective toolchain. The complete supported,
 best-effort, and out-of-contract environment definitions, installation notes,
 and troubleshooting guidance live in the
 [developer quickstart](docs/development/developer-quickstart.md). Tool versions
-are declared in the root [go.mod](go.mod) and the isolated
-[actionlint module](tools/actionlint/go.mod), while their invocations remain
-visible in the [Makefile](Makefile).
+are declared in the application [go.mod](go.mod), the isolated
+[quality-tool module](tools/quality/go.mod), the isolated
+[actionlint module](tools/actionlint/go.mod), and the Node lock files. Their
+invocations remain visible in the [Makefile](Makefile).
 
 No external service is required for ordinary builds, contract validation, or
 `make validate`. Catalog persistence requires PostgreSQL 17; the dedicated
 `make db-validate` target creates and removes random databases on an explicitly
 configured loopback test server.
 
-The first quality-tool run requires network access to download the versions
-pinned in the Go module and pnpm lock files; later runs reuse local caches.
-Vulnerability scans also require access to the Go vulnerability database
-unless it is cached.
+`make bootstrap` normally requires network access to download the versions
+pinned in the Go modules and pnpm lock files; `make verify` is
+network-independent afterward. Vulnerability scans also require access to the
+Go and npm advisory databases unless they are current in local caches.
 
 ## Run the control plane
 
@@ -401,59 +416,72 @@ active evidence is retained and reported for review.
 
 ~~~sh
 make doctor
+make bootstrap
 make build
+make binaries
 make generate-contracts
 make fmt
 make fmt-check
+make docs-check
+make architecture-check
 make check
 make test
+make verify
 make race
 make db-validate
 make vuln
 make license
+make supply-chain
 make validate
 ~~~
 
-`make validate` is the required non-mutating acceptance suite. It builds all
-commands, proves Effect-to-JSON-Schema regeneration, validates the shared
-structural and domain fixture corpus, verifies Go and TypeScript formatting and
-static analysis, checks module integrity, runs ordinary and race-enabled tests
-without cached results, scans Go and production Node dependencies for known
-vulnerabilities, and enforces runtime dependency license policy.
+Run `make bootstrap` for first-time dependency resolution. `make verify` is the
+fast, network-independent loop after bootstrap: it builds the commands, checks
+documentation and architecture policy, proves contract regeneration, performs
+Go and TypeScript static analysis, verifies module integrity, and runs ordinary
+tests without cached Go results. `make validate` is the complete non-mutating
+local acceptance suite; it adds race, vulnerability, and license checks through
+`make race` and `make supply-chain`.
 
 Database-changing pull requests additionally run `make db-validate`. That
 target is intentionally separate from `make validate` so normal development
 does not silently depend on a local database.
 
-The tools are declared through Go's versioned `tool` directives in the root
-module and the isolated actionlint module, protected by their checksum files,
-and invoked through these commands rather than ambient global binaries:
+The quality tools are declared through Go's versioned `tool` directives in
+isolated modules, protected by their checksum files, and invoked through these
+commands rather than ambient global binaries:
 
 ~~~sh
-go tool golangci-lint
-go tool govulncheck
+go -C tools/quality tool golangci-lint
+go -C tools/quality tool govulncheck
+go -C tools/quality tool go-licenses
 go -C tools/actionlint tool actionlint
-go tool go-licenses
 ~~~
 
-The build writes platform-native executables under the ignored `bin` directory.
-`make generate-contracts` updates checked-in JSON Schema and `make fmt` updates
-Go and TypeScript formatting; review their diffs before committing. `make
-check` includes generation reproducibility, TypeScript type checking, `govet`,
-`staticcheck`, and GitHub Actions workflow validation, so the test targets
-disable the duplicate implicit `go test` vet pass.
+`make build` checks compilation without writing repository artifacts. Use
+`make binaries` when runnable platform-native executables are needed under the
+ignored `bin` directory. `make generate-contracts` updates checked-in JSON
+Schema and `make fmt` updates Go and TypeScript formatting; review their diffs
+before committing. `make check` includes generation reproducibility,
+TypeScript type checking, Go linting, and GitHub Actions workflow validation,
+so the test targets disable the duplicate implicit `go test` vet pass.
 
 ## Continuous integration
 
-The [validation workflow](.github/workflows/validate.yml) runs `make validate`
-on Ubuntu 24.04 and Windows Server 2025, plus the PostgreSQL integration suite
-against PostgreSQL 17.11 on Ubuntu, for every pull request and every push to
-`main`; it can also be run manually. The Windows job installs the pinned GNU
-Make 4.4.1 package because GNU Make is not part of the hosted Windows image.
-The cross-platform matrix reads the exact Go and Node versions from repository
-files, installs pnpm from the exact `packageManager` declaration, restores the
-frozen lockfile, and executes the checked-in acceptance suite. The PostgreSQL
-job needs only the exact Go toolchain and database image.
+The [validation workflow](.github/workflows/validate.yml) runs `make verify`
+and, in a separate job, `make race` on Ubuntu 24.04 and Windows Server 2025.
+It runs `make supply-chain` once on Ubuntu and runs `make db-validate` against
+PostgreSQL 17.11 on Ubuntu. These jobs run for every pull request and push to
+`main`, and the workflow can also be started manually. Splitting the local
+`make validate` aggregate keeps CI failures isolated without weakening its
+coverage.
+
+The Windows jobs install the pinned GNU Make 4.4.1 package because GNU Make is
+not part of the hosted Windows image. The verification matrix reads the exact
+Go and Node versions from repository files, installs pnpm from the exact
+`packageManager` declaration, restores the frozen lockfile, and executes the
+checked-in inner loop. The race and PostgreSQL jobs need only the exact Go
+toolchain plus PostgreSQL for the latter.
 
 The root [.gitattributes](.gitattributes) enforces LF line endings for text
 files on every checkout, matching `.editorconfig` and preventing Windows Git

@@ -190,10 +190,13 @@ transports consistent and prevents a database query from becoming hidden
 selection policy. [ADR-0005](../decisions/0005-store-immutable-impact-evidence.md)
 defines the persisted meaning and temporal rules.
 
-The import-boundary test under `internal/catalog` enforces the dependency
-direction: shared domain code cannot point outward, capability packages cannot
-import contracts or infrastructure, and the driving CLI adapter cannot select
-PostgreSQL. [ADR-0006](../decisions/0006-enforce-capability-oriented-hexagonal-boundaries.md)
+The product-level import-boundary test under `internal/architecture` discovers
+every production package in `internal` and `cmd`, requires an explicit layer and
+capability classification, and enforces inward dependency, adapter-authority,
+and cross-capability matrices. It rejects unclassified packages, infrastructure
+in the core, undeclared sideways application coupling, and infrastructure
+selection outside command composition roots.
+[ADR-0006](../decisions/0006-enforce-capability-oriented-hexagonal-boundaries.md)
 defines this modular-monolith structure and the deliberately rejected generic
 layer packages.
 

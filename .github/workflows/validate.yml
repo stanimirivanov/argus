@@ -15,10 +15,12 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Keep these status names stable for existing branch-protection rules while
+  # the expensive race and supply-chain sensors run as separate feedback jobs.
   validate:
     name: Validate (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -44,6 +46,8 @@ jobs:
           cache-dependency-path: |
             go.mod
             go.sum
+            tools/quality/go.mod
+            tools/quality/go.sum
             tools/actionlint/go.mod
             tools/actionlint/go.sum
 
@@ -70,8 +74,92 @@ jobs:
       - name: Report toolchain
         run: make doctor
 
-      - name: Run acceptance suite
-        run: make validate
+      - name: Run fast verification suite
+        run: make verify
+
+  race:
+    name: Race (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-24.04
+          - windows-2025
+
+    env:
+      GOTOOLCHAIN: local
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          check-latest: false
+          cache: true
+          cache-dependency-path: |
+            go.mod
+            go.sum
+
+      - name: Install GNU Make on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: choco install make --version=4.4.1 --no-progress --yes
+
+      - name: Run race suite
+        run: make race
+
+  supply-chain:
+    name: Supply chain
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    env:
+      GOTOOLCHAIN: local
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          check-latest: false
+          cache: true
+          cache-dependency-path: |
+            go.mod
+            go.sum
+            tools/quality/go.mod
+            tools/quality/go.sum
+            tools/actionlint/go.mod
+            tools/actionlint/go.sum
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install TypeScript dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run supply-chain suite
+        run: make supply-chain
 
   postgres:
     name: PostgreSQL integration

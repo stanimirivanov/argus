@@ -36,9 +36,11 @@ not silently create another level of normative strength.
 |:--|:--|
 | Contributor workflow, issue timing, escalation, and completion | This document |
 | Concise contributor and agent entry point | [AGENTS.md](AGENTS.md) |
+| Progressive task-to-document routing | [docs/README.md](docs/README.md) |
 | Product scope, taxonomy, decision outcomes, and safety | [docs/product/product-definition.md](docs/product/product-definition.md) |
 | Conceptual architecture and system boundaries | [docs/architecture/overview.md](docs/architecture/overview.md) |
 | Engineering and language standards | [docs/development/engineering-standards.md](docs/development/engineering-standards.md) |
+| Coding harness, feedback tiers, and multi-PR execution plans | [docs/development/harness.md](docs/development/harness.md) |
 | Supported local environments and first-time setup | [docs/development/developer-quickstart.md](docs/development/developer-quickstart.md) |
 | Dependency admission, updates, licensing, and vulnerability handling | [docs/development/dependency-policy.md](docs/development/dependency-policy.md) |
 | PostgreSQL schema and migration rules | [docs/development/sql-migrations.md](docs/development/sql-migrations.md) |
@@ -61,7 +63,9 @@ implementation they operate.
 A contributor MUST:
 
 - inspect the working tree and preserve changes that are not part of the task;
-- read the product, architecture, relevant standards, and accepted ADRs;
+- use the [documentation map](docs/README.md) to read the canonical product,
+  architecture, standards, integration, and accepted-decision sources routed
+  to the task rather than loading unrelated material;
 - identify the smallest observable outcome that can be reviewed and merged
   independently;
 - identify affected contracts, migrations, security boundaries, documentation,
@@ -218,6 +222,9 @@ adapter, storage, and tests.
 Placeholder abstractions, empty packages, unused ports, and future
 configuration MUST NOT be created merely to make a roadmap look implemented.
 
+When one approved outcome requires multiple dependent pull requests, follow the
+[multi-PR execution-plan guidance](docs/development/harness.md#multi-pr-execution-plans).
+
 ## Development workflow
 
 1. Select the issue workflow defined in [Issue timing](#issue-timing).
@@ -258,21 +265,23 @@ difference. A failing check MUST be reported as failed, even when the failure
 appears unrelated. If an unrelated pre-existing failure is verified, identify
 it separately with evidence.
 
-Run `make fmt` before final verification and review its diff. `make validate`
-is the required non-mutating repository acceptance suite; it builds the
-commands, checks Go and TypeScript formatting and static analysis, proves
-generated contract artifacts are current, validates the compatibility corpus,
-verifies module and lock state, runs ordinary and race-enabled tests, scans Go
-and Node dependencies for vulnerabilities, and enforces the documented license
-gate. A narrower target MAY provide interim feedback but MUST NOT be reported
-as the complete suite.
+Run `make bootstrap` when pinned dependencies are not available, then use
+`make verify` as the fast network-independent inner loop. Run `make fmt` before
+final verification and review its diff. `make validate` is the required
+non-mutating repository acceptance suite; it includes `make verify`,
+race-enabled tests, vulnerability scans, and the documented license gate. A
+narrower target MAY provide interim feedback but MUST NOT be reported as the
+complete suite. Database-changing work additionally requires
+`make db-validate`.
 
 The pinned tools and exact targets are defined in the root Makefile. Their first
 run and the vulnerability database may require network access. When that access
 is unavailable, follow the constrained-environment protocol above and report
 the affected target as not run rather than weakening or silently omitting it.
-Documentation structure and link checks remain manual evidence until replaced
-by checked-in automation. Additional language workspaces MUST extend
+`make docs-check` verifies mechanical documentation structure and
+repository-local links; semantic accuracy remains a review responsibility.
+`make architecture-check` verifies the declared production dependency matrix.
+Additional language workspaces MUST extend both `make verify` and
 `make validate` instead of requiring contributors to discover hidden checks.
 
 ## Documentation
