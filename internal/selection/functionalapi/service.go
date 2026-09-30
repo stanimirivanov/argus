@@ -7,13 +7,12 @@ import (
 	"slices"
 
 	"github.com/stanimirivanov/argus/internal/catalog"
-	"github.com/stanimirivanov/argus/internal/change"
 	"github.com/stanimirivanov/argus/internal/selection"
 )
 
-// ImpactReader loads one durable assessment by verified delivery identity.
+// ImpactReader loads selection-owned impact by verified delivery identity.
 type ImpactReader interface {
-	FindCapabilityImpact(context.Context, catalog.Provider, string) (change.CapabilityImpact, error)
+	ReadImpact(context.Context, catalog.Provider, string) (selection.ImpactProjection, error)
 }
 
 // Catalog contains the functional API candidates from one immutable snapshot.
@@ -52,12 +51,11 @@ func (service *Service) Select(ctx context.Context, request Request) (selection.
 		request.Provider == "" || request.DeliveryID == "" || request.DescriptorAPIVersion == "" {
 		return selection.Manifest{}, selection.ErrInvalid
 	}
-	impact, err := service.impacts.FindCapabilityImpact(ctx, request.Provider, request.DeliveryID)
+	impact, err := service.impacts.ReadImpact(ctx, request.Provider, request.DeliveryID)
 	if err != nil {
 		return selection.Manifest{}, err
 	}
-	impact = change.CanonicalCapabilityImpact(impact)
-	if err := change.ValidateCapabilityImpact(impact); err != nil {
+	if err := selection.ValidateImpactProjection(impact); err != nil {
 		return selection.Manifest{}, selection.ErrUnavailable
 	}
 	snapshotKey := catalog.SnapshotKey{
@@ -85,11 +83,12 @@ func (service *Service) Select(ctx context.Context, request Request) (selection.
 	return manifest, nil
 }
 
-func buildManifest(impact change.CapabilityImpact, candidates Catalog) selection.Manifest {
-	affected, fallback := affectedCapabilities(impact)
+func buildManifest(impact selection.ImpactProjection, candidates Catalog) selection.Manifest {
+	affected := append([]string{}, impact.AffectedCapabilities...)
+	fallback := impact.Completeness == selection.ImpactIncomplete
 	manifest := selection.Manifest{
 		APIVersion: selection.ManifestAPIVersion, PolicyVersion: selection.FunctionalAPIPolicyVersion,
-		ImpactAPIVersion: impact.APIVersion, ImpactAnalyzerVersion: impact.AnalyzerVersion,
+		ImpactAPIVersion: impact.ProducerAPIVersion, ImpactAnalyzerVersion: impact.ProducerVersion,
 		Change: impact.Change, Catalog: candidates.Snapshot, Family: catalog.TestFamilyFunctionalAPI,
 		Mode: selection.ModeTargeted, AffectedCapabilities: affected,
 		Warnings: append([]string{}, impact.Warnings...),
@@ -112,29 +111,6 @@ func buildManifest(impact change.CapabilityImpact, candidates Catalog) selection
 	}
 
 	return manifest
-}
-
-func affectedCapabilities(impact change.CapabilityImpact) ([]string, bool) {
-	capabilities := make([]string, 0)
-	fallback := impact.Status == change.ImpactPartial || len(impact.Documents) == 0
-	for _, document := range impact.Documents {
-		if len(document.Operations) == 0 {
-			fallback = true
-		}
-		for _, operation := range document.Operations {
-			if len(operation.Capabilities) == 0 {
-				fallback = true
-			}
-			capabilities = append(capabilities, operation.Capabilities...)
-		}
-	}
-	slices.Sort(capabilities)
-	capabilities = slices.Compact(capabilities)
-	if len(capabilities) == 0 {
-		fallback = true
-	}
-
-	return capabilities, fallback
 }
 
 func decide(candidate selection.TestReference, matched []string, fallback bool) selection.Decision {

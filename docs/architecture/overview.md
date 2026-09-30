@@ -237,19 +237,28 @@ ports:
 
 | Path | Owns | Must not own |
 |:--|:--|:--|
-| `internal/selection` | Manifest vocabulary, outcomes, reasons, canonical order, bounds, and invariants | SQL, generated contracts, catalog queries, or execution |
-| `internal/selection/functionalapi` | Deterministic targeted/fallback policy and coverage-gap derivation | PostgreSQL, JSON, CLI arguments, or framework commands |
+| `internal/selection` | Manifest and producer-neutral impact-projection vocabulary, outcomes, reasons, bounds, and invariants | SQL, generated contracts, catalog queries, or execution |
+| `internal/selection/functionalapi` | Deterministic targeted/fallback policy and coverage-gap derivation from projected capabilities and completeness | OpenAPI document structure, PostgreSQL, JSON, CLI arguments, or framework commands |
 | `internal/selection/adapters/catalogreader` | Bounded traversal and projection of immutable catalog pages | Selection policy |
+| `internal/selection/adapters/impactreader` | Validate persisted OpenAPI impact and translate it into selection-owned capabilities, unresolved evidence, and producer provenance | Selection policy or manifest serialization |
 | `internal/selection/adapters/contract` | Domain-to-execution-manifest v1 conversion | Policy or persistence |
 | `internal/selection/adapters/cli/selectioncli` | Local arguments and JSON output through injected ports | Concrete infrastructure |
 | `cmd/select` | PostgreSQL composition, process lifecycle, and environment configuration | Selection or serialization policy |
 
-The selector uses the approved base-revision catalog. Complete, fully mapped
+The selector uses the approved base-revision catalog. The impact bridge retains
+bounded source references for diagnosis and projects completeness without
+letting selection policy interpret OpenAPI documents. Complete, fully mapped
 impact enables targeted early execution. Partial, empty, or unmapped impact
 requires every functional API candidate. Tests omitted from the early stage
 retain a mandatory full-suite path, and affected capabilities without a mapped
 test are reported as coverage gaps. The manifest is deterministic output, not
 release authority.
+
+The selector's inward projection can accept another impact producer without
+changing its policy. The public execution-manifest v1 Effect contract still
+pins the OpenAPI impact and analyzer versions; adding a producer requires a
+separately reviewed contract version and compatibility fixtures. This refactor
+does not change current JSON or fallback semantics.
 
 ### Current functional API execution boundaries
 
