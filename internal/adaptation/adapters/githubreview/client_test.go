@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/stanimirivanov/argus/internal/adaptation"
@@ -186,6 +187,26 @@ func newTestClient(t *testing.T, server *httptest.Server) *Client {
 	}
 
 	return client
+}
+
+func TestClientRejectsGitHubRedirectWithoutForwardingToken(t *testing.T) {
+	t.Parallel()
+	var targetRequests atomic.Int32
+	target := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		targetRequests.Add(1)
+		response.WriteHeader(http.StatusOK)
+	}))
+	defer target.Close()
+	origin := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		http.Redirect(response, request, target.URL, http.StatusFound)
+	}))
+	defer origin.Close()
+	client := newTestClient(t, origin)
+	publication := validPublicationRequest()
+	_, err := client.LoadSource(t.Context(), publication.Repository, publication.BaseRevision, publication.Path)
+	if !errors.Is(err, adaptation.ErrUnavailable) || targetRequests.Load() != 0 {
+		t.Fatalf("LoadSource() = %v; redirected requests = %d", err, targetRequests.Load())
+	}
 }
 
 func validPublicationRequest() review.PublicationRequest {

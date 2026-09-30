@@ -2,22 +2,21 @@
 package validationprocessadapter
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
+	"time"
 
 	"github.com/stanimirivanov/argus/contracts"
 	"github.com/stanimirivanov/argus/internal/adaptation"
 	adaptationcontract "github.com/stanimirivanov/argus/internal/adaptation/adapters/contract"
+	"github.com/stanimirivanov/argus/internal/processprotocol"
 )
 
-const maxAdapterOutputBytes = 8 << 20
+const maxAdapterRuntime = 2 * time.Hour
 
 // Adapter exchanges phase documents with an explicit command whose working
 // directory is the disposable checkout controlled by the validation service.
@@ -66,49 +65,17 @@ func (adapter *Adapter) Execute(
 	if err != nil {
 		return adaptation.ValidationAdapterResult{}, fmt.Errorf("encode validation request: %w", err)
 	}
-	output := &boundedBuffer{maximum: maxAdapterOutputBytes}
-	command := exec.CommandContext(ctx, adapter.command[0], adapter.command[1:]...) //nolint:gosec // Reviewed CI configuration, never proposal input.
-	command.Dir = adapter.directory
-	command.Stdin = bytes.NewReader(input)
-	command.Stdout = output
-	command.Stderr = adapter.stderr
-	if err := command.Run(); err != nil {
-		if ctxErr := ctx.Err(); ctxErr != nil {
-			return adaptation.ValidationAdapterResult{}, fmt.Errorf("validation adapter context: %w", ctxErr)
-		}
-
-		return adaptation.ValidationAdapterResult{}, fmt.Errorf("validation adapter exited: %w", err)
+	output, err := processprotocol.Run(ctx, processprotocol.Options{
+		Command: adapter.command, Directory: adapter.directory, Input: input,
+		Stderr: adapter.stderr, Timeout: maxAdapterRuntime,
+	})
+	if err != nil {
+		return adaptation.ValidationAdapterResult{}, err
 	}
-	if output.exceeded {
-		return adaptation.ValidationAdapterResult{}, errors.New("validation adapter result exceeds 8 MiB limit")
-	}
-	resultDocument, err := contracts.DecodeFunctionalAPIRepairValidationResultV1(output.Bytes())
+	resultDocument, err := contracts.DecodeFunctionalAPIRepairValidationResultV1(output)
 	if err != nil {
 		return adaptation.ValidationAdapterResult{}, fmt.Errorf("decode validation adapter result: %w", err)
 	}
 
 	return adaptationcontract.ImportValidationResultV1(resultDocument)
-}
-
-type boundedBuffer struct {
-	bytes.Buffer
-	maximum  int
-	exceeded bool
-}
-
-func (buffer *boundedBuffer) Write(data []byte) (int, error) {
-	accepted := len(data)
-	remaining := buffer.maximum - buffer.Len()
-	if remaining <= 0 {
-		buffer.exceeded = true
-
-		return accepted, nil
-	}
-	if len(data) > remaining {
-		buffer.exceeded = true
-		data = data[:remaining]
-	}
-	_, err := buffer.Buffer.Write(data)
-
-	return accepted, err
 }

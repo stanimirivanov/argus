@@ -22,6 +22,7 @@ import (
 	"github.com/stanimirivanov/argus/internal/adaptation/outcome"
 	"github.com/stanimirivanov/argus/internal/adaptation/review"
 	"github.com/stanimirivanov/argus/internal/catalog"
+	"github.com/stanimirivanov/argus/internal/githubtransport"
 )
 
 const (
@@ -51,20 +52,13 @@ type ClientOptions struct {
 
 // NewClient validates configuration without making a network request.
 func NewClient(options ClientOptions) (*Client, error) {
-	baseURL, err := url.Parse(strings.TrimRight(options.BaseURL, "/") + "/")
-	if err != nil || baseURL.Scheme == "" || baseURL.Host == "" {
+	baseURL, httpClient, err := githubtransport.Configure(options.BaseURL, options.HTTPClient, 30*time.Second)
+	if err != nil {
 		return nil, fmt.Errorf("configure GitHub review client: invalid API URL")
-	}
-	if baseURL.Scheme != "https" && baseURL.Hostname() != "127.0.0.1" && baseURL.Hostname() != "localhost" {
-		return nil, fmt.Errorf("configure GitHub review client: API URL must use HTTPS")
 	}
 	host := strings.ToLower(strings.TrimSpace(options.Host))
 	if host == "" || strings.TrimSpace(options.Token) == "" {
 		return nil, fmt.Errorf("configure GitHub review client: host and token are required")
-	}
-	httpClient := options.HTTPClient
-	if httpClient == nil {
-		httpClient = &http.Client{Timeout: 30 * time.Second}
 	}
 	apiVersion := options.APIVersion
 	if apiVersion == "" {
@@ -635,11 +629,11 @@ func (client *Client) newRequest(
 	relativePath string,
 	body io.Reader,
 ) (*http.Request, error) {
-	reference, err := url.Parse(relativePath)
+	endpoint, err := githubtransport.ResolvePath(client.baseURL, relativePath)
 	if err != nil {
 		return nil, adaptation.ErrInvalid
 	}
-	request, err := http.NewRequestWithContext(ctx, method, client.baseURL.ResolveReference(reference).String(), body)
+	request, err := http.NewRequestWithContext(ctx, method, endpoint.String(), body)
 	if err != nil {
 		return nil, adaptation.ErrInvalid
 	}

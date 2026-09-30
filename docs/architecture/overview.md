@@ -512,6 +512,11 @@ Each adapter MUST normalize untrusted external data before it reaches domain
 policy and MUST preserve provider-specific identities needed for idempotency and
 diagnosis without leaking provider types into the core.
 
+The `internal/processprotocol` and `internal/githubtransport` packages share
+adapter-only resource and credential mechanics across capabilities. The
+architecture policy explicitly allows only the relevant process and GitHub
+adapters to import them; they own no domain language or application policy.
+
 [ADR-0002](../decisions/0002-keep-argus-in-a-single-product-repository.md)
 defines the evidence and migration required before an adapter, contract,
 analysis component, or deployment asset moves to another repository or service.

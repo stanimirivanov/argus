@@ -51,6 +51,7 @@ const (
 	drivenAdapter   adapterKind = "driven"
 	contractAdapter adapterKind = "contract-conversion"
 	bridgeAdapter   adapterKind = "application-bridge"
+	platformAdapter adapterKind = "platform-utility"
 )
 
 // productionPackagePolicy is intentionally explicit. A new production package
@@ -99,6 +100,8 @@ var productionPackagePolicy = map[string]packagePolicy{
 	modulePath + "/internal/execution/adapters/cli/planningcli":           {adapterLayer, executionCapability},
 	modulePath + "/internal/execution/adapters/contract":                  {adapterLayer, executionCapability},
 	modulePath + "/internal/execution/adapters/processadapter":            {adapterLayer, executionCapability},
+	modulePath + "/internal/githubtransport":                              {adapterLayer, productCapability},
+	modulePath + "/internal/processprotocol":                              {adapterLayer, productCapability},
 	modulePath + "/internal/selection":                                    {domainLayer, selectionCapability},
 	modulePath + "/internal/selection/functionalapi":                      {applicationLayer, selectionCapability},
 	modulePath + "/internal/selection/adapters/catalogreader":             {adapterLayer, selectionCapability},
@@ -147,6 +150,8 @@ var adapterPolicy = map[string]adapterKind{
 	modulePath + "/internal/execution/adapters/cli/planningcli":           drivingAdapter,
 	modulePath + "/internal/execution/adapters/contract":                  contractAdapter,
 	modulePath + "/internal/execution/adapters/processadapter":            drivenAdapter,
+	modulePath + "/internal/githubtransport":                              platformAdapter,
+	modulePath + "/internal/processprotocol":                              platformAdapter,
 	modulePath + "/internal/selection/adapters/catalogreader":             bridgeAdapter,
 	modulePath + "/internal/selection/adapters/cli/selectioncli":          drivingAdapter,
 	modulePath + "/internal/selection/adapters/contract":                  contractAdapter,
@@ -186,9 +191,24 @@ var allowedAdapterDependencies = map[adapterKind]map[adapterKind]bool{
 	},
 	drivenAdapter: {
 		contractAdapter: true,
+		platformAdapter: true,
 	},
 	contractAdapter: {},
 	bridgeAdapter:   {},
+	platformAdapter: {},
+}
+
+// The process runner shares infrastructure mechanics, not domain concepts.
+// Only the three protocol adapters may import this cross-capability utility.
+var processProtocolUsers = map[string]bool{
+	modulePath + "/internal/execution/adapters/processadapter":            true,
+	modulePath + "/internal/adaptation/adapters/processadapter":           true,
+	modulePath + "/internal/adaptation/adapters/validationprocessadapter": true,
+}
+
+var githubTransportUsers = map[string]bool{
+	modulePath + "/internal/change/adapters/github":           true,
+	modulePath + "/internal/adaptation/adapters/githubreview": true,
 }
 
 // Cross-application orchestration is exceptional and explicit. Most use-case
@@ -509,6 +529,18 @@ func validateInternalDependency(sourcePath string, source packagePolicy, targetP
 			return fmt.Errorf("%s adapter authority violation: %s (%s) imports %s (%s); allowed adapter targets for %s adapters are %s; select concrete infrastructure in a cmd composition root and inject it through the application-owned port", adrReference, sourcePath, sourceKind, targetPath, targetKind, sourceKind, allowedAdapterKindNames(sourceKind))
 		}
 	}
+	if targetPath == modulePath+"/internal/processprotocol" {
+		if processProtocolUsers[sourcePath] {
+			return nil
+		}
+		return fmt.Errorf("%s adapter utility violation: %s may not import %s; only protocol adapters own process execution", adrReference, sourcePath, targetPath)
+	}
+	if targetPath == modulePath+"/internal/githubtransport" {
+		if githubTransportUsers[sourcePath] {
+			return nil
+		}
+		return fmt.Errorf("%s adapter utility violation: %s may not import %s; only GitHub adapters own credential transport", adrReference, sourcePath, targetPath)
+	}
 	if !allowedCapabilityDependencies[source.capability][target.capability] {
 		return fmt.Errorf("%s capability dependency violation: %s (%s/%s) imports %s (%s/%s); allowed target capabilities for %s are %s; move orchestration to product composition or extract genuinely shared language inward", adrReference, sourcePath, source.capability, source.layer, targetPath, target.capability, target.layer, source.capability, allowedCapabilityNames(source.capability))
 	}
@@ -765,5 +797,31 @@ func TestArchitecturePolicyRejectsDrivingAdapterInfrastructureSelection(t *testi
 	)
 	if err == nil || !strings.Contains(err.Error(), "adapter authority violation") || !strings.Contains(err.Error(), "composition root") {
 		t.Fatalf("validateInternalDependency() error = %v, want actionable adapter authority violation", err)
+	}
+}
+
+func TestSharedAdapterUtilitiesHaveExactImporters(t *testing.T) {
+	t.Parallel()
+	for _, test := range []struct {
+		name   string
+		source string
+		target string
+		allow  bool
+	}{
+		{"execution process adapter", modulePath + "/internal/execution/adapters/processadapter", modulePath + "/internal/processprotocol", true},
+		{"adaptation process adapter", modulePath + "/internal/adaptation/adapters/processadapter", modulePath + "/internal/processprotocol", true},
+		{"validation process adapter", modulePath + "/internal/adaptation/adapters/validationprocessadapter", modulePath + "/internal/processprotocol", true},
+		{"change GitHub adapter", modulePath + "/internal/change/adapters/github", modulePath + "/internal/githubtransport", true},
+		{"review GitHub adapter", modulePath + "/internal/adaptation/adapters/githubreview", modulePath + "/internal/githubtransport", true},
+		{"PostgreSQL cannot invoke process", modulePath + "/internal/catalog/adapters/postgres", modulePath + "/internal/processprotocol", false},
+		{"PostgreSQL cannot use GitHub transport", modulePath + "/internal/catalog/adapters/postgres", modulePath + "/internal/githubtransport", false},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			err := validateInternalDependency(test.source, productionPackagePolicy[test.source], test.target, productionPackagePolicy[test.target])
+			if test.allow && err != nil || !test.allow && (err == nil || !strings.Contains(err.Error(), "adapter utility violation")) {
+				t.Fatalf("validateInternalDependency(%s, %s) = %v; allow = %v", test.source, test.target, err, test.allow)
+			}
+		})
 	}
 }

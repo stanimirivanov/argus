@@ -16,6 +16,7 @@ import (
 	"github.com/stanimirivanov/argus/internal/catalog"
 	"github.com/stanimirivanov/argus/internal/change"
 	"github.com/stanimirivanov/argus/internal/change/ingest"
+	"github.com/stanimirivanov/argus/internal/githubtransport"
 )
 
 const (
@@ -46,19 +47,12 @@ type ClientOptions struct {
 
 // NewClient validates configuration without making a network request.
 func NewClient(options ClientOptions) (*Client, error) {
-	baseURL, err := url.Parse(strings.TrimRight(options.BaseURL, "/") + "/")
-	if err != nil || baseURL.Scheme == "" || baseURL.Host == "" {
+	baseURL, httpClient, err := githubtransport.Configure(options.BaseURL, options.HTTPClient, 20*time.Second)
+	if err != nil {
 		return nil, fmt.Errorf("configure GitHub client: invalid API URL")
-	}
-	if baseURL.Scheme != "https" && baseURL.Hostname() != "127.0.0.1" && baseURL.Hostname() != "localhost" {
-		return nil, fmt.Errorf("configure GitHub client: API URL must use HTTPS")
 	}
 	if strings.TrimSpace(options.Token) == "" {
 		return nil, fmt.Errorf("configure GitHub client: token is required")
-	}
-	httpClient := options.HTTPClient
-	if httpClient == nil {
-		httpClient = &http.Client{Timeout: 20 * time.Second}
 	}
 	apiVersion := options.APIVersion
 	if apiVersion == "" {
@@ -228,11 +222,10 @@ func (client *Client) LoadDocument(
 }
 
 func (client *Client) get(ctx context.Context, relativePath, accept string, maxBytes int64) ([]byte, error) {
-	reference, err := url.Parse(relativePath)
+	endpoint, err := githubtransport.ResolvePath(client.baseURL, relativePath)
 	if err != nil {
 		return nil, change.ErrUnavailable
 	}
-	endpoint := client.baseURL.ResolveReference(reference)
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint.String(), nil)
 	if err != nil {
 		return nil, change.ErrUnavailable
