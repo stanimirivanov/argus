@@ -2,20 +2,19 @@
 package processadapter
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
-	"os/exec"
+	"time"
 
 	"github.com/stanimirivanov/argus/contracts"
 	"github.com/stanimirivanov/argus/internal/execution"
 	executioncontract "github.com/stanimirivanov/argus/internal/execution/adapters/contract"
+	"github.com/stanimirivanov/argus/internal/processprotocol"
 )
 
-const maxAdapterOutputBytes = 8 << 20
+const maxAdapterRuntime = 2 * time.Hour
 
 // Adapter exchanges one JSON request/result pair with a configured process.
 // Arguments are passed directly to the operating system; no command shell or
@@ -54,48 +53,16 @@ func (adapter *Adapter) Execute(
 	if err != nil {
 		return execution.AdapterResult{}, fmt.Errorf("encode adapter request: %w", err)
 	}
-	output := &boundedBuffer{maximum: maxAdapterOutputBytes}
-	command := exec.CommandContext(ctx, adapter.command[0], adapter.command[1:]...) //nolint:gosec // Explicit CI configuration; never manifest input.
-	command.Stdin = bytes.NewReader(input)
-	command.Stdout = output
-	command.Stderr = adapter.stderr
-	if err := command.Run(); err != nil {
-		if ctxErr := ctx.Err(); ctxErr != nil {
-			return execution.AdapterResult{}, fmt.Errorf("adapter process context: %w", ctxErr)
-		}
-
-		return execution.AdapterResult{}, fmt.Errorf("adapter process exited: %w", err)
+	output, err := processprotocol.Run(ctx, processprotocol.Options{
+		Command: adapter.command, Input: input, Stderr: adapter.stderr, Timeout: maxAdapterRuntime,
+	})
+	if err != nil {
+		return execution.AdapterResult{}, err
 	}
-	if output.exceeded {
-		return execution.AdapterResult{}, errors.New("adapter result exceeds 8 MiB limit")
-	}
-	resultDocument, err := contracts.DecodeFunctionalAPIAdapterResultV1(output.Bytes())
+	resultDocument, err := contracts.DecodeFunctionalAPIAdapterResultV1(output)
 	if err != nil {
 		return execution.AdapterResult{}, fmt.Errorf("decode adapter result: %w", err)
 	}
 
 	return executioncontract.ImportResultV1(resultDocument)
-}
-
-type boundedBuffer struct {
-	bytes.Buffer
-	maximum  int
-	exceeded bool
-}
-
-func (buffer *boundedBuffer) Write(data []byte) (int, error) {
-	accepted := len(data)
-	remaining := buffer.maximum - buffer.Len()
-	if remaining <= 0 {
-		buffer.exceeded = true
-
-		return accepted, nil
-	}
-	if len(data) > remaining {
-		buffer.exceeded = true
-		data = data[:remaining]
-	}
-	_, err := buffer.Buffer.Write(data)
-
-	return accepted, err
 }

@@ -5,6 +5,8 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/stanimirivanov/argus/internal/adaptation/adapters/cli/outcomecli"
 	"github.com/stanimirivanov/argus/internal/adaptation/adapters/githubreview"
@@ -12,7 +14,9 @@ import (
 )
 
 func main() {
-	if err := run(context.Background(), os.Args[1:]); err != nil {
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	if err := run(ctx, os.Args[1:]); err != nil {
 		_, _ = fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}

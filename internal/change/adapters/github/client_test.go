@@ -103,6 +103,36 @@ func TestClientLoadsRawDocumentAtImmutableRevision(t *testing.T) {
 	}
 }
 
+func TestClientRejectsGitHubRedirectWithoutForwardingToken(t *testing.T) {
+	t.Parallel()
+	var targetRequests atomic.Int32
+	target := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		targetRequests.Add(1)
+		response.WriteHeader(http.StatusOK)
+	}))
+	defer target.Close()
+	origin := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		http.Redirect(response, request, target.URL, http.StatusFound)
+	}))
+	defer origin.Close()
+	client, err := githubadapter.NewClient(githubadapter.ClientOptions{
+		HTTPClient: origin.Client(), BaseURL: origin.URL, Token: "secret",
+	})
+	if err != nil {
+		t.Fatalf("create client: %v", err)
+	}
+	repository := catalog.Repository{
+		Identity: catalog.RepositoryIdentity{Provider: catalog.ProviderGitHub, Host: "github.com", ProviderRepositoryID: "1"},
+		Owner:    "octocat", Name: "hello-world",
+	}
+	_, err = client.LoadDocument(t.Context(), repository, catalog.Revision{
+		Algorithm: catalog.RevisionGitSHA1, Digest: strings.Repeat("a", 40),
+	}, "api/openapi.yaml")
+	if !errors.Is(err, change.ErrUnavailable) || targetRequests.Load() != 0 {
+		t.Fatalf("LoadDocument() = %v; redirected requests = %d", err, targetRequests.Load())
+	}
+}
+
 func TestClientRejectsHeadMovementDuringPagination(t *testing.T) {
 	t.Parallel()
 

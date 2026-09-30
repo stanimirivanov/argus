@@ -8,9 +8,14 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/stanimirivanov/argus/internal/adaptation"
 )
+
+// Each integrity check and mandatory restoration has an independent budget.
+// Restoration must still be attempted if a prior check consumes its budget.
+const cleanupTimeout = 30 * time.Second
 
 // Workspace owns source access inside an explicitly disposable checkout.
 type Workspace interface {
@@ -284,15 +289,18 @@ func (service *Service) runOriginal(
 	originalSHA string,
 ) (adaptation.ValidationAdapterResult, error) {
 	result, runErr := service.run(ctx, proposal, validationID, adaptation.ValidationOriginal, originalSHA)
-	restoreContext := context.WithoutCancel(ctx)
-	current, readErr := service.workspace.Read(restoreContext, proposal.Edit.Path)
+	checkCtx, stopCheck := cleanupContext(ctx)
+	current, readErr := service.workspace.Read(checkCtx, proposal.Edit.Path)
+	stopCheck()
 	if readErr == nil && digest(current) == originalSHA {
 		if runErr != nil {
 			return adaptation.ValidationAdapterResult{}, runErr
 		}
 		return result, nil
 	}
-	restoreErr := service.workspace.Restore(restoreContext, proposal.Edit.Path, original)
+	restoreCtx, stopRestore := cleanupContext(ctx)
+	restoreErr := service.workspace.Restore(restoreCtx, proposal.Edit.Path, original)
+	stopRestore()
 	if restoreErr != nil {
 		return adaptation.ValidationAdapterResult{}, fmt.Errorf("restore original source after original run: %w", restoreErr)
 	}
@@ -317,14 +325,19 @@ func (service *Service) runVariant(
 		return adaptation.ValidationAdapterResult{}, fmt.Errorf("materialize %s source: %w", phase, err)
 	}
 	result, runErr := service.run(ctx, proposal, validationID, phase, variantSHA)
-	restoreContext := context.WithoutCancel(ctx)
-	current, readErr := service.workspace.Read(restoreContext, proposal.Edit.Path)
+	checkCtx, stopCheck := cleanupContext(ctx)
+	current, readErr := service.workspace.Read(checkCtx, proposal.Edit.Path)
+	stopCheck()
 	variantUnchanged := readErr == nil && digest(current) == variantSHA
-	restoreErr := service.workspace.Restore(restoreContext, proposal.Edit.Path, original)
+	restoreCtx, stopRestore := cleanupContext(ctx)
+	restoreErr := service.workspace.Restore(restoreCtx, proposal.Edit.Path, original)
+	stopRestore()
 	if restoreErr != nil {
 		return adaptation.ValidationAdapterResult{}, fmt.Errorf("restore original source after %s: %w", phase, restoreErr)
 	}
-	restored, verifyErr := service.workspace.Read(restoreContext, proposal.Edit.Path)
+	verifyCtx, stopVerify := cleanupContext(ctx)
+	restored, verifyErr := service.workspace.Read(verifyCtx, proposal.Edit.Path)
+	stopVerify()
 	if verifyErr != nil || digest(restored) != originalSHA {
 		return adaptation.ValidationAdapterResult{}, fmt.Errorf("%w: source restoration after %s", adaptation.ErrInvalid, phase)
 	}
@@ -339,6 +352,10 @@ func (service *Service) runVariant(
 	}
 
 	return result, nil
+}
+
+func cleanupContext(ctx context.Context) (context.Context, context.CancelFunc) {
+	return context.WithTimeout(context.WithoutCancel(ctx), cleanupTimeout)
 }
 
 func (service *Service) run(

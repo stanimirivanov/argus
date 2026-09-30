@@ -131,9 +131,31 @@ func TestValidateRestoresSourceAfterRunnerError(t *testing.T) {
 	}
 }
 
+func TestValidateRestoresWithIndependentDeadlineAfterCancellation(t *testing.T) {
+	t.Parallel()
+	proposal, source := validProposal()
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+	workspace := &memoryWorkspace{data: append([]byte{}, source...)}
+	runner := &fakeRunner{
+		workspace: workspace, outcomes: map[adaptation.ValidationPhase]adaptation.ValidationOutcome{
+			adaptation.ValidationOriginal:  adaptation.ValidationFailed,
+			adaptation.ValidationCandidate: adaptation.ValidationPassed,
+		},
+		cancelPhase: adaptation.ValidationCandidate, cancel: cancel,
+	}
+	_, _ = NewService(workspace, runner).Validate(ctx, proposal)
+	if workspace.restoreCount == 0 || !workspace.restoresBounded || workspace.restoresCanceled ||
+		!bytes.Equal(workspace.data, source) {
+		t.Fatalf("cleanup was not independently bounded after cancellation: %+v", workspace)
+	}
+}
+
 type memoryWorkspace struct {
-	data         []byte
-	restoreCount int
+	data             []byte
+	restoreCount     int
+	restoresBounded  bool
+	restoresCanceled bool
 }
 
 func (workspace *memoryWorkspace) Read(context.Context, string) ([]byte, error) {
@@ -154,7 +176,10 @@ func (workspace *memoryWorkspace) WriteIfUnchanged(
 	return nil
 }
 
-func (workspace *memoryWorkspace) Restore(_ context.Context, _ string, data []byte) error {
+func (workspace *memoryWorkspace) Restore(ctx context.Context, _ string, data []byte) error {
+	_, bounded := ctx.Deadline()
+	workspace.restoresBounded = bounded
+	workspace.restoresCanceled = ctx.Err() != nil
 	workspace.data = append([]byte{}, data...)
 	workspace.restoreCount++
 
@@ -168,6 +193,8 @@ type fakeRunner struct {
 	errorPhase   adaptation.ValidationPhase
 	executionErr error
 	calls        int
+	cancelPhase  adaptation.ValidationPhase
+	cancel       context.CancelFunc
 }
 
 func (runner *fakeRunner) Execute(
@@ -195,6 +222,9 @@ func (runner *fakeRunner) Execute(
 	}
 	if request.Phase == runner.mutatePhase {
 		runner.workspace.data = []byte("adapter mutation")
+	}
+	if request.Phase == runner.cancelPhase && runner.cancel != nil {
+		runner.cancel()
 	}
 
 	return result, nil

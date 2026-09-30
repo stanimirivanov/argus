@@ -41,6 +41,11 @@ The adapter must inspect the already checked-out test revision and map
 `suiteKey` plus `testKey` through repository-owned configuration. It must not
 select additional tests or infer another endpoint mapping.
 
+Argus imposes a ten-minute maximum on the proposal adapter and a two-hour
+maximum on each validation adapter process; the command's own timeout may be
+shorter. Both processes stop when stdout exceeds 8 MiB and expose only the
+last 64 KiB of stderr. SIGINT and SIGTERM cancel the active request.
+
 ## Adapter result
 
 The adapter writes one
@@ -115,6 +120,10 @@ restores the original again. It rejects an adapter that modifies the source
 file itself or returns mismatched proposal, phase, test, adapter, or source
 identities. The proposed source file and every materialized variant are limited
 to 16 MiB.
+Each mandatory source check and restoration uses its own non-cancelled
+30-second deadline. Restoration is still attempted if a preceding check times
+out. A failed restoration publishes no validation evidence; discard the
+disposable checkout regardless of outcome.
 
 ### Validation adapter protocol
 
@@ -186,6 +195,9 @@ go run ./cmd/open-functional-api-repair-pr \
 Set `ARGUS_GITHUB_API_URL` and `ARGUS_GITHUB_HOST` for GitHub Enterprise. The
 token needs contents and pull-request write permission only in the test
 repository. It is never accepted as a command-line flag or included in output.
+The API URL cannot contain credentials, a query, or a fragment. Argus rejects
+all GitHub API redirects, including same-origin redirects, before a bearer
+token can be forwarded; configure the final canonical API endpoint.
 
 Before writing, Argus correlates proposal, validation, test, adapter, policy,
 and edit identities. It reloads the source at the proposal's immutable test

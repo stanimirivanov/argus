@@ -186,6 +186,15 @@ for focused diagnosis.
 
 - Manifest input is limited to 16 MiB.
 - Adapter stdout is limited to 8 MiB.
+- Argus stops the adapter as soon as stdout exceeds that bound; stderr is
+  retained only as a 64 KiB diagnostic tail. Adapter request input is capped
+  at 16 MiB. The adapter's own deadline is at most two hours, even when a
+  caller omits a shorter deadline.
+- Cancellation and timeout terminate the direct adapter process. A descendant
+  that inherits its protocol pipes cannot hold the command open indefinitely:
+  Argus stops waiting after five seconds and reports a protocol-pipe error.
+  CI MUST still isolate the process tree and clean up descendants at the worker
+  boundary; the process protocol is not an operating-system sandbox.
 - One request is limited to 10,000 tests and 100 artifact references.
 - Individual reported test durations are limited to 24 hours.
 - Attempt timestamps must be UTC and have at most microsecond precision so
@@ -195,6 +204,9 @@ for focused diagnosis.
 - Artifact URIs must be absolute and cannot contain embedded user credentials.
 - Malformed or trailing JSON, version mismatches, identity mismatches, and
   non-canonical revisions fail closed.
+- Timeout, cancellation, stdout overflow, non-zero exit, inherited-pipe
+  timeout, and malformed result are separate failure classes. None fabricate
+  execution-attempt evidence.
 
 The shared fixtures under `contracts/fixtures/functional-api-adapter-*` are the
 starting conformance corpus for adapter implementations.
