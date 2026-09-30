@@ -81,8 +81,12 @@ func TestRunDistinguishesCancellationTimeoutAndExit(t *testing.T) {
 func TestDiagnosticTailIsBounded(t *testing.T) {
 	t.Parallel()
 	var tail diagnosticTail
-	_, _ = tail.Write(bytes.Repeat([]byte("a"), MaxDiagnosticBytes))
-	_, _ = tail.Write([]byte("latest"))
+	if written, err := tail.Write(bytes.Repeat([]byte("a"), MaxDiagnosticBytes)); err != nil || written != MaxDiagnosticBytes {
+		t.Fatalf("initial diagnostic write = %d, %v", written, err)
+	}
+	if written, err := tail.Write([]byte("latest")); err != nil || written != len("latest") {
+		t.Fatalf("recent diagnostic write = %d, %v", written, err)
+	}
 	if len(tail.bytes) != MaxDiagnosticBytes || !bytes.HasSuffix(tail.bytes, []byte("latest")) {
 		t.Fatalf("tail length = %d, suffix = %q", len(tail.bytes), tail.bytes[len(tail.bytes)-16:])
 	}
@@ -96,15 +100,20 @@ func TestRunDoesNotWaitIndefinitelyForDescendantPipes(t *testing.T) {
 		Command: helperCommand("spawn"), Stderr: &diagnostics, Timeout: 15 * time.Second,
 	})
 	pid, parseErr := strconv.Atoi(strings.TrimSpace(diagnostics.String()))
-	if parseErr == nil {
-		child, findErr := os.FindProcess(pid)
-		if findErr == nil {
-			_ = child.Kill()
-			_, _ = child.Wait()
-		}
-	}
 	if parseErr != nil {
 		t.Fatalf("descendant PID diagnostic %q: %v", diagnostics.String(), parseErr)
+	}
+	child, findErr := os.FindProcess(pid)
+	if findErr != nil {
+		t.Fatalf("find descendant %d: %v", pid, findErr)
+	}
+	if killErr := child.Kill(); killErr != nil && !errors.Is(killErr, os.ErrProcessDone) {
+		t.Errorf("kill descendant %d: %v", pid, killErr)
+	}
+	if _, waitErr := child.Wait(); waitErr != nil {
+		// A killed process exits non-zero on Windows; a non-child can return
+		// ECHILD on Unix. The call still releases the Windows process handle.
+		t.Logf("wait for terminated descendant %d: %v", pid, waitErr)
 	}
 	if !errors.Is(err, ErrInheritedPipes) || time.Since(start) > 10*time.Second {
 		t.Fatalf("Run() error = %v, elapsed %s", err, time.Since(start))
@@ -121,23 +130,34 @@ func TestProcessProtocolHelper(t *testing.T) {
 	}
 	switch os.Args[len(os.Args)-1] {
 	case "echo":
-		_, _ = io.Copy(os.Stdout, os.Stdin)
-		_, _ = io.WriteString(os.Stderr, "adapter diagnostic")
+		if _, err := io.Copy(os.Stdout, os.Stdin); err != nil {
+			os.Exit(2)
+		}
+		if _, err := io.WriteString(os.Stderr, "adapter diagnostic"); err != nil {
+			os.Exit(3)
+		}
 		os.Exit(0)
 	case "overflow":
-		_, _ = os.Stdout.Write(bytes.Repeat([]byte("x"), MaxOutputBytes+1))
+		if _, err := os.Stdout.Write(bytes.Repeat([]byte("x"), MaxOutputBytes+1)); err != nil {
+			// The parent closes stdout when it detects overflow.
+			os.Exit(0)
+		}
 		time.Sleep(10 * time.Second)
 	case "wait":
 		time.Sleep(10 * time.Second)
 	case "exit":
 		os.Exit(7)
 	case "spawn":
-		child := exec.Command(os.Args[0], "-test.run=^TestProcessProtocolHelper$", "--", "linger") //nolint:gosec // Test-only descendant of this binary.
+		// Detach from the helper's lifetime so inherited-pipe behavior is
+		// observable after the direct child exits.
+		child := exec.CommandContext(context.WithoutCancel(t.Context()), os.Args[0], "-test.run=^TestProcessProtocolHelper$", "--", "linger") //nolint:gosec // Test-only descendant of this binary.
 		child.Stdout, child.Stderr = os.Stdout, os.Stderr
 		if child.Start() != nil {
 			os.Exit(8)
 		}
-		_, _ = fmt.Fprintln(os.Stderr, child.Process.Pid)
+		if _, err := fmt.Fprintln(os.Stderr, child.Process.Pid); err != nil {
+			os.Exit(9)
+		}
 		os.Exit(0)
 	case "linger":
 		time.Sleep(12 * time.Second)

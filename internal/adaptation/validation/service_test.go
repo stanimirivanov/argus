@@ -144,7 +144,10 @@ func TestValidateRestoresWithIndependentDeadlineAfterCancellation(t *testing.T) 
 		},
 		cancelPhase: adaptation.ValidationCandidate, cancel: cancel,
 	}
-	_, _ = NewService(workspace, runner).Validate(ctx, proposal)
+	_, err := NewService(workspace, runner).Validate(ctx, proposal)
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("Validate() error = %v, want cancellation", err)
+	}
 	if workspace.restoreCount == 0 || !workspace.restoresBounded || workspace.restoresCanceled ||
 		!bytes.Equal(workspace.data, source) {
 		t.Fatalf("cleanup was not independently bounded after cancellation: %+v", workspace)
@@ -198,9 +201,12 @@ type fakeRunner struct {
 }
 
 func (runner *fakeRunner) Execute(
-	_ context.Context,
+	ctx context.Context,
 	request adaptation.ValidationRequest,
 ) (adaptation.ValidationAdapterResult, error) {
+	if err := ctx.Err(); err != nil {
+		return adaptation.ValidationAdapterResult{}, err
+	}
 	if digest(runner.workspace.data) != request.SourceSHA256 {
 		return adaptation.ValidationAdapterResult{}, adaptation.ErrInvalid
 	}

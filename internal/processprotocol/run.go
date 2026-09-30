@@ -78,7 +78,7 @@ func Run(ctx context.Context, options Options) ([]byte, error) {
 		return nil, fmt.Errorf("adapter process timed out: %w", err)
 	}
 	if errors.Is(runErr, exec.ErrWaitDelay) {
-		return nil, fmt.Errorf("%w: %v", ErrInheritedPipes, runErr)
+		return nil, fmt.Errorf("%w: %w", ErrInheritedPipes, runErr)
 	}
 	if runErr != nil {
 		return nil, fmt.Errorf("adapter process exited: %w", runErr)
@@ -105,6 +105,7 @@ func (output *limitedOutput) Write(data []byte) (int, error) {
 		return 0, ErrOutputLimit
 	}
 	output.bytes = append(output.bytes, data...)
+
 	return len(data), nil
 }
 
@@ -123,5 +124,6 @@ func (tail *diagnosticTail) Write(data []byte) (int, error) {
 		tail.bytes = tail.bytes[:len(tail.bytes)-overflow]
 	}
 	tail.bytes = append(tail.bytes, data...)
+
 	return accepted, nil
 }

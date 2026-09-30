@@ -1,7 +1,6 @@
 package githubtransport
 
 import (
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -66,30 +65,36 @@ func TestCredentialBearingClientNeverFollowsRedirect(t *testing.T) {
 	for _, redirect := range []string{target.URL, "https://subdomain.github.com", "http://api.github.com"} {
 		redirect := redirect
 		t.Run(redirect, func(t *testing.T) {
-			origin := httptest.NewTLSServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
-				http.Redirect(response, request, redirect, http.StatusFound)
-			}))
-			defer origin.Close()
-			base, client, err := Configure(origin.URL, origin.Client(), time.Second)
-			if err != nil {
-				t.Fatalf("configure: %v", err)
-			}
-			request, err := http.NewRequest(http.MethodGet, base.String()+"repos/test", nil)
-			if err != nil {
-				t.Fatalf("request: %v", err)
-			}
-			request.Header.Set("Authorization", "Bearer secret")
-			response, err := client.Do(request)
-			if response != nil {
-				_, _ = io.Copy(io.Discard, response.Body)
-				_ = response.Body.Close()
-			}
-			if err == nil || !strings.Contains(err.Error(), errRedirect.Error()) {
-				t.Fatalf("redirect result = %v, want rejection", err)
-			}
+			assertRedirectRejected(t, redirect)
 		})
 	}
 	if reached.Load() != 0 {
 		t.Fatalf("redirect target received %d requests", reached.Load())
+	}
+}
+
+func assertRedirectRejected(t *testing.T, redirect string) {
+	t.Helper()
+	origin := httptest.NewTLSServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		http.Redirect(response, request, redirect, http.StatusFound)
+	}))
+	defer origin.Close()
+	base, client, err := Configure(origin.URL, origin.Client(), time.Second)
+	if err != nil {
+		t.Fatalf("configure: %v", err)
+	}
+	request, err := http.NewRequestWithContext(t.Context(), http.MethodGet, base.String()+"repos/test", nil)
+	if err != nil {
+		t.Fatalf("request: %v", err)
+	}
+	request.Header.Set("Authorization", "Bearer secret")
+	response, err := client.Do(request)
+	if response != nil {
+		if closeErr := response.Body.Close(); closeErr != nil {
+			t.Errorf("close redirect response: %v", closeErr)
+		}
+	}
+	if err == nil || !strings.Contains(err.Error(), errRedirect.Error()) {
+		t.Fatalf("redirect result = %v, want rejection", err)
 	}
 }
