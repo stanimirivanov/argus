@@ -224,8 +224,7 @@ func validateRepository(repository catalog.Repository) error {
 		strings.TrimSpace(repository.Name) == "" || len(repository.Name) > 255 {
 		return fmt.Errorf("invalid repository coordinates")
 	}
-	identity := catalog.TestIdentity{TestRepository: repository.Identity, SuiteKey: "valid", TestKey: "valid"}
-	if !identity.Valid() {
+	if !repository.Identity.Valid() {
 		return fmt.Errorf("invalid repository identity")
 	}
 

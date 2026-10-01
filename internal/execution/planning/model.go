@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"regexp"
 	"slices"
-	"strings"
 
 	"github.com/stanimirivanov/argus/internal/catalog"
 	"github.com/stanimirivanov/argus/internal/execution"
@@ -218,11 +217,7 @@ type planGroup struct {
 }
 
 func validateRepository(repository catalog.Repository) error {
-	identity := catalog.TestIdentity{
-		TestRepository: repository.Identity, SuiteKey: "validation", TestKey: "validation",
-	}
-	if !identity.Valid() || strings.TrimSpace(repository.Owner) == "" || len(repository.Owner) > 255 ||
-		strings.TrimSpace(repository.Name) == "" || len(repository.Name) > 255 {
+	if !repository.Valid() {
 		return execution.ErrInvalid
 	}
 
@@ -230,8 +225,7 @@ func validateRepository(repository catalog.Repository) error {
 }
 
 func validateRevision(revision catalog.Revision) error {
-	normalized, err := catalog.NewRevision(revision.Algorithm, revision.Digest)
-	if err != nil || normalized != revision {
+	if !revision.Valid() {
 		return execution.ErrInvalid
 	}
 

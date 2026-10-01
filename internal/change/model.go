@@ -181,10 +181,9 @@ func ValidateSet(set Set) error {
 
 func validateRepository(repository catalog.Repository) error {
 	identity := repository.Identity
-	if identity.Provider != catalog.ProviderGitHub || !repositoryHostPattern.MatchString(identity.Host) ||
-		len(identity.Host) > 255 || strings.TrimSpace(identity.ProviderRepositoryID) == "" ||
-		len(identity.ProviderRepositoryID) > 255 || strings.TrimSpace(repository.Owner) == "" ||
-		len(repository.Owner) > 255 || strings.TrimSpace(repository.Name) == "" || len(repository.Name) > 255 {
+	if !repository.Valid() || identity.Provider != catalog.ProviderGitHub ||
+		!repositoryHostPattern.MatchString(identity.Host) || len(identity.Host) > 255 ||
+		len(identity.ProviderRepositoryID) > 255 {
 		return errors.New("incomplete GitHub repository identity")
 	}
 
@@ -192,8 +191,7 @@ func validateRepository(repository catalog.Repository) error {
 }
 
 func validateRevision(revision catalog.Revision) error {
-	validated, err := catalog.NewRevision(revision.Algorithm, revision.Digest)
-	if err != nil || validated != revision {
+	if !revision.Valid() {
 		return errors.New("invalid immutable revision")
 	}
 

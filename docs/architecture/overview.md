@@ -175,6 +175,13 @@ Domain structs intentionally have no
 JSON tags: the descriptor DTO, command output DTO, and persisted fingerprint
 are distinct compatibility boundaries and evolve independently.
 
+`catalog.RepositoryIdentity.Valid`, `catalog.Repository.Valid`, and
+`catalog.Revision.Valid` define the shared normalized identity checks consumed
+by catalog, execution, and adaptation. Each use case still owns its error
+classification and any narrower provider-specific rules. In particular,
+GitHub change ingestion retains its host syntax and identifier bounds; the
+shared identity check does not grant provider trust.
+
 The first catalog query is an application use case behind the
 `testquery.TestCatalogReader` port. It owns bounded-page and cursor policy, while
 the PostgreSQL adapter owns the keyset SQL and the CLI adapter owns conversion

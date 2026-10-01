@@ -3,6 +3,7 @@ package change_test
 import (
 	"errors"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -69,6 +70,18 @@ func TestValidateSetRejectsAmbiguousPartialEvidence(t *testing.T) {
 				t.Fatalf("validate = %v, want ErrInvalid", err)
 			}
 		})
+	}
+}
+
+func TestValidateSetRetainsGitHubSpecificIdentityBounds(t *testing.T) {
+	t.Parallel()
+	set := validSet()
+	set.SourceRepository.Identity.ProviderRepositoryID = strings.Repeat("x", 256)
+	if !set.SourceRepository.Valid() {
+		t.Fatal("shared repository validation unexpectedly applies GitHub-specific length limit")
+	}
+	if err := change.ValidateSet(set); !errors.Is(err, change.ErrInvalid) {
+		t.Fatalf("oversized GitHub repository ID error = %v, want ErrInvalid", err)
 	}
 }
 

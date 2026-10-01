@@ -300,14 +300,12 @@ func ValidateTestReference(test TestReference) error {
 	identity := catalog.TestIdentity{
 		TestRepository: test.Repository.Identity, SuiteKey: test.SuiteKey, TestKey: test.TestKey,
 	}
-	if !identity.Valid() || strings.TrimSpace(test.Repository.Owner) == "" ||
-		strings.TrimSpace(test.Repository.Name) == "" || strings.TrimSpace(test.Name) == "" ||
+	if !identity.Valid() || !test.Repository.Valid() || strings.TrimSpace(test.Name) == "" ||
 		!catalog.IsLocalKey(test.Adapter) || len(test.Capabilities) == 0 || len(test.Capabilities) > 5000 ||
-		len(test.Repository.Owner) > 255 || len(test.Repository.Name) > 255 || len(test.Name) > 255 {
+		len(test.Name) > 255 {
 		return fmt.Errorf("%w: test reference", ErrInvalid)
 	}
-	if normalized, err := catalog.NewRevision(test.Revision.Algorithm, test.Revision.Digest); err != nil ||
-		normalized != test.Revision {
+	if !test.Revision.Valid() {
 		return fmt.Errorf("%w: test revision", ErrInvalid)
 	}
 	if !slices.Equal(test.Capabilities, canonicalStrings(test.Capabilities)) {
