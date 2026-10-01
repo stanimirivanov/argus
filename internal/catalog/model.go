@@ -40,6 +40,15 @@ type Revision struct {
 	Digest    string
 }
 
+// Valid reports whether a revision is already normalized. NewRevision accepts
+// uppercase hex and normalizes it, but evidence crossing a domain boundary
+// must not silently change its immutable identity during validation.
+func (revision Revision) Valid() bool {
+	normalized, err := NewRevision(revision.Algorithm, revision.Digest)
+
+	return err == nil && normalized == revision
+}
+
 // RepositoryIdentity is stable across repository renames and ownership
 // transfers. ProviderRepositoryID is deliberately opaque.
 type RepositoryIdentity struct {
@@ -48,11 +57,33 @@ type RepositoryIdentity struct {
 	ProviderRepositoryID string
 }
 
+// Valid reports whether the stable provider identity has all required fields.
+// Provider-specific host syntax and identifier limits are enforced by their
+// adapters or by narrower capabilities, not by this shared vocabulary.
+func (identity RepositoryIdentity) Valid() bool {
+	switch identity.Provider {
+	case ProviderGitHub, ProviderGitLab, ProviderAzureDevOps, ProviderOther:
+	default:
+		return false
+	}
+
+	return strings.TrimSpace(identity.Host) != "" &&
+		strings.TrimSpace(identity.ProviderRepositoryID) != ""
+}
+
 // Repository combines stable identity with mutable display coordinates.
 type Repository struct {
 	Identity RepositoryIdentity
 	Owner    string
 	Name     string
+}
+
+// Valid reports whether a repository has a stable identity and bounded,
+// nonblank display coordinates. It does not verify current provider state.
+func (repository Repository) Valid() bool {
+	return repository.Identity.Valid() &&
+		strings.TrimSpace(repository.Owner) != "" && len(repository.Owner) <= 255 &&
+		strings.TrimSpace(repository.Name) != "" && len(repository.Name) <= 255
 }
 
 // Capability is a repository-scoped product behavior.
@@ -147,14 +178,10 @@ func ValidateSnapshotKey(key SnapshotKey) error {
 	default:
 		return fmt.Errorf("%w: repository provider", ErrInvalidQuery)
 	}
-	if strings.TrimSpace(key.Repository.Host) == "" ||
-		strings.TrimSpace(key.Repository.ProviderRepositoryID) == "" ||
-		strings.TrimSpace(key.APIVersion) == "" {
+	if !key.Repository.Valid() || strings.TrimSpace(key.APIVersion) == "" {
 		return fmt.Errorf("%w: incomplete snapshot identity", ErrInvalidQuery)
 	}
-	validatedRevision, err := NewRevision(key.Revision.Algorithm, key.Revision.Digest)
-
-	if err != nil || validatedRevision != key.Revision {
+	if !key.Revision.Valid() {
 		return fmt.Errorf("%w: revision", ErrInvalidQuery)
 	}
 
@@ -188,14 +215,7 @@ type TestIdentity struct {
 
 // Valid reports whether every part of the stable test identity is normalized.
 func (identity TestIdentity) Valid() bool {
-	switch identity.TestRepository.Provider {
-	case ProviderGitHub, ProviderGitLab, ProviderAzureDevOps, ProviderOther:
-	default:
-		return false
-	}
-
-	return strings.TrimSpace(identity.TestRepository.Host) != "" &&
-		strings.TrimSpace(identity.TestRepository.ProviderRepositoryID) != "" &&
+	return identity.TestRepository.Valid() &&
 		IsLocalKey(identity.SuiteKey) &&
 		IsLocalKey(identity.TestKey)
 }

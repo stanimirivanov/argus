@@ -47,15 +47,7 @@ func ValidateReviewPublication(publication ReviewPublication) error {
 // ValidateRepository checks the provider identity and display coordinates
 // required at an adaptation provider boundary.
 func ValidateRepository(repository catalog.Repository) error {
-	switch repository.Identity.Provider {
-	case catalog.ProviderGitHub, catalog.ProviderGitLab, catalog.ProviderAzureDevOps, catalog.ProviderOther:
-	default:
-		return fmt.Errorf("%w: review repository provider", ErrInvalid)
-	}
-	if strings.TrimSpace(repository.Identity.Host) == "" ||
-		strings.TrimSpace(repository.Identity.ProviderRepositoryID) == "" ||
-		strings.TrimSpace(repository.Owner) == "" || strings.TrimSpace(repository.Name) == "" ||
-		len(repository.Owner) > 255 || len(repository.Name) > 255 {
+	if !repository.Valid() {
 		return fmt.Errorf("%w: review repository", ErrInvalid)
 	}
 
@@ -64,8 +56,7 @@ func ValidateRepository(repository catalog.Repository) error {
 
 // ValidateRevision verifies that a revision is normalized and immutable.
 func ValidateRevision(revision catalog.Revision) error {
-	normalized, err := catalog.NewRevision(revision.Algorithm, revision.Digest)
-	if err != nil || normalized != revision {
+	if !revision.Valid() {
 		return fmt.Errorf("%w: review revision", ErrInvalid)
 	}
 
