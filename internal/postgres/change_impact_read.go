@@ -11,14 +11,14 @@ import (
 
 // FindCapabilityImpact reconstructs one assessment from a repeatable-read
 // snapshot so header, documents, operations, mappings, and warnings agree.
-func (store *Store) FindCapabilityImpact(
+func (store *ChangeStore) FindCapabilityImpact(
 	ctx context.Context,
 	provider catalog.Provider,
 	deliveryID string,
 ) (change.CapabilityImpact, error) {
 	operationContext, cancel := context.WithTimeout(ctx, operationTimeout)
 	defer cancel()
-	tx, err := store.pool.BeginTx(operationContext, pgx.TxOptions{
+	tx, err := store.runtime.pool.BeginTx(operationContext, pgx.TxOptions{
 		IsoLevel: pgx.RepeatableRead, AccessMode: pgx.ReadOnly,
 	})
 	if err != nil {

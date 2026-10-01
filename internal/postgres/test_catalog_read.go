@@ -11,7 +11,7 @@ import (
 // ListTestCatalogEntries reads one keyset page from an immutable snapshot. The
 // application service owns cursor encoding; this adapter sees only the typed,
 // exclusive position of the last delivered test.
-func (store *Store) ListTestCatalogEntries(
+func (store *CatalogStore) ListTestCatalogEntries(
 	ctx context.Context,
 	request testquery.TestCatalogReadRequest,
 ) (testquery.TestCatalogReadPage, error) {
@@ -22,7 +22,7 @@ func (store *Store) ListTestCatalogEntries(
 	operationContext, cancel := context.WithTimeout(ctx, operationTimeout)
 	defer cancel()
 
-	tx, err := store.pool.BeginTx(operationContext, pgx.TxOptions{
+	tx, err := store.runtime.pool.BeginTx(operationContext, pgx.TxOptions{
 		IsoLevel:   pgx.RepeatableRead,
 		AccessMode: pgx.ReadOnly,
 	})

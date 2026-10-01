@@ -30,17 +30,20 @@ PostgreSQL 17 is the supported major for this slice; CI uses the exact 17.11
 container image.
 
 The Go adapter exposes runtime and migration capabilities separately.
-`postgres.Store` implements the catalog snapshot, query, impact-evidence, and
-change-ingestion ports together with execution and adaptation evidence ports,
-and owns bounded read/write connections; opening it
-never changes schema state. `postgres.Migrator` owns a single privileged
-connection pool and can only apply the embedded migration chain. Commands
-compose one capability or the other, so a runtime dependency cannot acquire
-DDL authority through the same object.
+`postgres.Runtime` owns one bounded read/write pool and creates
+`CatalogStore`, `ChangeStore`, `ExecutionStore`, and `AdaptationStore` views.
+Each view implements only its capability's consumer ports. Opening the runtime
+never changes schema state. `postgres.Migrator` owns a separate single-connection
+privileged pool and can only apply the embedded migration chain. Commands pass
+only their required store views to application services; the `catalog` and
+`select` commands compose both catalog and change views over the same pool.
+Runtime credentials cannot acquire DDL authority through a store view.
 
 [ADR-0004](../decisions/0004-use-postgresql-and-embedded-forward-migrations.md)
 records the database, migration, transaction, identity, and Perfeng-reuse
-decisions. The general migration policy remains
+decisions. [ADR-0020](../decisions/0020-scope-postgresql-runtime-stores-by-capability.md)
+records the scoped runtime-store ownership and preserves one migration chain.
+The general migration policy remains
 [SQL migration criteria](sql-migrations.md).
 [ADR-0005](../decisions/0005-store-immutable-impact-evidence.md) defines the
 append-only evidence, time, confidence, expiry, and conflict semantics.

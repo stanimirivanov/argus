@@ -8,8 +8,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/stanimirivanov/argus/internal/catalog/adapters/postgres"
 	"github.com/stanimirivanov/argus/internal/execution/adapters/cli/evidencecli"
+	"github.com/stanimirivanov/argus/internal/postgres"
 )
 
 func main() {
@@ -17,7 +17,12 @@ func main() {
 	defer stop()
 
 	openRuntime := func(ctx context.Context, databaseURL string) (evidencecli.Runtime, error) {
-		return postgres.OpenStore(ctx, databaseURL)
+		runtime, err := postgres.OpenRuntime(ctx, databaseURL)
+		if err != nil {
+			return nil, err
+		}
+
+		return &executionRuntime{ExecutionStore: runtime.Execution(), runtime: runtime}, nil
 	}
 	if err := evidencecli.Run(
 		ctx,
@@ -31,3 +36,10 @@ func main() {
 		os.Exit(1)
 	}
 }
+
+type executionRuntime struct {
+	*postgres.ExecutionStore
+	runtime *postgres.Runtime
+}
+
+func (runtime *executionRuntime) Close() { runtime.runtime.Close() }

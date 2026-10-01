@@ -14,13 +14,13 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/stanimirivanov/argus/internal/catalog/adapters/postgres"
 	githubadapter "github.com/stanimirivanov/argus/internal/change/adapters/github"
 	"github.com/stanimirivanov/argus/internal/change/adapters/httpapi"
 	openapiadapter "github.com/stanimirivanov/argus/internal/change/adapters/openapi"
 	changeimpact "github.com/stanimirivanov/argus/internal/change/impact"
 	"github.com/stanimirivanov/argus/internal/change/ingest"
 	"github.com/stanimirivanov/argus/internal/change/workflow"
+	"github.com/stanimirivanov/argus/internal/postgres"
 )
 
 const (
@@ -52,8 +52,8 @@ func realMain() int {
 }
 
 type application struct {
-	server *http.Server
-	store  *postgres.Store
+	server  *http.Server
+	runtime *postgres.Runtime
 }
 
 func newApplication(ctx context.Context, getenv func(string) string) (*application, error) {
@@ -72,12 +72,13 @@ func newApplication(ctx context.Context, getenv func(string) string) (*applicati
 	if err != nil {
 		return nil, err
 	}
-	store, err := postgres.OpenStore(ctx, config.databaseURL)
+	runtime, err := postgres.OpenRuntime(ctx, config.databaseURL)
 	if err != nil {
 		return nil, err
 	}
-	ingestionService := ingest.NewService(store, githubClient)
-	impactService := changeimpact.NewService(store, openapiadapter.NewAnalyzer(githubClient))
+	changeStore := runtime.Change()
+	ingestionService := ingest.NewService(changeStore, githubClient)
+	impactService := changeimpact.NewService(changeStore, openapiadapter.NewAnalyzer(githubClient))
 	service := workflow.NewService(ingestionService, impactService)
 	server := &http.Server{
 		Addr:              config.address,
@@ -88,11 +89,11 @@ func newApplication(ctx context.Context, getenv func(string) string) (*applicati
 		IdleTimeout:       60 * time.Second,
 	}
 
-	return &application{server: server, store: store}, nil
+	return &application{server: server, runtime: runtime}, nil
 }
 
 func (application *application) Close() {
-	application.store.Close()
+	application.runtime.Close()
 }
 
 type server interface {

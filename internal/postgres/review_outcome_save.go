@@ -12,7 +12,7 @@ import (
 // SaveReviewOutcome atomically persists one immutable terminal review outcome
 // and its complete reviewer edits. Exact semantic retries return false;
 // divergent reuse of a review identity returns adaptation.ErrOutcomeConflict.
-func (store *Store) SaveReviewOutcome(
+func (store *AdaptationStore) SaveReviewOutcome(
 	ctx context.Context,
 	reviewOutcome adaptation.ReviewOutcome,
 ) (bool, error) {
@@ -24,7 +24,7 @@ func (store *Store) SaveReviewOutcome(
 	if err != nil {
 		return false, err
 	}
-	tx, operationContext, cancel, err := store.beginWrite(ctx)
+	tx, operationContext, cancel, err := store.runtime.beginWrite(ctx)
 	if err != nil {
 		return false, classifyAdaptationDatabaseError(err)
 	}

@@ -31,7 +31,7 @@ func TestValidationRejectionFingerprintIsCanonical(t *testing.T) {
 func loadValidationRejectionFixture(t *testing.T) adaptation.ValidationRejectionEvidence {
 	t.Helper()
 	data, err := os.ReadFile(filepath.Join(
-		"..", "..", "..", "..", "contracts", "fixtures", "validation-rejection", "v1", "valid",
+		"..", "..", "contracts", "fixtures", "validation-rejection", "v1", "valid",
 		"candidate-failed.json",
 	))
 	if err != nil {

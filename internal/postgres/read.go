@@ -11,11 +11,11 @@ import (
 // GetSnapshot reconstructs one immutable catalog snapshot in deterministic key
 // order. Missing and invalid keys both return catalog.ErrNotFound without
 // disclosing other catalog identities.
-func (store *Store) GetSnapshot(ctx context.Context, key catalog.SnapshotKey) (catalog.Snapshot, error) {
+func (store *CatalogStore) GetSnapshot(ctx context.Context, key catalog.SnapshotKey) (catalog.Snapshot, error) {
 	operationContext, cancel := context.WithTimeout(ctx, operationTimeout)
 	defer cancel()
 
-	tx, err := store.pool.BeginTx(operationContext, pgx.TxOptions{
+	tx, err := store.runtime.pool.BeginTx(operationContext, pgx.TxOptions{
 		IsoLevel:   pgx.RepeatableRead,
 		AccessMode: pgx.ReadOnly,
 	})

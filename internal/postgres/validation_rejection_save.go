@@ -12,7 +12,7 @@ import (
 // SaveValidationRejection atomically stores one immutable policy rejection and
 // its completed run prefix. Exact retries return false; divergent reuse of a
 // validation identity is rejected.
-func (store *Store) SaveValidationRejection(
+func (store *AdaptationStore) SaveValidationRejection(
 	ctx context.Context,
 	evidence adaptation.ValidationRejectionEvidence,
 ) (bool, error) {
@@ -24,7 +24,7 @@ func (store *Store) SaveValidationRejection(
 	if err != nil {
 		return false, err
 	}
-	tx, operationContext, cancel, err := store.beginWrite(ctx)
+	tx, operationContext, cancel, err := store.runtime.beginWrite(ctx)
 	if err != nil {
 		return false, classifyAdaptationDatabaseError(err)
 	}

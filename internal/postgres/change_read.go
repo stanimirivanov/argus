@@ -12,7 +12,7 @@ import (
 
 // FindDelivery reconstructs the immutable result for an already claimed
 // provider delivery using one repeatable-read snapshot.
-func (store *Store) FindDelivery(
+func (store *ChangeStore) FindDelivery(
 	ctx context.Context,
 	provider catalog.Provider,
 	deliveryID string,
@@ -20,7 +20,7 @@ func (store *Store) FindDelivery(
 	operationContext, cancel := context.WithTimeout(ctx, operationTimeout)
 	defer cancel()
 
-	tx, err := store.pool.BeginTx(operationContext, pgx.TxOptions{
+	tx, err := store.runtime.pool.BeginTx(operationContext, pgx.TxOptions{
 		IsoLevel:   pgx.RepeatableRead,
 		AccessMode: pgx.ReadOnly,
 	})

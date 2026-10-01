@@ -14,7 +14,7 @@ import (
 // SaveImpactEvidence atomically persists one immutable evidence bundle. It
 // returns false for an exact retry and catalog.ErrConflict when the same bundle
 // identity is already bound to different canonical content.
-func (store *Store) SaveImpactEvidence(
+func (store *CatalogStore) SaveImpactEvidence(
 	ctx context.Context,
 	bundle impact.EvidenceBundle,
 ) (bool, error) {
@@ -27,7 +27,7 @@ func (store *Store) SaveImpactEvidence(
 		return false, fmt.Errorf("fingerprint impact evidence: %w", err)
 	}
 
-	tx, operationContext, cancel, err := store.beginWrite(ctx)
+	tx, operationContext, cancel, err := store.runtime.beginWrite(ctx)
 	if err != nil {
 		return false, err
 	}

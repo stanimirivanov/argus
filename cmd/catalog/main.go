@@ -9,7 +9,7 @@ import (
 	"syscall"
 
 	"github.com/stanimirivanov/argus/internal/catalog/adapters/cli/catalogcli"
-	"github.com/stanimirivanov/argus/internal/catalog/adapters/postgres"
+	"github.com/stanimirivanov/argus/internal/postgres"
 )
 
 const databaseURLEnvironment = "ARGUS_DATABASE_URL"
@@ -19,7 +19,12 @@ func main() {
 	defer stop()
 
 	openRuntime := func(ctx context.Context, databaseURL string) (catalogcli.Runtime, error) {
-		return postgres.OpenStore(ctx, databaseURL)
+		runtime, err := postgres.OpenRuntime(ctx, databaseURL)
+		if err != nil {
+			return nil, err
+		}
+
+		return &catalogRuntime{CatalogStore: runtime.Catalog(), ChangeStore: runtime.Change(), runtime: runtime}, nil
 	}
 	if err := catalogcli.Run(
 		ctx,
@@ -32,3 +37,11 @@ func main() {
 		os.Exit(1)
 	}
 }
+
+type catalogRuntime struct {
+	*postgres.CatalogStore
+	*postgres.ChangeStore
+	runtime *postgres.Runtime
+}
+
+func (runtime *catalogRuntime) Close() { runtime.runtime.Close() }
