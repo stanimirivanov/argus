@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/stanimirivanov/argus/contracts"
+	"github.com/stanimirivanov/argus/internal/contracts"
 )
 
 func TestAdaptationReviewRoundTrip(t *testing.T) {

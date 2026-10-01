@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/stanimirivanov/argus/contracts"
 	"github.com/stanimirivanov/argus/internal/catalog"
 	"github.com/stanimirivanov/argus/internal/catalog/adapters/contract/descriptor"
+	"github.com/stanimirivanov/argus/internal/contracts"
 )
 
 const testSHA1 = "0123456789abcdef0123456789abcdef01234567"

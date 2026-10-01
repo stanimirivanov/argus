@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stanimirivanov/argus/contracts"
+	"github.com/stanimirivanov/argus/internal/contracts"
 )
 
 func TestRunValidatesArguments(t *testing.T) {

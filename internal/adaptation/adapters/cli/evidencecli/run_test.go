@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stanimirivanov/argus/contracts"
 	"github.com/stanimirivanov/argus/internal/adaptation"
 	adaptationcontract "github.com/stanimirivanov/argus/internal/adaptation/adapters/contract"
 	"github.com/stanimirivanov/argus/internal/catalog"
+	"github.com/stanimirivanov/argus/internal/contracts"
 )
 
 func TestRunIngestValidatesBeforeOpeningAndReportsCreation(t *testing.T) {

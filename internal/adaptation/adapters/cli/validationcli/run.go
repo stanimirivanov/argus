@@ -11,10 +11,10 @@ import (
 	"os"
 	"time"
 
-	"github.com/stanimirivanov/argus/contracts"
 	"github.com/stanimirivanov/argus/internal/adaptation"
 	adaptationcontract "github.com/stanimirivanov/argus/internal/adaptation/adapters/contract"
 	"github.com/stanimirivanov/argus/internal/adaptation/validation"
+	"github.com/stanimirivanov/argus/internal/contracts"
 )
 
 const (

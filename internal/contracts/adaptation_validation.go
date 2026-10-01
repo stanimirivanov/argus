@@ -1,7 +1,6 @@
 package contracts
 
 import (
-	_ "embed"
 	"encoding/json"
 	"fmt"
 	"sync"
@@ -20,17 +19,13 @@ const (
 	ValidationRejectionV1APIVersion = "argus.dev/validation-rejection/v1"
 )
 
-//go:embed generated/functional-api-repair-validation-request/v1/functional-api-repair-validation-request.schema.json
-var functionalAPIRepairValidationRequestV1SchemaJSON []byte
+var functionalAPIRepairValidationRequestV1SchemaJSON = mustReadSchema("functional-api-repair-validation-request/v1/functional-api-repair-validation-request.schema.json")
 
-//go:embed generated/functional-api-repair-validation-result/v1/functional-api-repair-validation-result.schema.json
-var functionalAPIRepairValidationResultV1SchemaJSON []byte
+var functionalAPIRepairValidationResultV1SchemaJSON = mustReadSchema("functional-api-repair-validation-result/v1/functional-api-repair-validation-result.schema.json")
 
-//go:embed generated/validation-evidence/v1/validation-evidence.schema.json
-var validationEvidenceV1SchemaJSON []byte
+var validationEvidenceV1SchemaJSON = mustReadSchema("validation-evidence/v1/validation-evidence.schema.json")
 
-//go:embed generated/validation-rejection/v1/validation-rejection.schema.json
-var validationRejectionV1SchemaJSON []byte
+var validationRejectionV1SchemaJSON = mustReadSchema("validation-rejection/v1/validation-rejection.schema.json")
 
 var loadFunctionalAPIRepairValidationRequestV1Schema = sync.OnceValues(func() (*jsonschema.Schema, error) {
 	return compileEmbeddedSchema(

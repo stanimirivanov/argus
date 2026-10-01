@@ -1,7 +1,6 @@
 package contracts
 
 import (
-	_ "embed"
 	"encoding/json"
 	"fmt"
 	"sync"
@@ -12,8 +11,7 @@ import (
 // AdaptationReviewV1APIVersion identifies the first review-publication contract.
 const AdaptationReviewV1APIVersion = "argus.dev/adaptation-review/v1"
 
-//go:embed generated/adaptation-review/v1/adaptation-review.schema.json
-var adaptationReviewV1SchemaJSON []byte
+var adaptationReviewV1SchemaJSON = mustReadSchema("adaptation-review/v1/adaptation-review.schema.json")
 
 var loadAdaptationReviewV1Schema = sync.OnceValues(func() (*jsonschema.Schema, error) {
 	return compileEmbeddedSchema(

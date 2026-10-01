@@ -3,8 +3,8 @@ package catalogcli
 import (
 	"time"
 
-	"github.com/stanimirivanov/argus/contracts"
 	"github.com/stanimirivanov/argus/internal/catalog/impact"
+	"github.com/stanimirivanov/argus/internal/contracts"
 )
 
 func newImpactEdgePageOutput(page impact.EdgePage) contracts.ImpactEdgePageV1 {

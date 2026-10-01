@@ -1,7 +1,6 @@
 package contracts
 
 import (
-	_ "embed"
 	"encoding/json"
 	"fmt"
 	"sync"
@@ -16,8 +15,7 @@ const (
 	testCatalogPageV1SchemaID   = "https://argus.dev/contracts/test-catalog-page/v1/schema.json"
 )
 
-//go:embed generated/test-catalog-page/v1/test-catalog-page.schema.json
-var testCatalogPageV1SchemaJSON []byte
+var testCatalogPageV1SchemaJSON = mustReadSchema("test-catalog-page/v1/test-catalog-page.schema.json")
 
 var loadTestCatalogPageV1Schema = sync.OnceValues(func() (*jsonschema.Schema, error) {
 	return compileEmbeddedSchema(

@@ -11,8 +11,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/stanimirivanov/argus/contracts"
 	"github.com/stanimirivanov/argus/internal/catalog"
+	"github.com/stanimirivanov/argus/internal/contracts"
 	"github.com/stanimirivanov/argus/internal/execution"
 	executioncontract "github.com/stanimirivanov/argus/internal/execution/adapters/contract"
 	"github.com/stanimirivanov/argus/internal/execution/functionalapi"

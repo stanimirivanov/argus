@@ -1,7 +1,6 @@
 package contracts
 
 import (
-	_ "embed"
 	"sync"
 
 	"github.com/santhosh-tekuri/jsonschema/v6"
@@ -13,8 +12,7 @@ const (
 	selectionShadowReportV1SchemaID   = "https://argus.dev/contracts/selection-shadow-report/v1/schema.json"
 )
 
-//go:embed generated/selection-shadow-report/v1/selection-shadow-report.schema.json
-var selectionShadowReportV1SchemaJSON []byte
+var selectionShadowReportV1SchemaJSON = mustReadSchema("selection-shadow-report/v1/selection-shadow-report.schema.json")
 
 var loadSelectionShadowReportV1Schema = sync.OnceValues(func() (*jsonschema.Schema, error) {
 	return compileEmbeddedSchema(

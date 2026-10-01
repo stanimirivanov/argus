@@ -81,6 +81,7 @@ var productionPackagePolicy = map[string]packagePolicy{
 	modulePath + "/internal/catalog/adapters/cli/descriptorcli":           {adapterLayer, catalogCapability},
 	modulePath + "/internal/catalog/adapters/contract/descriptor":         {adapterLayer, catalogCapability},
 	modulePath + "/internal/catalog/adapters/contract/evidence":           {adapterLayer, catalogCapability},
+	modulePath + "/internal/contracts":                                    {adapterLayer, productCapability},
 	modulePath + "/internal/postgres":                                     {adapterLayer, productCapability},
 	modulePath + "/internal/change":                                       {domainLayer, changeCapability},
 	modulePath + "/internal/change/impact":                                {applicationLayer, changeCapability},
@@ -141,6 +142,7 @@ var adapterPolicy = map[string]adapterKind{
 	modulePath + "/internal/catalog/adapters/cli/descriptorcli":           drivingAdapter,
 	modulePath + "/internal/catalog/adapters/contract/descriptor":         contractAdapter,
 	modulePath + "/internal/catalog/adapters/contract/evidence":           contractAdapter,
+	modulePath + "/internal/contracts":                                    contractAdapter,
 	modulePath + "/internal/postgres":                                     drivenAdapter,
 	modulePath + "/internal/change/adapters/contract":                     contractAdapter,
 	modulePath + "/internal/change/adapters/github":                       drivenAdapter,
@@ -480,6 +482,12 @@ func architectureRepositoryRoot(t *testing.T) string {
 }
 
 func validateImport(sourcePath string, source packagePolicy, importedPath string) error {
+	if importedPath == modulePath+"/internal/contracts" {
+		if !generatedContractImporters[sourcePath] {
+			return fmt.Errorf("%s outward contract dependency violation: %s (%s/%s) imports %s but is not an approved generated-contract importer; keep wire DTO conversion in an explicitly allowlisted contract, CLI, or process-protocol boundary", adrReference, sourcePath, source.capability, source.layer, importedPath)
+		}
+		return nil
+	}
 	if target, ok := productionPackagePolicy[importedPath]; ok {
 		return validateInternalDependency(sourcePath, source, importedPath, target)
 	}
@@ -487,8 +495,8 @@ func validateImport(sourcePath string, source packagePolicy, importedPath string
 		return fmt.Errorf("%s imported package classification violation: %s imports unclassified production package %s; classify the target and then follow the allowed dependency matrix required by %s", adrReference, sourcePath, importedPath, adrReference)
 	}
 	if isGeneratedContractImport(importedPath) {
-		if !generatedContractImporters[sourcePath] {
-			return fmt.Errorf("%s outward contract dependency violation: %s (%s/%s) imports %s but is not an approved generated-contract importer; keep wire DTO conversion in an explicitly allowlisted contract, CLI, or process-protocol boundary and pass validated domain values through application-owned ports", adrReference, sourcePath, source.capability, source.layer, importedPath)
+		if sourcePath != modulePath+"/internal/contracts" {
+			return fmt.Errorf("%s outward contract dependency violation: %s (%s/%s) imports %s but only the internal Go binding may read the portable schema assets", adrReference, sourcePath, source.capability, source.layer, importedPath)
 		}
 
 		return nil
@@ -561,7 +569,7 @@ func isGeneratedContractImport(importPath string) bool {
 
 func importsGeneratedContracts(imports map[string]struct{}) bool {
 	for importPath := range imports {
-		if isGeneratedContractImport(importPath) {
+		if importPath == modulePath+"/internal/contracts" {
 			return true
 		}
 	}
@@ -689,7 +697,7 @@ func TestArchitecturePolicyRejectsOutwardAndUnclassifiedDependencies(t *testing.
 		{
 			name:         "application generated contract",
 			source:       packagePolicy{applicationLayer, executionCapability},
-			importedPath: modulePath + "/contracts/execution",
+			importedPath: modulePath + "/internal/contracts",
 			want:         "outward contract dependency violation",
 		},
 		{
@@ -738,10 +746,41 @@ func TestGeneratedContractsRequireExplicitImporter(t *testing.T) {
 	err := validateImport(
 		sourcePath,
 		productionPackagePolicy[sourcePath],
-		modulePath+"/contracts/catalog",
+		modulePath+"/internal/contracts",
 	)
 	if err == nil || !strings.Contains(err.Error(), "outward contract dependency violation") || !strings.Contains(err.Error(), "not an approved generated-contract importer") {
 		t.Fatalf("validateImport() error = %v, want explicit generated-contract importer rejection", err)
+	}
+}
+
+func TestPortableSchemaAssetsAreOnlyImportedByInternalBinding(t *testing.T) {
+	t.Parallel()
+
+	sourcePath := modulePath + "/internal/adaptation/adapters/contract"
+	err := validateImport(sourcePath, productionPackagePolicy[sourcePath], modulePath+"/contracts")
+	if err == nil || !strings.Contains(err.Error(), "only the internal Go binding") {
+		t.Fatalf("validateImport() error = %v, want portable schema asset boundary rejection", err)
+	}
+	if err := validateImport(modulePath+"/internal/contracts", productionPackagePolicy[modulePath+"/internal/contracts"], modulePath+"/contracts"); err != nil {
+		t.Fatalf("internal Go binding may import schema assets: %v", err)
+	}
+}
+
+func TestPortableContractGoSurfaceStaysAssetOnly(t *testing.T) {
+	t.Parallel()
+
+	files, err := filepath.Glob(filepath.Join(architectureRepositoryRoot(t), "contracts", "*.go"))
+	if err != nil {
+		t.Fatalf("list root Go contract files: %v", err)
+	}
+	for _, file := range files {
+		name := filepath.Base(file)
+		if strings.HasSuffix(name, "_test.go") {
+			continue
+		}
+		if name != "assets.go" {
+			t.Errorf("root contracts Go package unexpectedly contains %s; keep DTOs under internal/contracts", name)
+		}
 	}
 }
 

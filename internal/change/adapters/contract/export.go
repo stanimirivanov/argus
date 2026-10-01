@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/stanimirivanov/argus/contracts"
 	"github.com/stanimirivanov/argus/internal/change"
+	"github.com/stanimirivanov/argus/internal/contracts"
 )
 
 // ExportV1 converts a validated change set to the Effect-authored v1 contract.

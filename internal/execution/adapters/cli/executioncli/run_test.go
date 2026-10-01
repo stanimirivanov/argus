@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stanimirivanov/argus/contracts"
+	"github.com/stanimirivanov/argus/internal/contracts"
 	"github.com/stanimirivanov/argus/internal/execution"
 	"github.com/stanimirivanov/argus/internal/execution/functionalapi"
 )

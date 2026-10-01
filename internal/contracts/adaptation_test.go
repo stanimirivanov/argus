@@ -8,7 +8,7 @@ import (
 func TestAdaptationProposalFixtureConformsToGeneratedSchema(t *testing.T) {
 	t.Parallel()
 
-	data, err := os.ReadFile("fixtures/adaptation-proposal/v1/valid/endpoint-rename.json")
+	data, err := os.ReadFile(fixturePath("fixtures/adaptation-proposal/v1/valid/endpoint-rename.json"))
 	if err != nil {
 		t.Fatalf("read proposal fixture: %v", err)
 	}
@@ -24,7 +24,7 @@ func TestAdaptationProposalFixtureConformsToGeneratedSchema(t *testing.T) {
 func TestAdaptationResultSchemaRejectsAssertionEdit(t *testing.T) {
 	t.Parallel()
 
-	data, err := os.ReadFile("fixtures/functional-api-adaptation-result/v1/invalid/assertion-edit.json")
+	data, err := os.ReadFile(fixturePath("fixtures/functional-api-adaptation-result/v1/invalid/assertion-edit.json"))
 	if err != nil {
 		t.Fatalf("read invalid result fixture: %v", err)
 	}

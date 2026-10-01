@@ -1,7 +1,6 @@
 package contracts
 
 import (
-	_ "embed"
 	"encoding/json"
 	"fmt"
 	"sync"
@@ -18,14 +17,11 @@ const (
 	AdaptationProposalV1APIVersion = "argus.dev/adaptation-proposal/v1"
 )
 
-//go:embed generated/functional-api-adaptation-request/v1/functional-api-adaptation-request.schema.json
-var functionalAPIAdaptationRequestV1SchemaJSON []byte
+var functionalAPIAdaptationRequestV1SchemaJSON = mustReadSchema("functional-api-adaptation-request/v1/functional-api-adaptation-request.schema.json")
 
-//go:embed generated/functional-api-adaptation-result/v1/functional-api-adaptation-result.schema.json
-var functionalAPIAdaptationResultV1SchemaJSON []byte
+var functionalAPIAdaptationResultV1SchemaJSON = mustReadSchema("functional-api-adaptation-result/v1/functional-api-adaptation-result.schema.json")
 
-//go:embed generated/adaptation-proposal/v1/adaptation-proposal.schema.json
-var adaptationProposalV1SchemaJSON []byte
+var adaptationProposalV1SchemaJSON = mustReadSchema("adaptation-proposal/v1/adaptation-proposal.schema.json")
 
 var loadFunctionalAPIAdaptationRequestV1Schema = sync.OnceValues(func() (*jsonschema.Schema, error) {
 	return compileEmbeddedSchema(

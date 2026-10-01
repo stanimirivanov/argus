@@ -3,7 +3,7 @@ package contract
 import (
 	"fmt"
 
-	"github.com/stanimirivanov/argus/contracts"
+	"github.com/stanimirivanov/argus/internal/contracts"
 	"github.com/stanimirivanov/argus/internal/execution/shadow"
 )
 
