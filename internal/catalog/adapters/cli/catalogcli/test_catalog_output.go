@@ -1,9 +1,9 @@
 package catalogcli
 
 import (
-	"github.com/stanimirivanov/argus/contracts"
 	"github.com/stanimirivanov/argus/internal/catalog"
 	"github.com/stanimirivanov/argus/internal/catalog/testquery"
+	"github.com/stanimirivanov/argus/internal/contracts"
 )
 
 func newTestCatalogPageOutput(page testquery.TestCatalogPage) contracts.TestCatalogPageV1 {

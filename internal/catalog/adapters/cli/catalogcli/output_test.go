@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stanimirivanov/argus/contracts"
 	"github.com/stanimirivanov/argus/internal/catalog"
 	"github.com/stanimirivanov/argus/internal/catalog/impact"
 	"github.com/stanimirivanov/argus/internal/catalog/testquery"
+	"github.com/stanimirivanov/argus/internal/contracts"
 )
 
 func TestSnapshotOutputPreservesPublicJSONShape(t *testing.T) {

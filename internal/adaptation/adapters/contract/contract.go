@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/stanimirivanov/argus/contracts"
 	"github.com/stanimirivanov/argus/internal/adaptation"
 	"github.com/stanimirivanov/argus/internal/catalog"
 	"github.com/stanimirivanov/argus/internal/change"
+	"github.com/stanimirivanov/argus/internal/contracts"
 )
 
 // ExportRequestV1 converts a validated domain request to adapter JSON.

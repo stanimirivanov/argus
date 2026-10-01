@@ -11,7 +11,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/stanimirivanov/argus/contracts"
+	"github.com/stanimirivanov/argus/internal/contracts"
 	executioncontract "github.com/stanimirivanov/argus/internal/execution/adapters/contract"
 	"github.com/stanimirivanov/argus/internal/execution/attempts"
 	"github.com/stanimirivanov/argus/internal/execution/shadow"

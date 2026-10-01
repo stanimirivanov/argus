@@ -9,8 +9,8 @@ import (
 	"path"
 	"strings"
 
-	"github.com/stanimirivanov/argus/contracts"
 	"github.com/stanimirivanov/argus/internal/catalog"
+	"github.com/stanimirivanov/argus/internal/contracts"
 )
 
 // ValidationError identifies a semantic violation at a repository-descriptor

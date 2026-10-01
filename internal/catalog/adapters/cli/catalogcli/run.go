@@ -13,7 +13,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/stanimirivanov/argus/contracts"
 	"github.com/stanimirivanov/argus/internal/catalog"
 	"github.com/stanimirivanov/argus/internal/catalog/adapters/contract/descriptor"
 	"github.com/stanimirivanov/argus/internal/catalog/adapters/contract/evidence"
@@ -22,6 +21,7 @@ import (
 	"github.com/stanimirivanov/argus/internal/catalog/testquery"
 	changecontract "github.com/stanimirivanov/argus/internal/change/adapters/contract"
 	changeimpact "github.com/stanimirivanov/argus/internal/change/impact"
+	"github.com/stanimirivanov/argus/internal/contracts"
 )
 
 const (

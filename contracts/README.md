@@ -5,6 +5,8 @@
 - Effect Schema v3 is the authoritative contract source.
 - Generated JSON Schema Draft 2020-12 is the portable validation and generator
   input; do not edit it by hand.
+- Go wire DTOs and validators are product-internal, not a public Go SDK;
+  binaries embed the same checked-in portable schemas.
 - The first real contract is a repository descriptor ingested by the Go catalog
   at a separately verified immutable revision.
 - The test-catalog page contract exposes stable test identities and capability
@@ -100,18 +102,8 @@ actually fetched.
 | `fixtures/selection-plan-shadow-report/v1/` | Complete-plan aggregate shadow-report fixtures. |
 | `fixtures/review-outcome/v1/` | Terminal review-outcome compatibility fixtures. |
 | `fixtures/validation-rejection/v1/` | Trustworthy unsuccessful-validation compatibility fixtures. |
-| `repository_descriptor.go` | Go schema-validation boundary and transport DTO. |
-| `test_catalog_page.go` | Go test-catalog transport DTO and generated-schema validation boundary. |
-| `impact_evidence_bundle.go` | Go evidence-bundle transport and schema-validation boundary. |
-| `impact_edge_page.go` | Go evaluated impact-edge transport and schema-validation boundary. |
-| `change_set.go` | Go change-set transport and generated-schema validation boundary. |
-| `capability_impact.go` | Go capability-impact transport and generated-schema validation boundary. |
-| `execution_manifest.go` | Go execution-manifest transport and generated-schema validation boundary. |
-| `functional_api_execution.go` | Go adapter-protocol and execution-attempt DTO and validation boundary. |
-| `functional_api_execution_plan.go` | Go execution-binding and plan DTO and generated-schema validation boundary. |
-| `selection_shadow_report.go` | Go shadow-report DTO and generated-schema validation boundary. |
-| `selection_plan_shadow_report.go` | Go complete-plan binding/report DTO and generated-schema validation boundary. |
-| `review_outcome.go` | Go terminal review-outcome DTO and generated-schema validation boundary. |
+| `assets.go` | Embeds the portable generated JSON Schemas for deployed Go binaries; exposes no DTOs. |
+| `../internal/contracts/` | Product-internal Go wire DTOs, schema validators, and tests against the shared fixture corpus. |
 | `../internal/catalog/adapters/contract/descriptor/` | Repository-descriptor-to-domain conversion and semantic validation. |
 | `../internal/catalog/` | Catalog domain vocabulary, use cases, errors, and persistence port. |
 | `../internal/change/` | Provider-neutral change invariants and ingestion use case. |

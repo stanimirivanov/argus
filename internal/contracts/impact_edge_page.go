@@ -1,7 +1,6 @@
 package contracts
 
 import (
-	_ "embed"
 	"encoding/json"
 	"fmt"
 	"sync"
@@ -16,8 +15,7 @@ const (
 	impactEdgePageV1SchemaID   = "https://argus.dev/contracts/impact-edge-page/v1/schema.json"
 )
 
-//go:embed generated/impact-edge-page/v1/impact-edge-page.schema.json
-var impactEdgePageV1SchemaJSON []byte
+var impactEdgePageV1SchemaJSON = mustReadSchema("impact-edge-page/v1/impact-edge-page.schema.json")
 
 var loadImpactEdgePageV1Schema = sync.OnceValues(func() (*jsonschema.Schema, error) {
 	return compileEmbeddedSchema(

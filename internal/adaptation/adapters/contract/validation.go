@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/stanimirivanov/argus/contracts"
 	"github.com/stanimirivanov/argus/internal/adaptation"
+	"github.com/stanimirivanov/argus/internal/contracts"
 )
 
 // ExportValidationRequestV1 converts a validated phase request to adapter JSON.

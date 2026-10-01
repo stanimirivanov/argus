@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/stanimirivanov/argus/contracts"
 	"github.com/stanimirivanov/argus/internal/adaptation"
+	"github.com/stanimirivanov/argus/internal/contracts"
 )
 
 // ExportReviewV1 converts a provider-confirmed review to its public contract.

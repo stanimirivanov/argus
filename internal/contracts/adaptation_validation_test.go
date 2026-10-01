@@ -8,7 +8,7 @@ import (
 func TestValidationEvidenceFixtureConformsToGeneratedSchema(t *testing.T) {
 	t.Parallel()
 
-	data, err := os.ReadFile("fixtures/validation-evidence/v1/valid/endpoint-rename.json")
+	data, err := os.ReadFile(fixturePath("fixtures/validation-evidence/v1/valid/endpoint-rename.json"))
 	if err != nil {
 		t.Fatalf("read validation evidence fixture: %v", err)
 	}
@@ -24,7 +24,7 @@ func TestValidationEvidenceFixtureConformsToGeneratedSchema(t *testing.T) {
 func TestValidationResultSchemaRejectsUnknownPhase(t *testing.T) {
 	t.Parallel()
 
-	data, err := os.ReadFile("fixtures/functional-api-repair-validation-result/v1/invalid/unknown-phase.json")
+	data, err := os.ReadFile(fixturePath("fixtures/functional-api-repair-validation-result/v1/invalid/unknown-phase.json"))
 	if err != nil {
 		t.Fatalf("read invalid validation result: %v", err)
 	}
@@ -36,7 +36,7 @@ func TestValidationResultSchemaRejectsUnknownPhase(t *testing.T) {
 func TestValidationRejectionFixtureConformsToGeneratedSchema(t *testing.T) {
 	t.Parallel()
 
-	data, err := os.ReadFile("fixtures/validation-rejection/v1/valid/candidate-failed.json")
+	data, err := os.ReadFile(fixturePath("fixtures/validation-rejection/v1/valid/candidate-failed.json"))
 	if err != nil {
 		t.Fatalf("read validation rejection fixture: %v", err)
 	}

@@ -10,7 +10,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/stanimirivanov/argus/contracts"
+	"github.com/stanimirivanov/argus/internal/contracts"
 	executioncontract "github.com/stanimirivanov/argus/internal/execution/adapters/contract"
 	"github.com/stanimirivanov/argus/internal/execution/planning"
 	selectioncontract "github.com/stanimirivanov/argus/internal/selection/adapters/contract"

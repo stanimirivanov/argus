@@ -14,11 +14,11 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/stanimirivanov/argus/contracts"
 	"github.com/stanimirivanov/argus/internal/catalog"
 	"github.com/stanimirivanov/argus/internal/catalog/adapters/contract/descriptor"
 	"github.com/stanimirivanov/argus/internal/catalog/impact"
 	"github.com/stanimirivanov/argus/internal/catalog/testquery"
+	"github.com/stanimirivanov/argus/internal/contracts"
 )
 
 func TestSnapshotRoundTripRetryConflictAndRestart(t *testing.T) {

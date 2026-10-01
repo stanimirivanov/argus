@@ -1,7 +1,6 @@
 package contracts
 
 import (
-	_ "embed"
 	"encoding/json"
 	"fmt"
 	"sync"
@@ -16,11 +15,9 @@ const (
 	SelectionPlanShadowReportV1APIVersion = "argus.dev/selection-plan-shadow-report/v1"
 )
 
-//go:embed generated/execution-plan-attempt-bindings/v1/execution-plan-attempt-bindings.schema.json
-var executionPlanAttemptBindingsV1SchemaJSON []byte
+var executionPlanAttemptBindingsV1SchemaJSON = mustReadSchema("execution-plan-attempt-bindings/v1/execution-plan-attempt-bindings.schema.json")
 
-//go:embed generated/selection-plan-shadow-report/v1/selection-plan-shadow-report.schema.json
-var selectionPlanShadowReportV1SchemaJSON []byte
+var selectionPlanShadowReportV1SchemaJSON = mustReadSchema("selection-plan-shadow-report/v1/selection-plan-shadow-report.schema.json")
 
 var loadExecutionPlanAttemptBindingsV1Schema = sync.OnceValues(func() (*jsonschema.Schema, error) {
 	return compileEmbeddedSchema(

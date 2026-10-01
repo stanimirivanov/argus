@@ -11,13 +11,13 @@ import (
 	"os"
 	"time"
 
-	"github.com/stanimirivanov/argus/contracts"
 	"github.com/stanimirivanov/argus/internal/adaptation"
 	adaptationcontract "github.com/stanimirivanov/argus/internal/adaptation/adapters/contract"
 	"github.com/stanimirivanov/argus/internal/adaptation/functionalapi"
 	"github.com/stanimirivanov/argus/internal/catalog"
 	"github.com/stanimirivanov/argus/internal/change"
 	changecontract "github.com/stanimirivanov/argus/internal/change/adapters/contract"
+	"github.com/stanimirivanov/argus/internal/contracts"
 	"github.com/stanimirivanov/argus/internal/selection"
 	selectioncontract "github.com/stanimirivanov/argus/internal/selection/adapters/contract"
 )

@@ -7,7 +7,7 @@ import (
 
 func TestAdaptationReviewFixtureConformsToGeneratedSchema(t *testing.T) {
 	t.Parallel()
-	data, err := os.ReadFile("fixtures/adaptation-review/v1/valid/draft-endpoint-repair.json")
+	data, err := os.ReadFile(fixturePath("fixtures/adaptation-review/v1/valid/draft-endpoint-repair.json"))
 	if err != nil {
 		t.Fatalf("read adaptation review fixture: %v", err)
 	}
@@ -22,7 +22,7 @@ func TestAdaptationReviewFixtureConformsToGeneratedSchema(t *testing.T) {
 
 func TestAdaptationReviewSchemaRejectsNonDraftReview(t *testing.T) {
 	t.Parallel()
-	data, err := os.ReadFile("fixtures/adaptation-review/v1/invalid/non-draft.json")
+	data, err := os.ReadFile(fixturePath("fixtures/adaptation-review/v1/invalid/non-draft.json"))
 	if err != nil {
 		t.Fatalf("read invalid adaptation review: %v", err)
 	}

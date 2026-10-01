@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/stanimirivanov/argus/contracts"
 	"github.com/stanimirivanov/argus/internal/catalog"
 	"github.com/stanimirivanov/argus/internal/catalog/impact"
+	"github.com/stanimirivanov/argus/internal/contracts"
 )
 
 // Import converts a structurally validated v1 bundle into a validated catalog

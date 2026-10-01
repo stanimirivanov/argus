@@ -9,9 +9,9 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/stanimirivanov/argus/contracts"
 	"github.com/stanimirivanov/argus/internal/catalog"
 	"github.com/stanimirivanov/argus/internal/catalog/testquery"
+	"github.com/stanimirivanov/argus/internal/contracts"
 	"github.com/stanimirivanov/argus/internal/selection/adapters/catalogreader"
 	selectioncontract "github.com/stanimirivanov/argus/internal/selection/adapters/contract"
 	"github.com/stanimirivanov/argus/internal/selection/adapters/impactreader"

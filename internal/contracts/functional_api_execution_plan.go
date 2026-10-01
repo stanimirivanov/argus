@@ -1,7 +1,6 @@
 package contracts
 
 import (
-	_ "embed"
 	"encoding/json"
 	"fmt"
 	"sync"
@@ -16,11 +15,9 @@ const (
 	FunctionalAPIExecutionPlanV1APIVersion = "argus.dev/functional-api-execution-plan/v1"
 )
 
-//go:embed generated/functional-api-execution-bindings/v1/functional-api-execution-bindings.schema.json
-var functionalAPIExecutionBindingsV1SchemaJSON []byte
+var functionalAPIExecutionBindingsV1SchemaJSON = mustReadSchema("functional-api-execution-bindings/v1/functional-api-execution-bindings.schema.json")
 
-//go:embed generated/functional-api-execution-plan/v1/functional-api-execution-plan.schema.json
-var functionalAPIExecutionPlanV1SchemaJSON []byte
+var functionalAPIExecutionPlanV1SchemaJSON = mustReadSchema("functional-api-execution-plan/v1/functional-api-execution-plan.schema.json")
 
 var loadFunctionalAPIExecutionBindingsV1Schema = sync.OnceValues(func() (*jsonschema.Schema, error) {
 	return compileEmbeddedSchema(

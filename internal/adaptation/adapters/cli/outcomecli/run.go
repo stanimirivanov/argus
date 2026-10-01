@@ -12,10 +12,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/stanimirivanov/argus/contracts"
 	"github.com/stanimirivanov/argus/internal/adaptation"
 	adaptationcontract "github.com/stanimirivanov/argus/internal/adaptation/adapters/contract"
 	"github.com/stanimirivanov/argus/internal/adaptation/outcome"
+	"github.com/stanimirivanov/argus/internal/contracts"
 )
 
 const (

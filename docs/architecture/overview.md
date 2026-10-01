@@ -37,6 +37,9 @@
 - [ADR-0007](../decisions/0007-ingest-github-changes-as-bounded-immutable-evidence.md)
   binds signed GitHub deliveries to immutable, bounded, durably idempotent
   change evidence.
+- [ADR-0021](../decisions/0021-keep-go-contract-dtos-product-internal.md)
+  confines hand-written Go wire DTOs to the product while preserving portable
+  Effect and JSON Schema contracts.
 - Queues and deployment topology remain deferred to ADRs and evidence from
   vertical slices.
 
@@ -162,6 +165,8 @@ topology:
 | `internal/catalog/testquery` | Bounded test query service, keyset cursor policy, and its reader port | JSON output, SQL, or impact policy |
 | `internal/catalog/impact` | Immutable evidence ingestion, edge query and temporal/conflict policy, cursors, and consumer-owned ports | Generated DTOs, SQL, or selection thresholds |
 | `internal/catalog/adapters/contract/*` | Conversion from versioned generated transports and transport-specific semantic errors | Persistence or application orchestration |
+| `internal/contracts` | Product-internal Go wire DTOs and schema validation using embedded portable artifacts | Domain policy, persistence, or a supported Go SDK surface |
+| `contracts` | Authoritative Effect sources, portable generated JSON Schemas, fixtures, and a narrow Go schema-asset accessor | Public Go DTOs or domain models |
 | `internal/catalog/adapters/cli/*` | Catalog and descriptor CLI parsing, local file input, application invocation, and versioned JSON output | Concrete infrastructure selection, SQL, or domain policy |
 | `internal/postgres` | One bounded runtime pool, capability-scoped catalog/change/execution/adaptation stores, private fingerprints and error translation, and explicit migrations | Public wire formats, application policy, or a runtime object that implements every capability port |
 | `cmd/catalog` | Process lifecycle, environment configuration, and concrete adapter composition | Argument policy, output mapping, cursor policy, or direct SQL orchestration |
@@ -174,6 +179,14 @@ bounded pool and the separately opened `Migrator` owns schema administration.
 Domain structs intentionally have no
 JSON tags: the descriptor DTO, command output DTO, and persisted fingerprint
 are distinct compatibility boundaries and evolve independently.
+
+Go transport DTOs are confined to `internal/contracts`; only explicitly
+authorized CLI, process-protocol, and contract-conversion adapters import them.
+The root `contracts` package embeds the checked-in JSON Schemas so compiled Go
+binaries retain offline validation. Portable schema paths and wire versions are
+unchanged; the former root Go DTO import path is not a supported SDK and is
+removed. [ADR-0021](../decisions/0021-keep-go-contract-dtos-product-internal.md)
+records this ownership and migration boundary.
 
 `catalog.RepositoryIdentity.Valid`, `catalog.Repository.Valid`, and
 `catalog.Revision.Valid` define the shared normalized identity checks consumed

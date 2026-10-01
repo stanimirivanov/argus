@@ -6,13 +6,13 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/stanimirivanov/argus/contracts"
+	"github.com/stanimirivanov/argus/internal/contracts"
 )
 
 func TestImpactEvidenceBundleSchemaCorpus(t *testing.T) {
 	t.Parallel()
 
-	manifestData, err := os.ReadFile("fixtures/impact-evidence-bundle/v1/manifest.json")
+	manifestData, err := os.ReadFile(fixturePath("fixtures/impact-evidence-bundle/v1/manifest.json"))
 	if err != nil {
 		t.Fatalf("read impact evidence manifest: %v", err)
 	}
@@ -26,7 +26,7 @@ func TestImpactEvidenceBundleSchemaCorpus(t *testing.T) {
 		t.Run(filepath.ToSlash(fixture.Path), func(t *testing.T) {
 			t.Parallel()
 
-			data, err := os.ReadFile(fixture.Path)
+			data, err := os.ReadFile(fixturePath(fixture.Path))
 			if err != nil {
 				t.Fatalf("read fixture: %v", err)
 			}
@@ -47,7 +47,7 @@ func TestImpactEvidenceBundleSchemaCorpus(t *testing.T) {
 func TestImpactEdgePageSchemaCorpus(t *testing.T) {
 	t.Parallel()
 
-	manifestData, err := os.ReadFile("fixtures/impact-edge-page/v1/manifest.json")
+	manifestData, err := os.ReadFile(fixturePath("fixtures/impact-edge-page/v1/manifest.json"))
 	if err != nil {
 		t.Fatalf("read impact edge manifest: %v", err)
 	}
@@ -61,7 +61,7 @@ func TestImpactEdgePageSchemaCorpus(t *testing.T) {
 		t.Run(filepath.ToSlash(fixture.Path), func(t *testing.T) {
 			t.Parallel()
 
-			data, err := os.ReadFile(fixture.Path)
+			data, err := os.ReadFile(fixturePath(fixture.Path))
 			if err != nil {
 				t.Fatalf("read fixture: %v", err)
 			}

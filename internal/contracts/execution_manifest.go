@@ -1,7 +1,6 @@
 package contracts
 
 import (
-	_ "embed"
 	"encoding/json"
 	"fmt"
 	"sync"
@@ -15,8 +14,7 @@ const (
 	executionManifestV1SchemaID   = "https://argus.dev/contracts/execution-manifest/v1/schema.json"
 )
 
-//go:embed generated/execution-manifest/v1/execution-manifest.schema.json
-var executionManifestV1SchemaJSON []byte
+var executionManifestV1SchemaJSON = mustReadSchema("execution-manifest/v1/execution-manifest.schema.json")
 
 var loadExecutionManifestV1Schema = sync.OnceValues(func() (*jsonschema.Schema, error) {
 	return compileEmbeddedSchema(executionManifestV1SchemaJSON, executionManifestV1SchemaID, "execution manifest")

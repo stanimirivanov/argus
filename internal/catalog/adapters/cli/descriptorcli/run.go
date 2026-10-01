@@ -10,9 +10,9 @@ import (
 	"io"
 	"os"
 
-	"github.com/stanimirivanov/argus/contracts"
 	"github.com/stanimirivanov/argus/internal/catalog"
 	"github.com/stanimirivanov/argus/internal/catalog/adapters/contract/descriptor"
+	"github.com/stanimirivanov/argus/internal/contracts"
 )
 
 const usageText = "usage: descriptor -revision <digest> [-algorithm git-sha1] <descriptor.json>"

@@ -12,10 +12,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/stanimirivanov/argus/contracts"
 	adaptationcontract "github.com/stanimirivanov/argus/internal/adaptation/adapters/contract"
 	"github.com/stanimirivanov/argus/internal/adaptation/outcome"
 	"github.com/stanimirivanov/argus/internal/adaptation/validation"
+	"github.com/stanimirivanov/argus/internal/contracts"
 )
 
 const maxEvidenceDocumentBytes = 16 << 20

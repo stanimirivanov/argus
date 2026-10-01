@@ -1,7 +1,6 @@
 package contracts
 
 import (
-	_ "embed"
 	"encoding/json"
 	"fmt"
 	"sync"
@@ -12,8 +11,7 @@ import (
 // ReviewOutcomeV1APIVersion identifies terminal structured review evidence.
 const ReviewOutcomeV1APIVersion = "argus.dev/review-outcome/v1"
 
-//go:embed generated/review-outcome/v1/review-outcome.schema.json
-var reviewOutcomeV1SchemaJSON []byte
+var reviewOutcomeV1SchemaJSON = mustReadSchema("review-outcome/v1/review-outcome.schema.json")
 
 var loadReviewOutcomeV1Schema = sync.OnceValues(func() (*jsonschema.Schema, error) {
 	return compileEmbeddedSchema(

@@ -1,9 +1,9 @@
-// Package contracts validates external Argus contract documents and exposes
-// transport representations for conversion at application boundaries.
+// Package contracts validates external Argus documents against embedded
+// portable schemas and provides product-internal wire representations for
+// conversion at adapter boundaries. It is not a supported Go SDK.
 package contracts
 
 import (
-	_ "embed"
 	"encoding/json"
 	"fmt"
 	"sync"
@@ -18,8 +18,7 @@ const (
 	repositoryDescriptorV1SchemaID   = "https://argus.dev/contracts/repository-descriptor/v1/schema.json"
 )
 
-//go:embed generated/repository-descriptor/v1/repository-descriptor.schema.json
-var repositoryDescriptorV1SchemaJSON []byte
+var repositoryDescriptorV1SchemaJSON = mustReadSchema("repository-descriptor/v1/repository-descriptor.schema.json")
 
 var loadRepositoryDescriptorV1Schema = sync.OnceValues(func() (*jsonschema.Schema, error) {
 	return compileEmbeddedSchema(
