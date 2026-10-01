@@ -8,12 +8,13 @@ import (
 	"github.com/stanimirivanov/argus/contracts"
 	"github.com/stanimirivanov/argus/internal/catalog"
 	"github.com/stanimirivanov/argus/internal/execution"
+	"github.com/stanimirivanov/argus/internal/execution/functionalapi"
 )
 
 // ExportRequestV1 converts validated execution input to the adapter protocol.
-func ExportRequestV1(request execution.Request) (contracts.FunctionalAPIAdapterRequestV1, error) {
-	request = execution.CanonicalRequest(request)
-	if err := execution.ValidateRequest(request); err != nil {
+func ExportRequestV1(request functionalapi.Request) (contracts.FunctionalAPIAdapterRequestV1, error) {
+	request = functionalapi.CanonicalRequest(request)
+	if err := functionalapi.ValidateRequest(request); err != nil {
 		return contracts.FunctionalAPIAdapterRequestV1{}, err
 	}
 	tests := make([]contracts.RequestedFunctionalAPITest, 0, len(request.Tests))
@@ -38,19 +39,19 @@ func ExportRequestV1(request execution.Request) (contracts.FunctionalAPIAdapterR
 }
 
 // ImportResultV1 converts structurally valid, untrusted adapter output.
-func ImportResultV1(document contracts.FunctionalAPIAdapterResultV1) (execution.AdapterResult, error) {
+func ImportResultV1(document contracts.FunctionalAPIAdapterResultV1) (functionalapi.AdapterResult, error) {
 	if err := contracts.ValidateFunctionalAPIAdapterResultV1(document); err != nil {
-		return execution.AdapterResult{}, err
+		return functionalapi.AdapterResult{}, err
 	}
 	startedAt, err := time.Parse(time.RFC3339Nano, document.StartedAt)
 	if err != nil {
-		return execution.AdapterResult{}, fmt.Errorf("parse adapter start time: %w", err)
+		return functionalapi.AdapterResult{}, fmt.Errorf("parse adapter start time: %w", err)
 	}
 	completedAt, err := time.Parse(time.RFC3339Nano, document.CompletedAt)
 	if err != nil {
-		return execution.AdapterResult{}, fmt.Errorf("parse adapter completion time: %w", err)
+		return functionalapi.AdapterResult{}, fmt.Errorf("parse adapter completion time: %w", err)
 	}
-	result := execution.AdapterResult{
+	result := functionalapi.AdapterResult{
 		APIVersion: document.APIVersion, AttemptID: document.AttemptID,
 		AdapterID: document.Adapter.ID, AdapterVersion: document.Adapter.Version,
 		StartedAt: startedAt, CompletedAt: completedAt,
@@ -65,9 +66,9 @@ func ImportResultV1(document contracts.FunctionalAPIAdapterResultV1) (execution.
 			Key: artifact.Key, Kind: artifact.Kind, URI: artifact.URI, SHA256: artifact.SHA256,
 		})
 	}
-	result = execution.CanonicalAdapterResult(result)
-	if err := execution.ValidateAdapterResult(result); err != nil {
-		return execution.AdapterResult{}, fmt.Errorf("validate adapter result semantics: %w", err)
+	result = functionalapi.CanonicalAdapterResult(result)
+	if err := functionalapi.ValidateAdapterResult(result); err != nil {
+		return functionalapi.AdapterResult{}, fmt.Errorf("validate adapter result semantics: %w", err)
 	}
 
 	return result, nil

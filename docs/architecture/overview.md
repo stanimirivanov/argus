@@ -272,8 +272,8 @@ protocol:
 
 | Path | Owns | Must not own |
 |:--|:--|:--|
-| `internal/execution` | Attempt vocabulary, result semantics, bounds, canonical order, and evidence invariants | Process execution, JSON, CI configuration, or persistence |
-| `internal/execution/functionalapi` | Stage planning, adapter port, exact request/result correlation, and attempt assembly | Framework commands, generated contracts, or artifact upload |
+| `internal/execution` | Framework-neutral attempt vocabulary, result semantics, bounds, canonical order, and evidence invariants | Functional-API adapter request/result types, process execution, JSON, CI configuration, or persistence |
+| `internal/execution/functionalapi` | Functional-API adapter request/result vocabulary and validation, stage planning, adapter port, exact correlation, and attempt assembly | Framework commands, generated contracts, or artifact upload |
 | `internal/execution/planning` | Deterministic repository/adapter grouping, exact reviewed binding coverage, and flat selected/full-suite job planning | Contracts, process execution, SQL, CI syntax, commands, or credentials |
 | `internal/execution/attempts` | Validated immutable-attempt ingestion use case and consumer-owned persistence port | SQL, JSON, or artifact upload |
 | `internal/execution/shadow` | Explicit pair and complete-plan compatibility checks, aggregate duration/failure recall, and miss classification including full-only groups | Attempt lookup SQL, implicit latest selection, report persistence, or release policy |
@@ -292,6 +292,14 @@ adapter executable. Every attempt names an immutable test revision and the
 SHA-256 of the canonical manifest. The adapter cannot add tests, omit requested
 results, or declare its own aggregate outcome. Non-passing normalized evidence
 is emitted before the reference command fails the CI step.
+
+The functional-API process request and untrusted adapter result are owned by
+`execution/functionalapi`; the normalized stage, manifest reference, test
+outcomes, artifacts, and attempts remain shared. Another test family can define
+its own adapter protocol without adding family switches or protocol versions
+to the shared attempt model. This is a Go ownership change only: the v1 JSON
+contracts and persisted attempt representation retain their existing bytes and
+meaning.
 
 Attempt IDs are global immutable idempotency keys. The PostgreSQL adapter
 stores normalized child evidence atomically and distinguishes exact retries

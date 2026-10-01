@@ -11,6 +11,7 @@ import (
 	"github.com/stanimirivanov/argus/contracts"
 	"github.com/stanimirivanov/argus/internal/execution"
 	executioncontract "github.com/stanimirivanov/argus/internal/execution/adapters/contract"
+	"github.com/stanimirivanov/argus/internal/execution/functionalapi"
 	"github.com/stanimirivanov/argus/internal/processprotocol"
 )
 
@@ -40,28 +41,28 @@ func New(command []string, stderr io.Writer) (*Adapter, error) {
 // adapter-result JSON document on stdout.
 func (adapter *Adapter) Execute(
 	ctx context.Context,
-	request execution.Request,
-) (execution.AdapterResult, error) {
+	request functionalapi.Request,
+) (functionalapi.AdapterResult, error) {
 	if adapter == nil || len(adapter.command) == 0 {
-		return execution.AdapterResult{}, execution.ErrInvalid
+		return functionalapi.AdapterResult{}, execution.ErrInvalid
 	}
 	document, err := executioncontract.ExportRequestV1(request)
 	if err != nil {
-		return execution.AdapterResult{}, err
+		return functionalapi.AdapterResult{}, err
 	}
 	input, err := json.Marshal(document)
 	if err != nil {
-		return execution.AdapterResult{}, fmt.Errorf("encode adapter request: %w", err)
+		return functionalapi.AdapterResult{}, fmt.Errorf("encode adapter request: %w", err)
 	}
 	output, err := processprotocol.Run(ctx, processprotocol.Options{
 		Command: adapter.command, Input: input, Stderr: adapter.stderr, Timeout: maxAdapterRuntime,
 	})
 	if err != nil {
-		return execution.AdapterResult{}, err
+		return functionalapi.AdapterResult{}, err
 	}
 	resultDocument, err := contracts.DecodeFunctionalAPIAdapterResultV1(output)
 	if err != nil {
-		return execution.AdapterResult{}, fmt.Errorf("decode adapter result: %w", err)
+		return functionalapi.AdapterResult{}, fmt.Errorf("decode adapter result: %w", err)
 	}
 
 	return executioncontract.ImportResultV1(resultDocument)
