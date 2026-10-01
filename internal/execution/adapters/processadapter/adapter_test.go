@@ -11,6 +11,7 @@ import (
 	"github.com/stanimirivanov/argus/contracts"
 	"github.com/stanimirivanov/argus/internal/catalog"
 	"github.com/stanimirivanov/argus/internal/execution"
+	"github.com/stanimirivanov/argus/internal/execution/functionalapi"
 )
 
 const helperEnvironment = "ARGUS_PROCESS_ADAPTER_TEST_HELPER"
@@ -21,8 +22,8 @@ func TestAdapterExchangesValidatedProtocolDocuments(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create process adapter: %v", err)
 	}
-	request := execution.Request{
-		APIVersion: execution.FunctionalAPIAdapterRequestAPIVersion,
+	request := functionalapi.Request{
+		APIVersion: functionalapi.AdapterRequestAPIVersion,
 		AttemptID:  "attempt-42",
 		Manifest: execution.ManifestReference{
 			APIVersion: "argus.dev/execution-manifest/v1",
@@ -39,7 +40,7 @@ func TestAdapterExchangesValidatedProtocolDocuments(t *testing.T) {
 			Algorithm: catalog.RevisionGitSHA1, Digest: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
 		},
 		Adapter: "playwright",
-		Tests:   []execution.Test{{SuiteKey: "orders-api", TestKey: "create-order", Name: "Create order"}},
+		Tests:   []functionalapi.Test{{SuiteKey: "orders-api", TestKey: "create-order", Name: "Create order"}},
 	}
 	result, err := adapter.Execute(context.Background(), request)
 	if err != nil {

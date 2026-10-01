@@ -16,10 +16,6 @@ import (
 )
 
 const (
-	// FunctionalAPIAdapterRequestAPIVersion identifies adapter input v1.
-	FunctionalAPIAdapterRequestAPIVersion = "argus.dev/functional-api-adapter-request/v1"
-	// FunctionalAPIAdapterResultAPIVersion identifies untrusted adapter output v1.
-	FunctionalAPIAdapterResultAPIVersion = "argus.dev/functional-api-adapter-result/v1"
 	// AttemptAPIVersion identifies normalized execution-attempt evidence v1.
 	AttemptAPIVersion = "argus.dev/execution-attempt/v1"
 	// MaxAttemptTests bounds one adapter process and its normalized evidence.
@@ -90,30 +86,6 @@ type ManifestReference struct {
 	SHA256     string
 }
 
-// Test identifies one requested functional API test.
-type Test struct {
-	SuiteKey string
-	TestKey  string
-	Name     string
-}
-
-// Identity returns the stable suite-scoped test identity.
-func (test Test) Identity(repository catalog.RepositoryIdentity) catalog.TestIdentity {
-	return catalog.TestIdentity{TestRepository: repository, SuiteKey: test.SuiteKey, TestKey: test.TestKey}
-}
-
-// Request is the exact input passed to one functional API adapter process.
-type Request struct {
-	APIVersion     string
-	AttemptID      string
-	Manifest       ManifestReference
-	Stage          Stage
-	TestRepository catalog.Repository
-	TestRevision   catalog.Revision
-	Adapter        string
-	Tests          []Test
-}
-
 // Failure is bounded, normalized diagnostic metadata rather than raw output.
 type Failure struct {
 	Code    string
@@ -142,18 +114,6 @@ type ArtifactReference struct {
 	SHA256 string
 }
 
-// AdapterResult is untrusted output returned by a functional API adapter.
-type AdapterResult struct {
-	APIVersion     string
-	AttemptID      string
-	AdapterID      string
-	AdapterVersion string
-	StartedAt      time.Time
-	CompletedAt    time.Time
-	Results        []TestResult
-	Artifacts      []ArtifactReference
-}
-
 // Attempt is normalized evidence correlated with one exact request.
 type Attempt struct {
 	APIVersion     string
@@ -171,84 +131,34 @@ type Attempt struct {
 	Artifacts      []ArtifactReference
 }
 
-// CanonicalRequest deep-copies and orders requested tests.
-func CanonicalRequest(request Request) Request {
-	canonical := request
-	canonical.Tests = append([]Test{}, request.Tests...)
-	slices.SortFunc(canonical.Tests, compareTests)
-
-	return canonical
-}
-
-// CanonicalAdapterResult deep-copies and orders result and artifact sets.
-func CanonicalAdapterResult(result AdapterResult) AdapterResult {
-	canonical := result
-	canonical.StartedAt = result.StartedAt.UTC()
-	canonical.CompletedAt = result.CompletedAt.UTC()
-	canonical.Results = append([]TestResult{}, result.Results...)
-	for index, item := range canonical.Results {
+// CanonicalEvidence deep-copies and orders normalized results and artifacts.
+// It does not validate them; producers and persistence boundaries must validate
+// the complete evidence envelope separately.
+func CanonicalEvidence(results []TestResult, artifacts []ArtifactReference) ([]TestResult, []ArtifactReference) {
+	canonicalResults := append([]TestResult{}, results...)
+	for index, item := range canonicalResults {
 		if item.Failure != nil {
 			failure := *item.Failure
-			canonical.Results[index].Failure = &failure
+			canonicalResults[index].Failure = &failure
 		}
 	}
-	slices.SortFunc(canonical.Results, compareResults)
-	canonical.Artifacts = append([]ArtifactReference{}, result.Artifacts...)
-	slices.SortFunc(canonical.Artifacts, func(left, right ArtifactReference) int {
+	slices.SortFunc(canonicalResults, compareResults)
+	canonicalArtifacts := append([]ArtifactReference{}, artifacts...)
+	slices.SortFunc(canonicalArtifacts, func(left, right ArtifactReference) int {
 		return cmp.Compare(left.Key, right.Key)
 	})
 
-	return canonical
+	return canonicalResults, canonicalArtifacts
 }
 
 // CanonicalAttempt deep-copies and orders normalized attempt evidence.
 func CanonicalAttempt(attempt Attempt) Attempt {
 	canonical := attempt
-	result := CanonicalAdapterResult(AdapterResult{
-		APIVersion: FunctionalAPIAdapterResultAPIVersion, AttemptID: attempt.AttemptID,
-		AdapterID: attempt.AdapterID, AdapterVersion: attempt.AdapterVersion,
-		StartedAt: attempt.StartedAt, CompletedAt: attempt.CompletedAt,
-		Results: attempt.Results, Artifacts: attempt.Artifacts,
-	})
-	canonical.StartedAt = result.StartedAt
-	canonical.CompletedAt = result.CompletedAt
-	canonical.Results = result.Results
-	canonical.Artifacts = result.Artifacts
+	canonical.StartedAt = attempt.StartedAt.UTC()
+	canonical.CompletedAt = attempt.CompletedAt.UTC()
+	canonical.Results, canonical.Artifacts = CanonicalEvidence(attempt.Results, attempt.Artifacts)
 
 	return canonical
-}
-
-// ValidateRequest rejects ambiguous, unbounded, or mutable execution input.
-func ValidateRequest(request Request) error {
-	if request.APIVersion != FunctionalAPIAdapterRequestAPIVersion ||
-		ValidateAttemptID(request.AttemptID) != nil ||
-		(request.Stage != StageSelected && request.Stage != StageFullSuite) ||
-		!catalog.IsLocalKey(request.Adapter) || len(request.Tests) == 0 ||
-		len(request.Tests) > MaxAttemptTests {
-		return fmt.Errorf("%w: request envelope", ErrInvalid)
-	}
-	if err := ValidateManifestReference(request.Manifest); err != nil {
-		return err
-	}
-	if err := validateRepository(request.TestRepository); err != nil {
-		return err
-	}
-	if err := validateRevision(request.TestRevision); err != nil {
-		return err
-	}
-	identities := make(map[catalog.TestIdentity]struct{}, len(request.Tests))
-	for _, test := range request.Tests {
-		identity := test.Identity(request.TestRepository.Identity)
-		if !identity.Valid() || strings.TrimSpace(test.Name) == "" || len(test.Name) > 255 {
-			return fmt.Errorf("%w: requested test", ErrInvalid)
-		}
-		if _, exists := identities[identity]; exists {
-			return fmt.Errorf("%w: duplicate requested test", ErrInvalid)
-		}
-		identities[identity] = struct{}{}
-	}
-
-	return nil
 }
 
 // ValidateAttemptID verifies a stable external attempt identity without
@@ -272,25 +182,22 @@ func ValidateManifestReference(reference ManifestReference) error {
 	return nil
 }
 
-// ValidateAdapterResult verifies structural evidence before request correlation.
-func ValidateAdapterResult(result AdapterResult) error {
-	if result.APIVersion != FunctionalAPIAdapterResultAPIVersion ||
-		ValidateAttemptID(result.AttemptID) != nil || !catalog.IsLocalKey(result.AdapterID) ||
-		strings.TrimSpace(result.AdapterVersion) == "" || len(result.AdapterVersion) > 127 ||
-		len(result.Results) == 0 || len(result.Results) > MaxAttemptTests ||
-		len(result.Artifacts) > MaxAttemptArtifacts {
-		return fmt.Errorf("%w: adapter result envelope", ErrInvalid)
+// ValidateResultEvidence checks the common bounded, immutable result and
+// artifact rules shared by normalized attempts and framework adapters.
+func ValidateResultEvidence(startedAt, completedAt time.Time, results []TestResult, artifacts []ArtifactReference) error {
+	if len(results) == 0 || len(results) > MaxAttemptTests || len(artifacts) > MaxAttemptArtifacts {
+		return fmt.Errorf("%w: result envelope", ErrInvalid)
 	}
-	if !isUTC(result.StartedAt) || !isUTC(result.CompletedAt) || result.StartedAt.IsZero() ||
-		result.CompletedAt.Before(result.StartedAt) || hasSubMicrosecondPrecision(result.StartedAt) ||
-		hasSubMicrosecondPrecision(result.CompletedAt) {
-		return fmt.Errorf("%w: adapter result timestamps", ErrInvalid)
+	if !isUTC(startedAt) || !isUTC(completedAt) || startedAt.IsZero() ||
+		completedAt.Before(startedAt) || hasSubMicrosecondPrecision(startedAt) ||
+		hasSubMicrosecondPrecision(completedAt) {
+		return fmt.Errorf("%w: result timestamps", ErrInvalid)
 	}
-	if err := validateResults(result.Results); err != nil {
+	if err := validateResults(results); err != nil {
 		return err
 	}
 
-	return validateArtifacts(result.Artifacts)
+	return validateArtifacts(artifacts)
 }
 
 // ValidateAttempt verifies normalized evidence independently of an adapter.
@@ -298,22 +205,22 @@ func ValidateAttempt(attempt Attempt) error {
 	if attempt.APIVersion != AttemptAPIVersion {
 		return fmt.Errorf("%w: attempt version", ErrInvalid)
 	}
-	request := Request{
-		APIVersion: FunctionalAPIAdapterRequestAPIVersion, AttemptID: attempt.AttemptID,
-		Manifest: attempt.Manifest, Stage: attempt.Stage,
-		TestRepository: attempt.TestRepository, TestRevision: attempt.TestRevision,
-		Adapter: attempt.AdapterID, Tests: testsFromResults(attempt.Results),
+	if ValidateAttemptID(attempt.AttemptID) != nil ||
+		(attempt.Stage != StageSelected && attempt.Stage != StageFullSuite) ||
+		!catalog.IsLocalKey(attempt.AdapterID) || strings.TrimSpace(attempt.AdapterVersion) == "" ||
+		len(attempt.AdapterVersion) > 127 {
+		return fmt.Errorf("%w: attempt envelope", ErrInvalid)
 	}
-	if err := ValidateRequest(request); err != nil {
+	if err := ValidateManifestReference(attempt.Manifest); err != nil {
 		return err
 	}
-	result := AdapterResult{
-		APIVersion: FunctionalAPIAdapterResultAPIVersion, AttemptID: attempt.AttemptID,
-		AdapterID: attempt.AdapterID, AdapterVersion: attempt.AdapterVersion,
-		StartedAt: attempt.StartedAt, CompletedAt: attempt.CompletedAt,
-		Results: attempt.Results, Artifacts: attempt.Artifacts,
+	if err := ValidateTestRepository(attempt.TestRepository); err != nil {
+		return err
 	}
-	if err := ValidateAdapterResult(result); err != nil {
+	if err := ValidateTestRevision(attempt.TestRevision); err != nil {
+		return err
+	}
+	if err := ValidateResultEvidence(attempt.StartedAt, attempt.CompletedAt, attempt.Results, attempt.Artifacts); err != nil {
 		return err
 	}
 	if attempt.Outcome != DeriveAttemptOutcome(attempt.Results) {
@@ -363,15 +270,6 @@ func validateResults(results []TestResult) error {
 	return nil
 }
 
-func testsFromResults(results []TestResult) []Test {
-	tests := make([]Test, 0, len(results))
-	for _, result := range results {
-		tests = append(tests, Test{SuiteKey: result.SuiteKey, TestKey: result.TestKey, Name: result.TestKey})
-	}
-
-	return tests
-}
-
 func validateResultFailure(result TestResult) error {
 	switch result.Outcome {
 	case TestPassed, TestSkipped:
@@ -408,7 +306,9 @@ func validateArtifacts(artifacts []ArtifactReference) error {
 	return nil
 }
 
-func validateRepository(repository catalog.Repository) error {
+// ValidateTestRepository verifies the stable identity and display coordinates
+// carried by execution evidence independently of its adapter family.
+func ValidateTestRepository(repository catalog.Repository) error {
 	identity := catalog.TestIdentity{
 		TestRepository: repository.Identity, SuiteKey: "valid", TestKey: "valid",
 	}
@@ -420,21 +320,14 @@ func validateRepository(repository catalog.Repository) error {
 	return nil
 }
 
-func validateRevision(revision catalog.Revision) error {
+// ValidateTestRevision verifies the immutable revision of the test checkout.
+func ValidateTestRevision(revision catalog.Revision) error {
 	normalized, err := catalog.NewRevision(revision.Algorithm, revision.Digest)
 	if err != nil || normalized != revision {
 		return fmt.Errorf("%w: test revision", ErrInvalid)
 	}
 
 	return nil
-}
-
-func compareTests(left, right Test) int {
-	if compared := cmp.Compare(left.SuiteKey, right.SuiteKey); compared != 0 {
-		return compared
-	}
-
-	return cmp.Compare(left.TestKey, right.TestKey)
 }
 
 func compareResults(left, right TestResult) int {

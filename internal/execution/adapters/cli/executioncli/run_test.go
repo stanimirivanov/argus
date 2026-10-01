@@ -97,8 +97,8 @@ type successfulAdapter struct{}
 
 func (successfulAdapter) Execute(
 	_ context.Context,
-	request execution.Request,
-) (execution.AdapterResult, error) {
+	request functionalapi.Request,
+) (functionalapi.AdapterResult, error) {
 	return outcomeAdapter{outcome: execution.TestPassed}.Execute(context.Background(), request)
 }
 
@@ -108,8 +108,8 @@ type outcomeAdapter struct {
 
 func (adapter outcomeAdapter) Execute(
 	_ context.Context,
-	request execution.Request,
-) (execution.AdapterResult, error) {
+	request functionalapi.Request,
+) (functionalapi.AdapterResult, error) {
 	results := make([]execution.TestResult, 0, len(request.Tests))
 	for _, test := range request.Tests {
 		result := execution.TestResult{
@@ -122,8 +122,8 @@ func (adapter outcomeAdapter) Execute(
 		results = append(results, result)
 	}
 
-	return execution.AdapterResult{
-		APIVersion: execution.FunctionalAPIAdapterResultAPIVersion,
+	return functionalapi.AdapterResult{
+		APIVersion: functionalapi.AdapterResultAPIVersion,
 		AttemptID:  request.AttemptID, AdapterID: request.Adapter, AdapterVersion: "test-v1",
 		StartedAt:   time.Date(2026, 9, 19, 10, 0, 0, 0, time.UTC),
 		CompletedAt: time.Date(2026, 9, 19, 10, 0, 1, 0, time.UTC),

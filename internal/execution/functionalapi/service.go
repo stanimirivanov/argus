@@ -12,7 +12,7 @@ import (
 
 // Adapter executes an exact request and returns normalized, untrusted output.
 type Adapter interface {
-	Execute(context.Context, execution.Request) (execution.AdapterResult, error)
+	Execute(context.Context, Request) (AdapterResult, error)
 }
 
 // Options identifies one explicit repository/adapter execution group.
@@ -57,7 +57,7 @@ func (service *Service) Execute(
 	if err != nil {
 		return execution.Attempt{}, fmt.Errorf("%w: %w", execution.ErrUnavailable, err)
 	}
-	result = execution.CanonicalAdapterResult(result)
+	result = CanonicalAdapterResult(result)
 	if err := correlate(request, result); err != nil {
 		return execution.Attempt{}, err
 	}
@@ -65,9 +65,9 @@ func (service *Service) Execute(
 	return buildAttempt(request, result), nil
 }
 
-func buildRequest(manifest selection.Manifest, options Options) (execution.Request, error) {
-	request := execution.Request{
-		APIVersion: execution.FunctionalAPIAdapterRequestAPIVersion,
+func buildRequest(manifest selection.Manifest, options Options) (Request, error) {
+	request := Request{
+		APIVersion: AdapterRequestAPIVersion,
 		AttemptID:  options.AttemptID,
 		Manifest: execution.ManifestReference{
 			APIVersion: manifest.APIVersion, SHA256: options.ManifestSHA256,
@@ -82,15 +82,15 @@ func buildRequest(manifest selection.Manifest, options Options) (execution.Reque
 		if request.TestRepository.Identity == (catalog.RepositoryIdentity{}) {
 			request.TestRepository = decision.Test.Repository
 		} else if request.TestRepository != decision.Test.Repository {
-			return execution.Request{}, fmt.Errorf("%w: conflicting repository coordinates", execution.ErrInvalid)
+			return Request{}, fmt.Errorf("%w: conflicting repository coordinates", execution.ErrInvalid)
 		}
-		request.Tests = append(request.Tests, execution.Test{
+		request.Tests = append(request.Tests, Test{
 			SuiteKey: decision.Test.SuiteKey, TestKey: decision.Test.TestKey, Name: decision.Test.Name,
 		})
 	}
-	request = execution.CanonicalRequest(request)
-	if err := execution.ValidateRequest(request); err != nil {
-		return execution.Request{}, err
+	request = CanonicalRequest(request)
+	if err := ValidateRequest(request); err != nil {
+		return Request{}, err
 	}
 
 	return request, nil
@@ -101,8 +101,8 @@ func included(decision selection.Decision, stage execution.Stage) bool {
 		(stage == execution.StageSelected && decision.Outcome == selection.OutcomeRunRequired)
 }
 
-func correlate(request execution.Request, result execution.AdapterResult) error {
-	if err := execution.ValidateAdapterResult(result); err != nil {
+func correlate(request Request, result AdapterResult) error {
+	if err := ValidateAdapterResult(result); err != nil {
 		return err
 	}
 	if result.AttemptID != request.AttemptID || result.AdapterID != request.Adapter ||
@@ -127,7 +127,7 @@ func correlate(request execution.Request, result execution.AdapterResult) error 
 	return nil
 }
 
-func buildAttempt(request execution.Request, result execution.AdapterResult) execution.Attempt {
+func buildAttempt(request Request, result AdapterResult) execution.Attempt {
 	return execution.Attempt{
 		APIVersion: execution.AttemptAPIVersion, AttemptID: request.AttemptID,
 		Manifest: request.Manifest, Stage: request.Stage,

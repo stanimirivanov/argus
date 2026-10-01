@@ -14,7 +14,7 @@ import (
 
 func TestExecuteCorrelatesSelectedTestsAndDerivesFailure(t *testing.T) {
 	t.Parallel()
-	adapter := &stubAdapter{respond: func(request execution.Request) execution.AdapterResult {
+	adapter := &stubAdapter{respond: func(request Request) AdapterResult {
 		if len(request.Tests) != 1 || request.Tests[0].TestKey != "create-order-test" {
 			t.Fatalf("adapter request tests = %+v", request.Tests)
 		}
@@ -32,7 +32,7 @@ func TestExecuteCorrelatesSelectedTestsAndDerivesFailure(t *testing.T) {
 
 func TestExecuteFullSuiteIncludesEarlyOmissions(t *testing.T) {
 	t.Parallel()
-	adapter := &stubAdapter{respond: func(request execution.Request) execution.AdapterResult {
+	adapter := &stubAdapter{respond: func(request Request) AdapterResult {
 		if len(request.Tests) != 2 {
 			t.Fatalf("full-suite tests = %+v", request.Tests)
 		}
@@ -48,7 +48,7 @@ func TestExecuteFullSuiteIncludesEarlyOmissions(t *testing.T) {
 
 func TestExecuteRejectsAdapterTestSetExpansion(t *testing.T) {
 	t.Parallel()
-	adapter := &stubAdapter{respond: func(request execution.Request) execution.AdapterResult {
+	adapter := &stubAdapter{respond: func(request Request) AdapterResult {
 		result := validResult(request, execution.TestPassed)
 		result.Results[0].TestKey = "unrequested-test"
 
@@ -61,17 +61,17 @@ func TestExecuteRejectsAdapterTestSetExpansion(t *testing.T) {
 }
 
 type stubAdapter struct {
-	respond func(execution.Request) execution.AdapterResult
+	respond func(Request) AdapterResult
 }
 
 func (adapter *stubAdapter) Execute(
 	_ context.Context,
-	request execution.Request,
-) (execution.AdapterResult, error) {
+	request Request,
+) (AdapterResult, error) {
 	return adapter.respond(request), nil
 }
 
-func validResult(request execution.Request, outcome execution.TestOutcome) execution.AdapterResult {
+func validResult(request Request, outcome execution.TestOutcome) AdapterResult {
 	results := make([]execution.TestResult, 0, len(request.Tests))
 	for _, test := range request.Tests {
 		result := execution.TestResult{
@@ -83,8 +83,8 @@ func validResult(request execution.Request, outcome execution.TestOutcome) execu
 		results = append(results, result)
 	}
 
-	return execution.AdapterResult{
-		APIVersion: execution.FunctionalAPIAdapterResultAPIVersion,
+	return AdapterResult{
+		APIVersion: AdapterResultAPIVersion,
 		AttemptID:  request.AttemptID, AdapterID: request.Adapter, AdapterVersion: "1.2.3",
 		StartedAt:   time.Date(2026, 9, 19, 10, 0, 0, 0, time.UTC),
 		CompletedAt: time.Date(2026, 9, 19, 10, 0, 2, 0, time.UTC), Results: results,
