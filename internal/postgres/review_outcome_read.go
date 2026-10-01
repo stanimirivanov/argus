@@ -11,13 +11,13 @@ import (
 
 // FindReviewOutcome reconstructs one immutable outcome and all reviewer edits
 // from a repeatable-read snapshot.
-func (store *Store) FindReviewOutcome(
+func (store *AdaptationStore) FindReviewOutcome(
 	ctx context.Context,
 	outcomeID string,
 ) (adaptation.ReviewOutcome, error) {
 	operationContext, cancel := context.WithTimeout(ctx, operationTimeout)
 	defer cancel()
-	tx, err := store.pool.BeginTx(operationContext, pgx.TxOptions{
+	tx, err := store.runtime.pool.BeginTx(operationContext, pgx.TxOptions{
 		IsoLevel: pgx.RepeatableRead, AccessMode: pgx.ReadOnly,
 	})
 	if err != nil {

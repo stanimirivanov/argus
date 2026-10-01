@@ -13,14 +13,14 @@ import (
 // SaveSnapshot persists one complete immutable catalog snapshot atomically.
 // It returns false for an exact retry and catalog.ErrConflict when the same
 // snapshot identity is already bound to different normalized content.
-func (store *Store) SaveSnapshot(ctx context.Context, snapshot catalog.Snapshot) (bool, error) {
+func (store *CatalogStore) SaveSnapshot(ctx context.Context, snapshot catalog.Snapshot) (bool, error) {
 	canonical := catalog.CanonicalSnapshot(snapshot)
 	fingerprint, err := snapshotFingerprint(canonical)
 	if err != nil {
 		return false, fmt.Errorf("fingerprint catalog snapshot: %w", err)
 	}
 
-	tx, operationContext, cancel, err := store.beginWrite(ctx)
+	tx, operationContext, cancel, err := store.runtime.beginWrite(ctx)
 	if err != nil {
 		return false, err
 	}

@@ -163,14 +163,15 @@ topology:
 | `internal/catalog/impact` | Immutable evidence ingestion, edge query and temporal/conflict policy, cursors, and consumer-owned ports | Generated DTOs, SQL, or selection thresholds |
 | `internal/catalog/adapters/contract/*` | Conversion from versioned generated transports and transport-specific semantic errors | Persistence or application orchestration |
 | `internal/catalog/adapters/cli/*` | Catalog and descriptor CLI parsing, local file input, application invocation, and versioned JSON output | Concrete infrastructure selection, SQL, or domain policy |
-| `internal/catalog/adapters/postgres` | PostgreSQL transactions, relational mapping, private fingerprint encoding, error classification, and explicit migrations | Public wire formats or application policy another adapter would need |
+| `internal/postgres` | One bounded runtime pool, capability-scoped catalog/change/execution/adaptation stores, private fingerprints and error translation, and explicit migrations | Public wire formats, application policy, or a runtime object that implements every capability port |
 | `cmd/catalog` | Process lifecycle, environment configuration, and concrete adapter composition | Argument policy, output mapping, cursor policy, or direct SQL orchestration |
 | `cmd/descriptor` | Descriptor-command process wiring | Descriptor validation, file parsing, or output mapping |
 | `cmd/migrate` | Explicit composition of the privileged migration capability | Runtime catalog reads or writes |
 
 Runtime catalog code depends on the narrow `snapshot.Store` port. The
-PostgreSQL `Store` implements it, while the separately opened
-`Migrator` owns schema administration. Domain structs intentionally have no
+PostgreSQL `CatalogStore` implements it, while `Runtime` owns the shared
+bounded pool and the separately opened `Migrator` owns schema administration.
+Domain structs intentionally have no
 JSON tags: the descriptor DTO, command output DTO, and persisted fingerprint
 are distinct compatibility boundaries and evolve independently.
 
@@ -200,6 +201,10 @@ selection outside command composition roots.
 defines this modular-monolith structure and the deliberately rejected generic
 layer packages.
 
+[ADR-0020](../decisions/0020-scope-postgresql-runtime-stores-by-capability.md)
+records why PostgreSQL remains one implementation package and schema but no
+longer presents an omnibus runtime store to application services.
+
 ### Current change-impact boundaries
 
 The M04 change-impact slice applies the same hexagonal rule to change evidence:
@@ -214,7 +219,7 @@ The M04 change-impact slice applies the same hexagonal rule to change evidence:
 | `internal/change/adapters/openapi` | Bounded OpenAPI 3 parsing, semantic comparison, operation fingerprints, and explicit capability mapping | Webhook trust, persistence, or test-selection policy |
 | `internal/change/adapters/httpapi` | Bounded webhook HTTP input, provider headers, versioned JSON output, and safe error mapping | Provider resolution, SQL, or domain policy |
 | `internal/change/adapters/contract` | Change-domain to `argus.dev/change-set/v1` conversion | Provider or persistence behavior |
-| `internal/catalog/adapters/postgres` | Atomic delivery and impact claims, typed immutable evidence rows, fingerprints, and reconstruction | Webhook parsing, GitHub calls, or OpenAPI semantics |
+| `internal/postgres` (`ChangeStore`) | Atomic delivery and impact claims, typed immutable evidence rows, fingerprints, and reconstruction | Webhook parsing, GitHub calls, or OpenAPI semantics |
 | `cmd/control-plane` | Secret/configuration loading, concrete adapter composition, HTTP lifecycle, and graceful shutdown | Change policy or SQL orchestration |
 
 The service checks durable delivery identity before calling GitHub. The
@@ -277,7 +282,7 @@ protocol:
 | `internal/execution/adapters/cli/executioncli` | Manifest input, explicit group arguments, timeout, and normalized output | Shell evaluation or concrete adapter construction |
 | `internal/execution/adapters/cli/planningcli` | Bounded manifest/binding input and execution-plan JSON output | Checkout, command mapping, process execution, or persistence |
 | `internal/execution/adapters/cli/evidencecli` | Attempt-document input, explicit comparison IDs, and JSON output through injected ports | PostgreSQL or pairing policy |
-| `internal/catalog/adapters/postgres` | Atomic attempt/result/reference persistence, exact-retry detection, and repeatable-read reconstruction | Shadow comparison policy |
+| `internal/postgres` (`ExecutionStore`) | Atomic attempt/result/reference persistence, exact-retry detection, and repeatable-read reconstruction | Shadow comparison policy |
 | `cmd/run-functional-api` | Process-adapter composition and operating-system streams | Execution or contract policy |
 | `cmd/plan-functional-api` | Framework-free planning command composition | CI-provider APIs or adapter execution |
 | `cmd/execution-evidence` | PostgreSQL composition, lifecycle, and database configuration | Ingestion or comparison policy |
@@ -318,7 +323,7 @@ the control plane framework-specific source knowledge or mutation authority:
 | `internal/adaptation/adapters/cli/reviewcli` | Bounded proposal/evidence input, secret environment configuration, timeout, and review-publication JSON output | Candidate policy, GitHub HTTP, or merge authority |
 | `internal/adaptation/adapters/cli/outcomecli` | Bounded proposal/evidence/publication input, explicit reason capture, secret environment configuration, timeout, and review-outcome JSON output | Provider HTTP, persistence, merge authority, or learning policy |
 | `internal/adaptation/adapters/cli/evidencecli` | Bounded review-outcome ingestion, explicit identity lookup, and versioned JSON output through an injected evidence port | PostgreSQL, provider calls, or learning policy |
-| `internal/catalog/adapters/postgres` | Atomic outcome/edit persistence, one-outcome-per-review conflict detection, and repeatable-read reconstruction | Outcome derivation, provider calls, or learning policy |
+| `internal/postgres` (`AdaptationStore`) | Atomic outcome/edit persistence, one-outcome-per-review conflict detection, and repeatable-read reconstruction | Outcome derivation, provider calls, or learning policy |
 | `cmd/propose-functional-api-repair` | Process-adapter composition and operating-system streams | Adaptation or contract policy |
 | `cmd/validate-functional-api-repair` | Guarded workspace and validation-process composition | Validation, patch, or contract policy |
 | `cmd/open-functional-api-repair-pr` | GitHub review-adapter composition and operating-system streams | Review eligibility, candidate construction, or contract policy |

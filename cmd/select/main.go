@@ -8,7 +8,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/stanimirivanov/argus/internal/catalog/adapters/postgres"
+	"github.com/stanimirivanov/argus/internal/postgres"
 	"github.com/stanimirivanov/argus/internal/selection/adapters/cli/selectioncli"
 )
 
@@ -17,7 +17,12 @@ func main() {
 	defer stop()
 
 	openRuntime := func(ctx context.Context, databaseURL string) (selectioncli.Runtime, error) {
-		return postgres.OpenStore(ctx, databaseURL)
+		runtime, err := postgres.OpenRuntime(ctx, databaseURL)
+		if err != nil {
+			return nil, err
+		}
+
+		return &selectionRuntime{CatalogStore: runtime.Catalog(), ChangeStore: runtime.Change(), runtime: runtime}, nil
 	}
 	if err := selectioncli.Run(
 		ctx,
@@ -30,3 +35,11 @@ func main() {
 		os.Exit(1)
 	}
 }
+
+type selectionRuntime struct {
+	*postgres.CatalogStore
+	*postgres.ChangeStore
+	runtime *postgres.Runtime
+}
+
+func (runtime *selectionRuntime) Close() { runtime.runtime.Close() }

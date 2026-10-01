@@ -42,7 +42,7 @@ func TestReviewOutcomeFingerprintIgnoresObservationRetryTime(t *testing.T) {
 
 func loadReviewOutcomeFixture(t *testing.T) adaptation.ReviewOutcome {
 	t.Helper()
-	data, err := os.ReadFile("../../../../contracts/fixtures/review-outcome/v1/valid/accepted-with-edits.json")
+	data, err := os.ReadFile("../../contracts/fixtures/review-outcome/v1/valid/accepted-with-edits.json")
 	if err != nil {
 		t.Fatalf("read review outcome fixture: %v", err)
 	}

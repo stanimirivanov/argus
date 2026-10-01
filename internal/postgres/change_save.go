@@ -13,7 +13,7 @@ import (
 // SaveDelivery atomically claims one provider delivery and stores its bounded
 // normalized evidence. It returns false for an exact retry and ErrConflict if
 // either the signed body or normalized content differs.
-func (store *Store) SaveDelivery(
+func (store *ChangeStore) SaveDelivery(
 	ctx context.Context,
 	delivery ingest.Delivery,
 	set change.Set,
@@ -30,7 +30,7 @@ func (store *Store) SaveDelivery(
 		return false, change.ErrUnavailable
 	}
 
-	tx, operationContext, cancel, err := store.beginWrite(ctx)
+	tx, operationContext, cancel, err := store.runtime.beginWrite(ctx)
 	if err != nil {
 		return false, classifyChangeDatabaseError(err)
 	}

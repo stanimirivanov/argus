@@ -11,7 +11,7 @@ import (
 // SaveCapabilityImpact stores one immutable assessment and all explainability
 // evidence atomically. Exact retries are no-ops; divergent analyzer output for
 // the same change set is rejected.
-func (store *Store) SaveCapabilityImpact(ctx context.Context, impact change.CapabilityImpact) (bool, error) {
+func (store *ChangeStore) SaveCapabilityImpact(ctx context.Context, impact change.CapabilityImpact) (bool, error) {
 	impact = change.CanonicalCapabilityImpact(impact)
 	if err := change.ValidateCapabilityImpact(impact); err != nil {
 		return false, err
@@ -20,7 +20,7 @@ func (store *Store) SaveCapabilityImpact(ctx context.Context, impact change.Capa
 	if err != nil {
 		return false, change.ErrUnavailable
 	}
-	tx, operationContext, cancel, err := store.beginWrite(ctx)
+	tx, operationContext, cancel, err := store.runtime.beginWrite(ctx)
 	if err != nil {
 		return false, classifyChangeDatabaseError(err)
 	}

@@ -12,7 +12,7 @@ import (
 // SaveExecutionAttempt atomically persists immutable normalized attempt
 // evidence. Exact retries return false; divergent reuse of an attempt ID
 // returns execution.ErrConflict.
-func (store *Store) SaveExecutionAttempt(ctx context.Context, attempt execution.Attempt) (bool, error) {
+func (store *ExecutionStore) SaveExecutionAttempt(ctx context.Context, attempt execution.Attempt) (bool, error) {
 	attempt = execution.CanonicalAttempt(attempt)
 	if err := execution.ValidateAttempt(attempt); err != nil {
 		return false, err
@@ -22,7 +22,7 @@ func (store *Store) SaveExecutionAttempt(ctx context.Context, attempt execution.
 		return false, err
 	}
 
-	tx, operationContext, cancel, err := store.beginWrite(ctx)
+	tx, operationContext, cancel, err := store.runtime.beginWrite(ctx)
 	if err != nil {
 		return false, classifyExecutionDatabaseError(err)
 	}

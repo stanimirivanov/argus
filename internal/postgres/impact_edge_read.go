@@ -17,7 +17,7 @@ type impactEdgeRow struct {
 
 // ListImpactEdges reads raw visible evidence for one deterministic keyset
 // page. Temporal state and conflict policy remain application-owned.
-func (store *Store) ListImpactEdges(
+func (store *CatalogStore) ListImpactEdges(
 	ctx context.Context,
 	request impact.EdgeReadRequest,
 ) (impact.EdgeReadPage, error) {
@@ -27,7 +27,7 @@ func (store *Store) ListImpactEdges(
 
 	operationContext, cancel := context.WithTimeout(ctx, operationTimeout)
 	defer cancel()
-	tx, err := store.pool.BeginTx(operationContext, pgx.TxOptions{
+	tx, err := store.runtime.pool.BeginTx(operationContext, pgx.TxOptions{
 		IsoLevel:   pgx.RepeatableRead,
 		AccessMode: pgx.ReadOnly,
 	})

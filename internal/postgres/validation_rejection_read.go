@@ -12,13 +12,13 @@ import (
 
 // FindValidationRejection reconstructs one immutable rejection and its runs
 // from a repeatable-read snapshot.
-func (store *Store) FindValidationRejection(
+func (store *AdaptationStore) FindValidationRejection(
 	ctx context.Context,
 	validationID string,
 ) (adaptation.ValidationRejectionEvidence, error) {
 	operationContext, cancel := context.WithTimeout(ctx, operationTimeout)
 	defer cancel()
-	tx, err := store.pool.BeginTx(operationContext, pgx.TxOptions{
+	tx, err := store.runtime.pool.BeginTx(operationContext, pgx.TxOptions{
 		IsoLevel: pgx.RepeatableRead, AccessMode: pgx.ReadOnly,
 	})
 	if err != nil {

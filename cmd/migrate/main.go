@@ -10,7 +10,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/stanimirivanov/argus/internal/catalog/adapters/postgres"
+	"github.com/stanimirivanov/argus/internal/postgres"
 )
 
 const databaseURLEnvironment = "ARGUS_DATABASE_URL"

@@ -81,7 +81,7 @@ var productionPackagePolicy = map[string]packagePolicy{
 	modulePath + "/internal/catalog/adapters/cli/descriptorcli":           {adapterLayer, catalogCapability},
 	modulePath + "/internal/catalog/adapters/contract/descriptor":         {adapterLayer, catalogCapability},
 	modulePath + "/internal/catalog/adapters/contract/evidence":           {adapterLayer, catalogCapability},
-	modulePath + "/internal/catalog/adapters/postgres":                    {adapterLayer, productCapability},
+	modulePath + "/internal/postgres":                                     {adapterLayer, productCapability},
 	modulePath + "/internal/change":                                       {domainLayer, changeCapability},
 	modulePath + "/internal/change/impact":                                {applicationLayer, changeCapability},
 	modulePath + "/internal/change/ingest":                                {applicationLayer, changeCapability},
@@ -141,7 +141,7 @@ var adapterPolicy = map[string]adapterKind{
 	modulePath + "/internal/catalog/adapters/cli/descriptorcli":           drivingAdapter,
 	modulePath + "/internal/catalog/adapters/contract/descriptor":         contractAdapter,
 	modulePath + "/internal/catalog/adapters/contract/evidence":           contractAdapter,
-	modulePath + "/internal/catalog/adapters/postgres":                    drivenAdapter,
+	modulePath + "/internal/postgres":                                     drivenAdapter,
 	modulePath + "/internal/change/adapters/contract":                     contractAdapter,
 	modulePath + "/internal/change/adapters/github":                       drivenAdapter,
 	modulePath + "/internal/change/adapters/httpapi":                      drivingAdapter,
@@ -734,7 +734,7 @@ func TestProductCompositionCapabilityStaysOutsideCore(t *testing.T) {
 func TestGeneratedContractsRequireExplicitImporter(t *testing.T) {
 	t.Parallel()
 
-	sourcePath := modulePath + "/internal/catalog/adapters/postgres"
+	sourcePath := modulePath + "/internal/postgres"
 	err := validateImport(
 		sourcePath,
 		productionPackagePolicy[sourcePath],
@@ -790,7 +790,7 @@ func TestArchitecturePolicyRejectsDrivingAdapterInfrastructureSelection(t *testi
 	t.Parallel()
 
 	sourcePath := modulePath + "/internal/selection/adapters/cli/selectioncli"
-	targetPath := modulePath + "/internal/catalog/adapters/postgres"
+	targetPath := modulePath + "/internal/postgres"
 	err := validateInternalDependency(
 		sourcePath,
 		productionPackagePolicy[sourcePath],
@@ -815,8 +815,8 @@ func TestSharedAdapterUtilitiesHaveExactImporters(t *testing.T) {
 		{"validation process adapter", modulePath + "/internal/adaptation/adapters/validationprocessadapter", modulePath + "/internal/processprotocol", true},
 		{"change GitHub adapter", modulePath + "/internal/change/adapters/github", modulePath + "/internal/githubtransport", true},
 		{"review GitHub adapter", modulePath + "/internal/adaptation/adapters/githubreview", modulePath + "/internal/githubtransport", true},
-		{"PostgreSQL cannot invoke process", modulePath + "/internal/catalog/adapters/postgres", modulePath + "/internal/processprotocol", false},
-		{"PostgreSQL cannot use GitHub transport", modulePath + "/internal/catalog/adapters/postgres", modulePath + "/internal/githubtransport", false},
+		{"PostgreSQL cannot invoke process", modulePath + "/internal/postgres", modulePath + "/internal/processprotocol", false},
+		{"PostgreSQL cannot use GitHub transport", modulePath + "/internal/postgres", modulePath + "/internal/githubtransport", false},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
