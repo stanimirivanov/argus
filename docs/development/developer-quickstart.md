@@ -104,14 +104,17 @@ The first run can be slower because Go and pnpm resolve pinned dependencies.
 `make build` checks compilation without writing repository artifacts. Run
 `make binaries` only when platform-native executables are needed under the
 ignored `bin/` directory.
-Start the current control-plane scaffold with:
+After applying migrations and setting the database, GitHub token, and webhook
+secret variables shown in the [root README](../../README.md#run-the-control-plane),
+start the control plane with:
 
 ~~~sh
 go run ./cmd/control-plane
 ~~~
 
-It emits structured lifecycle logs and waits for `Ctrl+C`. It intentionally
-requires no configuration or external service at this stage.
+It emits structured lifecycle logs and waits for `Ctrl+C`. The standalone
+`--help` and `--version` options work without configuration or external
+services; normal server startup requires the configured dependencies.
 
 ## Platform setup notes
 

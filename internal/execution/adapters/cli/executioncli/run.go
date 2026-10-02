@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/stanimirivanov/argus/internal/catalog"
+	"github.com/stanimirivanov/argus/internal/commandline"
 	"github.com/stanimirivanov/argus/internal/contracts"
 	"github.com/stanimirivanov/argus/internal/execution"
 	executioncontract "github.com/stanimirivanov/argus/internal/execution/adapters/contract"
@@ -49,13 +50,13 @@ func Run(
 	revisionAlgorithm := flags.String("test-revision-algorithm", string(catalog.RevisionGitSHA1), "test revision algorithm")
 	revisionDigest := flags.String("test-revision", "", "immutable test repository revision")
 	timeout := flags.Duration("timeout", 30*time.Minute, "maximum adapter runtime")
-	if err := flags.Parse(arguments); err != nil {
+	if err := commandline.Parse(flags, arguments); err != nil {
 		return fmt.Errorf("run functional API tests: %w", err)
 	}
 	command := flags.Args()
 	if *manifestPath == "" || *attemptID == "" || *repositoryID == "" || *adapterID == "" ||
 		*revisionDigest == "" || len(command) == 0 {
-		return errors.New("usage: run-functional-api -manifest <path|-> -attempt-id <id> " +
+		return commandline.UsageText("usage: run-functional-api -manifest <path|-> -attempt-id <id> " +
 			"-test-repository-id <id> -test-revision <digest> -adapter <id> -- <command> [args...]")
 	}
 	if *timeout <= 0 || *timeout > maxTimeout {

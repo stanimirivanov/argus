@@ -3,16 +3,25 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
 
+	"github.com/stanimirivanov/argus/internal/commandline"
 	"github.com/stanimirivanov/argus/internal/execution/adapters/cli/evidencecli"
 	"github.com/stanimirivanov/argus/internal/postgres"
 )
 
+var commandSpec = commandline.Spec{
+	Name:     "execution-evidence",
+	Synopsis: "execution-evidence <ingest|shadow-report|plan-shadow-report> [options]",
+	Role:     "transitional direct-database client",
+}
+
 func main() {
+	if code, handled := commandline.HandleMeta(os.Args[1:], os.Stdout, os.Stderr, commandSpec); handled {
+		os.Exit(code)
+	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
@@ -32,8 +41,7 @@ func main() {
 		os.Stdout,
 		openRuntime,
 	); err != nil {
-		_, _ = fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+		os.Exit(commandline.Report(os.Stderr, err))
 	}
 }
 

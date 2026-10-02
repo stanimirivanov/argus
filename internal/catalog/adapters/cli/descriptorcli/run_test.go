@@ -3,11 +3,23 @@ package descriptorcli
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"path/filepath"
 	"testing"
+
+	"github.com/stanimirivanov/argus/internal/commandline"
 )
 
 const testRevision = "0123456789abcdef0123456789abcdef01234567"
+
+func TestRunClassifiesArgumentErrors(t *testing.T) {
+	t.Parallel()
+	for _, arguments := range [][]string{nil, {"--unknown"}} {
+		if err := Run(arguments, &bytes.Buffer{}); !errors.Is(err, commandline.ErrUsage) {
+			t.Fatalf("Run(%v) error = %v, want usage classification", arguments, err)
+		}
+	}
+}
 
 func TestRunReportsNormalizedDescriptorSummary(t *testing.T) {
 	t.Parallel()

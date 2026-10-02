@@ -15,6 +15,7 @@ import (
 	"github.com/stanimirivanov/argus/internal/adaptation"
 	adaptationcontract "github.com/stanimirivanov/argus/internal/adaptation/adapters/contract"
 	"github.com/stanimirivanov/argus/internal/adaptation/outcome"
+	"github.com/stanimirivanov/argus/internal/commandline"
 	"github.com/stanimirivanov/argus/internal/contracts"
 )
 
@@ -42,7 +43,7 @@ func Run(
 	reasonCode := flags.String("reason-code", "", "explicit reviewer reason code")
 	reasonNote := flags.String("reason-note", "", "optional bounded reviewer explanation")
 	timeout := flags.Duration("timeout", 2*time.Minute, "maximum GitHub observation runtime")
-	if err := flags.Parse(arguments); err != nil {
+	if err := commandline.Parse(flags, arguments); err != nil {
 		return fmt.Errorf("capture functional API review outcome: %w", err)
 	}
 	if *proposalPath == "" || *evidencePath == "" || *reviewPath == "" || *reasonCode == "" ||
@@ -163,6 +164,6 @@ func readBounded(path string, description string) ([]byte, error) {
 }
 
 func usageError() error {
-	return errors.New("usage: capture-functional-api-review-outcome -proposal <path> " +
+	return commandline.UsageText("usage: capture-functional-api-review-outcome -proposal <path> " +
 		"-validation-evidence <path> -review <path> -reason-code <code> [-reason-note <text>]")
 }

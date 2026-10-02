@@ -4,7 +4,6 @@ package descriptorcli
 
 import (
 	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -12,6 +11,7 @@ import (
 
 	"github.com/stanimirivanov/argus/internal/catalog"
 	"github.com/stanimirivanov/argus/internal/catalog/adapters/contract/descriptor"
+	"github.com/stanimirivanov/argus/internal/commandline"
 	"github.com/stanimirivanov/argus/internal/contracts"
 )
 
@@ -45,11 +45,11 @@ func Run(arguments []string, output io.Writer) error {
 	flags.SetOutput(io.Discard)
 	algorithm := flags.String("algorithm", string(catalog.RevisionGitSHA1), "revision algorithm")
 	digest := flags.String("revision", "", "immutable source revision digest")
-	if err := flags.Parse(arguments); err != nil {
+	if err := commandline.Parse(flags, arguments); err != nil {
 		return fmt.Errorf("%s: %w", usageText, err)
 	}
 	if *digest == "" || flags.NArg() != 1 {
-		return errors.New(usageText)
+		return commandline.UsageText(usageText)
 	}
 
 	revision, err := catalog.NewRevision(catalog.RevisionAlgorithm(*algorithm), *digest)

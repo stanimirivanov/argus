@@ -91,6 +91,7 @@ var productionPackagePolicy = map[string]packagePolicy{
 	modulePath + "/internal/change/adapters/github":                       {adapterLayer, changeCapability},
 	modulePath + "/internal/change/adapters/httpapi":                      {adapterLayer, changeCapability},
 	modulePath + "/internal/change/adapters/openapi":                      {adapterLayer, changeCapability},
+	modulePath + "/internal/commandline":                                  {adapterLayer, productCapability},
 	modulePath + "/internal/execution":                                    {domainLayer, executionCapability},
 	modulePath + "/internal/execution/attempts":                           {applicationLayer, executionCapability},
 	modulePath + "/internal/execution/functionalapi":                      {applicationLayer, executionCapability},
@@ -148,6 +149,7 @@ var adapterPolicy = map[string]adapterKind{
 	modulePath + "/internal/change/adapters/github":                       drivenAdapter,
 	modulePath + "/internal/change/adapters/httpapi":                      drivingAdapter,
 	modulePath + "/internal/change/adapters/openapi":                      drivenAdapter,
+	modulePath + "/internal/commandline":                                  contractAdapter,
 	modulePath + "/internal/execution/adapters/cli/evidencecli":           drivingAdapter,
 	modulePath + "/internal/execution/adapters/cli/executioncli":          drivingAdapter,
 	modulePath + "/internal/execution/adapters/cli/planningcli":           drivingAdapter,
@@ -208,6 +210,23 @@ var processProtocolUsers = map[string]bool{
 	modulePath + "/internal/execution/adapters/processadapter":            true,
 	modulePath + "/internal/adaptation/adapters/processadapter":           true,
 	modulePath + "/internal/adaptation/adapters/validationprocessadapter": true,
+}
+
+// Only command composition roots and argument-parsing CLI adapters may use
+// command protocol classification. Domain and persistence code cannot acquire
+// a dependency on executable behavior through this shared adapter utility.
+var commandlineUsers = map[string]bool{
+	modulePath + "/internal/adaptation/adapters/cli/evidencecli":   true,
+	modulePath + "/internal/adaptation/adapters/cli/outcomecli":    true,
+	modulePath + "/internal/adaptation/adapters/cli/proposalcli":   true,
+	modulePath + "/internal/adaptation/adapters/cli/reviewcli":     true,
+	modulePath + "/internal/adaptation/adapters/cli/validationcli": true,
+	modulePath + "/internal/catalog/adapters/cli/catalogcli":       true,
+	modulePath + "/internal/catalog/adapters/cli/descriptorcli":    true,
+	modulePath + "/internal/execution/adapters/cli/evidencecli":    true,
+	modulePath + "/internal/execution/adapters/cli/executioncli":   true,
+	modulePath + "/internal/execution/adapters/cli/planningcli":    true,
+	modulePath + "/internal/selection/adapters/cli/selectioncli":   true,
 }
 
 var githubTransportUsers = map[string]bool{
@@ -544,6 +563,12 @@ func validateInternalDependency(sourcePath string, source packagePolicy, targetP
 			return nil
 		}
 		return fmt.Errorf("%s adapter utility violation: %s may not import %s; only protocol adapters own process execution", adrReference, sourcePath, targetPath)
+	}
+	if targetPath == modulePath+"/internal/commandline" {
+		if source.layer == compositionRootLayer || commandlineUsers[sourcePath] {
+			return nil
+		}
+		return fmt.Errorf("%s command protocol utility violation: %s may not import %s; only command roots and CLI argument adapters own executable behavior", adrReference, sourcePath, targetPath)
 	}
 	if targetPath == modulePath+"/internal/githubtransport" {
 		if githubTransportUsers[sourcePath] {

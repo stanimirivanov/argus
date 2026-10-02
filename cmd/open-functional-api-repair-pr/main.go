@@ -3,7 +3,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -11,14 +10,23 @@ import (
 	"github.com/stanimirivanov/argus/internal/adaptation/adapters/cli/reviewcli"
 	"github.com/stanimirivanov/argus/internal/adaptation/adapters/githubreview"
 	"github.com/stanimirivanov/argus/internal/adaptation/review"
+	"github.com/stanimirivanov/argus/internal/commandline"
 )
 
+var commandSpec = commandline.Spec{
+	Name:     "open-functional-api-repair-pr",
+	Synopsis: "open-functional-api-repair-pr -proposal <path> -validation <path> [options]",
+	Role:     "CI review publisher",
+}
+
 func main() {
+	if code, handled := commandline.HandleMeta(os.Args[1:], os.Stdout, os.Stderr, commandSpec); handled {
+		os.Exit(code)
+	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	if err := run(ctx, os.Args[1:]); err != nil {
-		_, _ = fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+		os.Exit(commandline.Report(os.Stderr, err))
 	}
 }
 

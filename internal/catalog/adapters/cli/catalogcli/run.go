@@ -21,6 +21,7 @@ import (
 	"github.com/stanimirivanov/argus/internal/catalog/testquery"
 	changecontract "github.com/stanimirivanov/argus/internal/change/adapters/contract"
 	changeimpact "github.com/stanimirivanov/argus/internal/change/impact"
+	"github.com/stanimirivanov/argus/internal/commandline"
 	"github.com/stanimirivanov/argus/internal/contracts"
 )
 
@@ -61,7 +62,7 @@ func Run(
 	open OpenRuntime,
 ) error {
 	if len(arguments) == 0 {
-		return errors.New(usageText)
+		return commandline.UsageText(usageText)
 	}
 
 	switch arguments[0] {
@@ -78,7 +79,7 @@ func Run(
 	case "get-change-impact":
 		return runGetChangeImpact(ctx, arguments[1:], databaseURL, output, open)
 	default:
-		return errors.New(usageText)
+		return commandline.UsageText(usageText)
 	}
 }
 
@@ -93,11 +94,11 @@ func runGetChangeImpact(
 	flags.SetOutput(io.Discard)
 	provider := flags.String("provider", string(catalog.ProviderGitHub), "delivery provider")
 	deliveryID := flags.String("delivery-id", "", "verified provider delivery ID")
-	if err := flags.Parse(arguments); err != nil {
+	if err := commandline.Parse(flags, arguments); err != nil {
 		return fmt.Errorf("catalog get-change-impact: %w", err)
 	}
 	if *deliveryID == "" || flags.NArg() != 0 {
-		return errors.New("usage: catalog get-change-impact [-provider github] -delivery-id <id>")
+		return commandline.UsageText("usage: catalog get-change-impact [-provider github] -delivery-id <id>")
 	}
 	store, err := openStore(ctx, databaseURL, open)
 	if err != nil {
@@ -131,11 +132,11 @@ func runImportImpact(
 ) error {
 	flags := flag.NewFlagSet("catalog import-impact", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
-	if err := flags.Parse(arguments); err != nil {
+	if err := commandline.Parse(flags, arguments); err != nil {
 		return fmt.Errorf("catalog import-impact: %w", err)
 	}
 	if flags.NArg() != 1 {
-		return errors.New("usage: catalog import-impact <impact-evidence.json>")
+		return commandline.UsageText("usage: catalog import-impact <impact-evidence.json>")
 	}
 
 	data, err := os.ReadFile(flags.Arg(0))
@@ -176,11 +177,11 @@ func runImport(
 	flags.SetOutput(io.Discard)
 	algorithm := flags.String("algorithm", string(catalog.RevisionGitSHA1), "revision algorithm")
 	digest := flags.String("revision", "", "immutable source revision digest")
-	if err := flags.Parse(arguments); err != nil {
+	if err := commandline.Parse(flags, arguments); err != nil {
 		return fmt.Errorf("catalog import: %w", err)
 	}
 	if *digest == "" || flags.NArg() != 1 {
-		return errors.New("usage: catalog import -revision <digest> [-algorithm git-sha1] <descriptor.json>")
+		return commandline.UsageText("usage: catalog import -revision <digest> [-algorithm git-sha1] <descriptor.json>")
 	}
 
 	revision, err := catalog.NewRevision(catalog.RevisionAlgorithm(*algorithm), *digest)
@@ -233,11 +234,11 @@ func runGet(
 	algorithm := flags.String("algorithm", string(catalog.RevisionGitSHA1), "revision algorithm")
 	digest := flags.String("revision", "", "immutable source revision digest")
 	apiVersion := flags.String("api-version", contracts.RepositoryDescriptorV1APIVersion, "descriptor API version")
-	if err := flags.Parse(arguments); err != nil {
+	if err := commandline.Parse(flags, arguments); err != nil {
 		return fmt.Errorf("catalog get: %w", err)
 	}
 	if *provider == "" || *host == "" || *repositoryID == "" || *digest == "" || flags.NArg() != 0 {
-		return errors.New("usage: catalog get -provider <provider> -host <host> -repository-id <id> -revision <digest>")
+		return commandline.UsageText("usage: catalog get -provider <provider> -host <host> -repository-id <id> -revision <digest>")
 	}
 	revision, err := catalog.NewRevision(catalog.RevisionAlgorithm(*algorithm), *digest)
 	if err != nil {
@@ -285,11 +286,11 @@ func runListTests(
 	capability := flags.String("capability", "", "optional source capability key")
 	pageSize := flags.Int("page-size", testquery.DefaultTestCatalogPageSize, "maximum entries in this page")
 	cursor := flags.String("cursor", "", "opaque continuation cursor")
-	if err := flags.Parse(arguments); err != nil {
+	if err := commandline.Parse(flags, arguments); err != nil {
 		return fmt.Errorf("catalog list-tests: %w", err)
 	}
 	if *provider == "" || *host == "" || *repositoryID == "" || *digest == "" || flags.NArg() != 0 {
-		return errors.New("usage: catalog list-tests -provider <provider> -host <host> -repository-id <id> -revision <digest> [options]")
+		return commandline.UsageText("usage: catalog list-tests -provider <provider> -host <host> -repository-id <id> -revision <digest> [options]")
 	}
 	revision, err := catalog.NewRevision(catalog.RevisionAlgorithm(*algorithm), *digest)
 	if err != nil {
@@ -352,12 +353,12 @@ func runListImpact(
 	capability := flags.String("capability", "", "optional source capability key")
 	pageSize := flags.Int("page-size", impact.DefaultEdgePageSize, "maximum edges in this page")
 	cursor := flags.String("cursor", "", "opaque continuation cursor")
-	if err := flags.Parse(arguments); err != nil {
+	if err := commandline.Parse(flags, arguments); err != nil {
 		return fmt.Errorf("catalog list-impact: %w", err)
 	}
 	if *provider == "" || *host == "" || *repositoryID == "" || *digest == "" ||
 		*evaluatedAtText == "" || flags.NArg() != 0 {
-		return errors.New("usage: catalog list-impact -provider <provider> -host <host> -repository-id <id> -revision <digest> -evaluated-at <RFC3339> [options]")
+		return commandline.UsageText("usage: catalog list-impact -provider <provider> -host <host> -repository-id <id> -revision <digest> -evaluated-at <RFC3339> [options]")
 	}
 	revision, err := catalog.NewRevision(catalog.RevisionAlgorithm(*algorithm), *digest)
 	if err != nil {
