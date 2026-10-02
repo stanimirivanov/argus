@@ -24,8 +24,8 @@ const (
 	maxTimeout    = 10 * time.Minute
 )
 
-// GatewayFactory binds secret provider configuration after inputs validate.
-type GatewayFactory func(apiURL, host, token string) (review.Gateway, error)
+// GatewayFactory binds separate read and write authorities after inputs validate.
+type GatewayFactory func(apiURL, host, readToken, writeToken string) (review.SourceReader, review.Publisher, error)
 
 // Run validates local evidence before constructing the external-write adapter.
 func Run(
@@ -70,17 +70,17 @@ func Run(
 	if host == "" {
 		host = "github.com"
 	}
-	token := strings.TrimSpace(getenv("ARGUS_GITHUB_TOKEN"))
-	if token == "" {
-		return errors.New("ARGUS_GITHUB_TOKEN is required")
+	readToken, writeToken := reviewTokens(getenv)
+	if readToken == "" || writeToken == "" {
+		return errors.New("ARGUS_GITHUB_READ_TOKEN and ARGUS_GITHUB_WRITE_TOKEN are required, or ARGUS_GITHUB_TOKEN for legacy single-token operation")
 	}
-	gateway, err := open(apiURL, host, token)
+	source, publisher, err := open(apiURL, host, readToken, writeToken)
 	if err != nil {
 		return fmt.Errorf("configure GitHub review publication: %w", err)
 	}
 	publicationContext, cancel := context.WithTimeout(ctx, *timeout)
 	defer cancel()
-	publication, err := review.NewService(gateway).Publish(publicationContext, proposal, evidence, *baseBranch)
+	publication, err := review.NewService(source, publisher).Publish(publicationContext, proposal, evidence, *baseBranch)
 	if err != nil {
 		return fmt.Errorf("open functional API repair pull request: %w", err)
 	}
@@ -95,6 +95,20 @@ func Run(
 	}
 
 	return nil
+}
+
+func reviewTokens(getenv func(string) string) (string, string) {
+	legacy := strings.TrimSpace(getenv("ARGUS_GITHUB_TOKEN"))
+	readToken := strings.TrimSpace(getenv("ARGUS_GITHUB_READ_TOKEN"))
+	writeToken := strings.TrimSpace(getenv("ARGUS_GITHUB_WRITE_TOKEN"))
+	if readToken == "" {
+		readToken = legacy
+	}
+	if writeToken == "" {
+		writeToken = legacy
+	}
+
+	return readToken, writeToken
 }
 
 func readProposal(path string) (adaptation.Proposal, error) {

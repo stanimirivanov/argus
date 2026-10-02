@@ -121,3 +121,4 @@ How will the assumptions and consequences be verified?
 | [ADR-0020](0020-scope-postgresql-runtime-stores-by-capability.md) | Scope PostgreSQL runtime stores by capability | Proposed | 2026-10-01 |
 | [ADR-0021](0021-keep-go-contract-dtos-product-internal.md) | Keep Go contract DTOs product-internal | Proposed | 2026-10-01 |
 | [ADR-0022](0022-keep-purpose-specific-command-boundaries.md) | Keep purpose-specific command boundaries | Proposed | 2026-10-01 |
+| [ADR-0023](0023-separate-github-review-read-and-write-authority.md) | Separate GitHub review read and write authority | Proposed | 2026-10-02 |

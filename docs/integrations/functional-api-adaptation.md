@@ -186,7 +186,8 @@ Publication is an explicit external-write step and requires both prior JSON
 documents plus a caller-selected base branch:
 
 ```sh
-export ARGUS_GITHUB_TOKEN='fine-grained-token'
+export ARGUS_GITHUB_READ_TOKEN='source-read-token'
+export ARGUS_GITHUB_WRITE_TOKEN='review-write-token'
 go run ./cmd/open-functional-api-repair-pr \
   -proposal ./adaptation-proposal.json \
   -validation-evidence ./validation-evidence.json \
@@ -195,8 +196,12 @@ go run ./cmd/open-functional-api-repair-pr \
 ```
 
 Set `ARGUS_GITHUB_API_URL` and `ARGUS_GITHUB_HOST` for GitHub Enterprise. The
-token needs contents and pull-request write permission only in the test
-repository. It is never accepted as a command-line flag or included in output.
+source token needs repository and content read authority; the publisher token
+needs the read and write authority required for branch, commit, and draft-PR
+recovery in the test repository. Neither token is accepted as a command-line
+flag or included in output. The legacy `ARGUS_GITHUB_TOKEN` remains a fallback
+for either unset scoped token, preserving existing jobs but not providing
+separate authority. Configure distinct scoped secrets for least privilege.
 The API URL cannot contain credentials, a query, or a fragment. Argus rejects
 all GitHub API redirects, including same-origin redirects, before a bearer
 token can be forwarded; configure the final canonical API endpoint.
@@ -227,7 +232,7 @@ After the PR closes or merges, retain an explicit reason from the reviewer
 workflow and invoke:
 
 ```sh
-export ARGUS_GITHUB_TOKEN='fine-grained-token'
+export ARGUS_GITHUB_READ_TOKEN='source-and-review-read-token'
 go run ./cmd/capture-functional-api-review-outcome \
   -proposal ./adaptation-proposal.json \
   -validation-evidence ./validation-evidence.json \
@@ -240,6 +245,8 @@ go run ./cmd/capture-functional-api-review-outcome \
 The command revalidates and correlates all three earlier documents before it
 reads provider state. It verifies the stable repository identity and exact PR,
 base branch, and generated head branch. An open PR returns a not-final error.
+Only the read token is used; `ARGUS_GITHUB_TOKEN` remains a compatibility
+fallback when no scoped read token is configured.
 
 The terminal decision is provider-derived, not supplied by the caller:
 

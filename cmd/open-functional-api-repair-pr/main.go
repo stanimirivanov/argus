@@ -33,10 +33,21 @@ func main() {
 func run(ctx context.Context, arguments []string) error {
 	return reviewcli.Run(
 		ctx, arguments, os.Stdout, os.Getenv,
-		func(apiURL, host, token string) (review.Gateway, error) {
-			return githubreview.NewClient(githubreview.ClientOptions{
-				BaseURL: apiURL, Host: host, Token: token,
+		func(apiURL, host, readToken, writeToken string) (review.SourceReader, review.Publisher, error) {
+			source, err := githubreview.NewSourceReader(githubreview.ClientOptions{
+				BaseURL: apiURL, Host: host, Token: readToken,
 			})
+			if err != nil {
+				return nil, nil, err
+			}
+			publisher, err := githubreview.NewPublisher(githubreview.ClientOptions{
+				BaseURL: apiURL, Host: host, Token: writeToken,
+			})
+			if err != nil {
+				return nil, nil, err
+			}
+
+			return source, publisher, nil
 		},
 	)
 }

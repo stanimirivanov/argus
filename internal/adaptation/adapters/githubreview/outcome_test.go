@@ -63,6 +63,31 @@ func TestObserveOutcomeRejectsIncompleteReviewerPatch(t *testing.T) {
 	}
 }
 
+func TestOutcomeObservationUsesOnlyReadAuthority(t *testing.T) {
+	t.Parallel()
+	publication := validReviewPublication()
+	provider := reviewOutcomeHandler(t, publication, "closed", publication.HeadRevision.Digest, false, false)
+	server := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		if request.Method != http.MethodGet || request.Header.Get("Authorization") != "Bearer read-token" {
+			t.Errorf("observer used unexpected authority: %s %s", request.Method, request.Header.Get("Authorization"))
+			response.WriteHeader(http.StatusForbidden)
+			return
+		}
+		provider.ServeHTTP(response, request)
+	}))
+	defer server.Close()
+	observer, err := NewOutcomeObserver(ClientOptions{
+		HTTPClient: server.Client(), BaseURL: server.URL, Host: "github.com", Token: "read-token",
+	})
+	if err != nil {
+		t.Fatalf("create observer: %v", err)
+	}
+	terminal, err := observer.ObserveOutcome(t.Context(), publication)
+	if err != nil || terminal.FinalRevision != publication.HeadRevision {
+		t.Fatalf("read terminal outcome: %+v, %v", terminal, err)
+	}
+}
+
 func reviewOutcomeHandler(
 	t *testing.T,
 	publication adaptation.ReviewPublication,
@@ -115,9 +140,9 @@ func reviewOutcomeHandler(
 	})
 }
 
-func newOutcomeTestClient(t *testing.T, server *httptest.Server, now time.Time) *Client {
+func newOutcomeTestClient(t *testing.T, server *httptest.Server, now time.Time) *OutcomeObserver {
 	t.Helper()
-	client, err := NewClient(ClientOptions{
+	client, err := NewOutcomeObserver(ClientOptions{
 		HTTPClient: server.Client(), BaseURL: server.URL, Host: "github.com", Token: "token",
 		Now: func() time.Time { return now },
 	})

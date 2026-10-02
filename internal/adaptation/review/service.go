@@ -46,22 +46,27 @@ type PublishedPullRequest struct {
 	CreatedAt    time.Time
 }
 
-// Gateway reads immutable source and performs the externally visible review
-// publication. It owns provider-specific idempotency and partial-failure recovery.
-type Gateway interface {
+// SourceReader reads immutable source using read-only provider authority.
+type SourceReader interface {
 	LoadSource(context.Context, catalog.Repository, catalog.Revision, string) ([]byte, error)
+}
+
+// Publisher owns externally visible review writes and provider-specific
+// idempotency and partial-failure recovery.
+type Publisher interface {
 	Publish(context.Context, PublicationRequest) (PublishedPullRequest, error)
 }
 
 // Service correlates validation evidence, materializes the exact candidate,
 // and delegates one guarded draft publication.
 type Service struct {
-	gateway Gateway
+	source    SourceReader
+	publisher Publisher
 }
 
 // NewService creates the review-publication use case.
-func NewService(gateway Gateway) *Service {
-	return &Service{gateway: gateway}
+func NewService(source SourceReader, publisher Publisher) *Service {
+	return &Service{source: source, publisher: publisher}
 }
 
 // Publish opens or recovers the deterministic draft pull request for a
@@ -72,13 +77,13 @@ func (service *Service) Publish(
 	evidence adaptation.ValidationEvidence,
 	baseBranch string,
 ) (adaptation.ReviewPublication, error) {
-	if service == nil || service.gateway == nil {
+	if service == nil || service.source == nil || service.publisher == nil {
 		return adaptation.ReviewPublication{}, adaptation.ErrUnavailable
 	}
 	if err := validateInputs(proposal, evidence, baseBranch); err != nil {
 		return adaptation.ReviewPublication{}, err
 	}
-	original, err := service.gateway.LoadSource(ctx, proposal.Test.Repository, proposal.Test.Revision, proposal.Edit.Path)
+	original, err := service.source.LoadSource(ctx, proposal.Test.Repository, proposal.Test.Revision, proposal.Edit.Path)
 	if err != nil {
 		return adaptation.ReviewPublication{}, fmt.Errorf("load review source: %w", err)
 	}
@@ -98,7 +103,7 @@ func (service *Service) Publish(
 		Title: reviewTitle(proposal), Body: reviewBody(reviewID, proposal, evidence),
 		CommitMessage: "Repair " + proposal.Test.SuiteKey + "/" + proposal.Test.TestKey + " endpoint reference",
 	}
-	published, err := service.gateway.Publish(ctx, request)
+	published, err := service.publisher.Publish(ctx, request)
 	if err != nil {
 		return adaptation.ReviewPublication{}, fmt.Errorf("publish adaptation review: %w", err)
 	}

@@ -43,6 +43,8 @@
 - [ADR-0022](../decisions/0022-keep-purpose-specific-command-boundaries.md)
   retains separate server, administrator, and worker executables while marking
   direct-database clients transitional.
+- [ADR-0023](../decisions/0023-separate-github-review-read-and-write-authority.md)
+  separates source-read, draft-publication, and outcome-observation authority.
 - Queues and deployment topology remain deferred to ADRs and evidence from
   vertical slices.
 
@@ -353,7 +355,7 @@ the control plane framework-specific source knowledge or mutation authority:
 | `internal/adaptation/adapters/processadapter` | Bounded no-shell request/result exchange with an explicit executable | Command discovery, source mutation, or adaptation policy |
 | `internal/adaptation/adapters/fileworkspace` | Root containment, regular-file access, preimage-guarded writes, and restoration in a disposable checkout | Validation outcome policy or test execution |
 | `internal/adaptation/adapters/validationprocessadapter` | Bounded no-shell phase execution in the disposable checkout | Patch selection, source writes, or outcome policy |
-| `internal/adaptation/adapters/githubreview` | Stable repository-identity verification; idempotent GitHub branch, single-file commit, and draft-PR publication; and terminal PR plus complete bounded diff reads | Repair eligibility, candidate construction, merge, or correctness interpretation |
+| `internal/adaptation/adapters/githubreview` | Separate source-reader, publisher, and outcome-observer credentials over private guarded transport; stable repository identity; idempotent draft publication; and bounded terminal diff reads | Repair eligibility, candidate construction, merge, or correctness interpretation |
 | `internal/adaptation/adapters/cli/proposalcli` | Bounded impact/manifest input, exact test selection, provenance correlation, timeout, and proposal JSON output | Concrete process construction or framework parsing |
 | `internal/adaptation/adapters/cli/validationcli` | Bounded proposal input, explicit disposable root, total timeout, and validation-evidence JSON output | Concrete workspace/process construction or validation policy |
 | `internal/adaptation/adapters/cli/reviewcli` | Bounded proposal/evidence input, secret environment configuration, timeout, and review-publication JSON output | Candidate policy, GitHub HTTP, or merge authority |
