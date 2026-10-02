@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/stanimirivanov/argus/internal/adaptation"
+	"github.com/stanimirivanov/argus/internal/adaptation/endpointrepair"
 	"github.com/stanimirivanov/argus/internal/catalog"
 	"github.com/stanimirivanov/argus/internal/change"
 )
@@ -14,8 +15,8 @@ import (
 func TestProposeProducesConstrainedEndpointEdit(t *testing.T) {
 	t.Parallel()
 
-	adapter := &fakeAdapter{result: adaptation.AdapterResult{
-		APIVersion: adaptation.ResultAPIVersion, AdapterID: "playwright", AdapterVersion: "1.2.3",
+	adapter := &fakeAdapter{result: endpointrepair.AdapterResult{
+		APIVersion: endpointrepair.ResultAPIVersion, AdapterID: "playwright", AdapterVersion: "1.2.3",
 		Outcome: "candidate", Edit: &adaptation.TextEdit{
 			Path: "tests/orders.spec.ts", BeforeSHA256: repeated("a", 64), StartByte: 120, EndByte: 130,
 			Original: "/v1/orders", Replacement: "/v2/orders", SemanticRole: "request-target",
@@ -29,8 +30,8 @@ func TestProposeProducesConstrainedEndpointEdit(t *testing.T) {
 	if adapter.request.ProposalID == "" || proposal.ProposalID != adapter.request.ProposalID {
 		t.Fatal("proposal identity was not correlated")
 	}
-	if proposal.Classification != adaptation.ClassificationInvalidated ||
-		proposal.Decision != adaptation.DecisionPatchAndValidate {
+	if proposal.Classification != endpointrepair.ClassificationInvalidated ||
+		proposal.Decision != endpointrepair.DecisionPatchAndValidate {
 		t.Fatalf("unexpected proposal decision: %+v", proposal)
 	}
 	if proposal.Rename.OperationID != "listOrders" || proposal.Edit.Original != "/v1/orders" ||
@@ -70,7 +71,7 @@ func TestDetectEndpointRenameAbstainsOnIncompleteOrAmbiguousEvidence(t *testing.
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			_, err := DetectEndpointRename(mutate(validImpact()), []string{"list-orders"})
-			if !errors.Is(err, adaptation.ErrNoAuthoritativeRename) {
+			if !errors.Is(err, endpointrepair.ErrNoAuthoritativeRename) {
 				t.Fatalf("expected abstention, got %v", err)
 			}
 		})
@@ -80,8 +81,8 @@ func TestDetectEndpointRenameAbstainsOnIncompleteOrAmbiguousEvidence(t *testing.
 func TestProposeRejectsIntentChangingAdapterEdit(t *testing.T) {
 	t.Parallel()
 
-	adapter := &fakeAdapter{result: adaptation.AdapterResult{
-		APIVersion: adaptation.ResultAPIVersion, AdapterID: "playwright", AdapterVersion: "1.2.3",
+	adapter := &fakeAdapter{result: endpointrepair.AdapterResult{
+		APIVersion: endpointrepair.ResultAPIVersion, AdapterID: "playwright", AdapterVersion: "1.2.3",
 		Outcome: "candidate", Edit: &adaptation.TextEdit{
 			Path: "tests/orders.spec.ts", BeforeSHA256: repeated("b", 64), StartByte: 20, EndByte: 23,
 			Original: "404", Replacement: "200", SemanticRole: "request-target",
@@ -96,25 +97,25 @@ func TestProposeRejectsIntentChangingAdapterEdit(t *testing.T) {
 func TestProposePreservesAdapterAbstention(t *testing.T) {
 	t.Parallel()
 
-	adapter := &fakeAdapter{result: adaptation.AdapterResult{
-		APIVersion: adaptation.ResultAPIVersion, AdapterID: "playwright", AdapterVersion: "1.2.3",
+	adapter := &fakeAdapter{result: endpointrepair.AdapterResult{
+		APIVersion: endpointrepair.ResultAPIVersion, AdapterID: "playwright", AdapterVersion: "1.2.3",
 		Outcome: "abstained", ReasonCode: "ambiguous-reference", Reason: "two request targets matched",
 	}}
 	_, err := NewService(adapter).Propose(context.Background(), validImpact(), validTest())
-	if !errors.Is(err, adaptation.ErrAdapterAbstained) {
+	if !errors.Is(err, endpointrepair.ErrAdapterAbstained) {
 		t.Fatalf("expected abstention, got %v", err)
 	}
 }
 
 type fakeAdapter struct {
-	request adaptation.AdapterRequest
-	result  adaptation.AdapterResult
+	request endpointrepair.AdapterRequest
+	result  endpointrepair.AdapterResult
 }
 
 func (adapter *fakeAdapter) Propose(
 	_ context.Context,
-	request adaptation.AdapterRequest,
-) (adaptation.AdapterResult, error) {
+	request endpointrepair.AdapterRequest,
+) (endpointrepair.AdapterResult, error) {
 	adapter.request = request
 	adapter.result.ProposalID = request.ProposalID
 	return adapter.result, nil

@@ -122,3 +122,4 @@ How will the assumptions and consequences be verified?
 | [ADR-0021](0021-keep-go-contract-dtos-product-internal.md) | Keep Go contract DTOs product-internal | Proposed | 2026-10-01 |
 | [ADR-0022](0022-keep-purpose-specific-command-boundaries.md) | Keep purpose-specific command boundaries | Proposed | 2026-10-01 |
 | [ADR-0023](0023-separate-github-review-read-and-write-authority.md) | Separate GitHub review read and write authority | Proposed | 2026-10-02 |
+| [ADR-0024](0024-own-endpoint-repair-proposals-by-test-family.md) | Own endpoint repair proposals by test family | Proposed | 2026-10-02 |

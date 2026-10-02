@@ -6,16 +6,17 @@ import (
 	"time"
 
 	"github.com/stanimirivanov/argus/internal/adaptation"
+	"github.com/stanimirivanov/argus/internal/adaptation/endpointrepair"
 	"github.com/stanimirivanov/argus/internal/catalog"
 	"github.com/stanimirivanov/argus/internal/change"
 	"github.com/stanimirivanov/argus/internal/contracts"
 )
 
 // ExportRequestV1 converts a validated domain request to adapter JSON.
-func ExportRequestV1(request adaptation.AdapterRequest) (contracts.FunctionalAPIAdaptationRequestV1, error) {
+func ExportRequestV1(request endpointrepair.AdapterRequest) (contracts.FunctionalAPIAdaptationRequestV1, error) {
 	request.Test = adaptation.CanonicalTestReference(request.Test)
-	request.Rename = adaptation.CanonicalEndpointRename(request.Rename)
-	if err := adaptation.ValidateAdapterRequest(request); err != nil {
+	request.Rename = endpointrepair.CanonicalEndpointRename(request.Rename)
+	if err := endpointrepair.ValidateAdapterRequest(request); err != nil {
 		return contracts.FunctionalAPIAdaptationRequestV1{}, err
 	}
 	document := contracts.FunctionalAPIAdaptationRequestV1{
@@ -31,8 +32,8 @@ func ExportRequestV1(request adaptation.AdapterRequest) (contracts.FunctionalAPI
 }
 
 // ImportResultV1 converts structurally valid, untrusted adapter output.
-func ImportResultV1(document contracts.FunctionalAPIAdaptationResultV1) (adaptation.AdapterResult, error) {
-	result := adaptation.AdapterResult{
+func ImportResultV1(document contracts.FunctionalAPIAdaptationResultV1) (endpointrepair.AdapterResult, error) {
+	result := endpointrepair.AdapterResult{
 		APIVersion: document.APIVersion, ProposalID: document.ProposalID,
 		AdapterID: document.Adapter.ID, AdapterVersion: document.Adapter.Version,
 		Outcome: document.Outcome, ReasonCode: optionalString(document.ReasonCode),
@@ -46,18 +47,18 @@ func ImportResultV1(document contracts.FunctionalAPIAdaptationResultV1) (adaptat
 			SemanticRole: document.Edit.SemanticRole,
 		}
 	}
-	if err := adaptation.ValidateAdapterResult(result); err != nil {
-		return adaptation.AdapterResult{}, fmt.Errorf("validate adaptation result semantics: %w", err)
+	if err := endpointrepair.ValidateAdapterResult(result); err != nil {
+		return endpointrepair.AdapterResult{}, fmt.Errorf("validate adaptation result semantics: %w", err)
 	}
 
 	return result, nil
 }
 
 // ExportProposalV1 converts a validated proposal to its public contract.
-func ExportProposalV1(proposal adaptation.Proposal) (contracts.AdaptationProposalV1, error) {
+func ExportProposalV1(proposal endpointrepair.Proposal) (contracts.AdaptationProposalV1, error) {
 	proposal.Test = adaptation.CanonicalTestReference(proposal.Test)
-	proposal.Rename = adaptation.CanonicalEndpointRename(proposal.Rename)
-	if err := adaptation.ValidateProposal(proposal); err != nil {
+	proposal.Rename = endpointrepair.CanonicalEndpointRename(proposal.Rename)
+	if err := endpointrepair.ValidateProposal(proposal); err != nil {
 		return contracts.AdaptationProposalV1{}, err
 	}
 	document := contracts.AdaptationProposalV1{
@@ -86,15 +87,15 @@ func ExportProposalV1(proposal adaptation.Proposal) (contracts.AdaptationProposa
 
 // ImportProposalV1 converts a structurally valid public proposal into the
 // canonical domain value used by isolated validation.
-func ImportProposalV1(document contracts.AdaptationProposalV1) (adaptation.Proposal, error) {
+func ImportProposalV1(document contracts.AdaptationProposalV1) (endpointrepair.Proposal, error) {
 	if err := contracts.ValidateAdaptationProposalV1(document); err != nil {
-		return adaptation.Proposal{}, err
+		return endpointrepair.Proposal{}, err
 	}
 	observedAt, err := time.Parse(time.RFC3339Nano, document.Change.ObservedAt)
 	if err != nil {
-		return adaptation.Proposal{}, fmt.Errorf("parse proposal observation time: %w", err)
+		return endpointrepair.Proposal{}, fmt.Errorf("parse proposal observation time: %w", err)
 	}
-	proposal := adaptation.Proposal{
+	proposal := endpointrepair.Proposal{
 		APIVersion: document.APIVersion, PolicyVersion: document.PolicyVersion,
 		ProposalID: document.ProposalID, ImpactAPIVersion: document.SourceImpact.APIVersion,
 		ImpactAnalyzerVersion: document.SourceImpact.AnalyzerVersion,
@@ -109,9 +110,9 @@ func ImportProposalV1(document contracts.AdaptationProposalV1) (adaptation.Propo
 				Event:      document.Change.Trigger.Event, Action: document.Change.Trigger.Action,
 			},
 		},
-		Test: importTest(document.Test), Classification: adaptation.Classification(document.Classification),
-		Decision: adaptation.Decision(document.Decision),
-		Rename: adaptation.EndpointRename{
+		Test: importTest(document.Test), Classification: endpointrepair.Classification(document.Classification),
+		Decision: endpointrepair.Decision(document.Decision),
+		Rename: endpointrepair.EndpointRename{
 			Method: document.EndpointRename.Method, OperationID: document.EndpointRename.OperationID,
 			PreviousPath: document.EndpointRename.PreviousPath, Path: document.EndpointRename.Path,
 			Capabilities: append([]string{}, document.EndpointRename.Capabilities...),
@@ -125,9 +126,9 @@ func ImportProposalV1(document contracts.AdaptationProposalV1) (adaptation.Propo
 		},
 	}
 	proposal.Test = adaptation.CanonicalTestReference(proposal.Test)
-	proposal.Rename = adaptation.CanonicalEndpointRename(proposal.Rename)
-	if err := adaptation.ValidateProposal(proposal); err != nil {
-		return adaptation.Proposal{}, fmt.Errorf("validate imported adaptation proposal: %w", err)
+	proposal.Rename = endpointrepair.CanonicalEndpointRename(proposal.Rename)
+	if err := endpointrepair.ValidateProposal(proposal); err != nil {
+		return endpointrepair.Proposal{}, fmt.Errorf("validate imported adaptation proposal: %w", err)
 	}
 
 	return proposal, nil
@@ -154,7 +155,7 @@ func exportTest(test adaptation.TestReference) contracts.AdaptationTestReference
 	}
 }
 
-func exportRename(rename adaptation.EndpointRename) contracts.EndpointRenameEvidence {
+func exportRename(rename endpointrepair.EndpointRename) contracts.EndpointRenameEvidence {
 	return contracts.EndpointRenameEvidence{
 		Method: rename.Method, OperationID: rename.OperationID, PreviousPath: rename.PreviousPath,
 		Path: rename.Path, Capabilities: append([]string{}, rename.Capabilities...),

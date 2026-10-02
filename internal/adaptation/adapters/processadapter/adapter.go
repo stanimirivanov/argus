@@ -10,6 +10,7 @@ import (
 
 	"github.com/stanimirivanov/argus/internal/adaptation"
 	adaptationcontract "github.com/stanimirivanov/argus/internal/adaptation/adapters/contract"
+	"github.com/stanimirivanov/argus/internal/adaptation/endpointrepair"
 	"github.com/stanimirivanov/argus/internal/contracts"
 	"github.com/stanimirivanov/argus/internal/processprotocol"
 )
@@ -38,28 +39,28 @@ func New(command []string, stderr io.Writer) (*Adapter, error) {
 // never invokes a shell and never grants the adapter mutation authority.
 func (adapter *Adapter) Propose(
 	ctx context.Context,
-	request adaptation.AdapterRequest,
-) (adaptation.AdapterResult, error) {
+	request endpointrepair.AdapterRequest,
+) (endpointrepair.AdapterResult, error) {
 	if adapter == nil || len(adapter.command) == 0 {
-		return adaptation.AdapterResult{}, adaptation.ErrInvalid
+		return endpointrepair.AdapterResult{}, adaptation.ErrInvalid
 	}
 	document, err := adaptationcontract.ExportRequestV1(request)
 	if err != nil {
-		return adaptation.AdapterResult{}, err
+		return endpointrepair.AdapterResult{}, err
 	}
 	input, err := json.Marshal(document)
 	if err != nil {
-		return adaptation.AdapterResult{}, fmt.Errorf("encode adaptation request: %w", err)
+		return endpointrepair.AdapterResult{}, fmt.Errorf("encode adaptation request: %w", err)
 	}
 	output, err := processprotocol.Run(ctx, processprotocol.Options{
 		Command: adapter.command, Input: input, Stderr: adapter.stderr, Timeout: maxAdapterRuntime,
 	})
 	if err != nil {
-		return adaptation.AdapterResult{}, err
+		return endpointrepair.AdapterResult{}, err
 	}
 	resultDocument, err := contracts.DecodeFunctionalAPIAdaptationResultV1(output)
 	if err != nil {
-		return adaptation.AdapterResult{}, fmt.Errorf("decode adaptation adapter result: %w", err)
+		return endpointrepair.AdapterResult{}, fmt.Errorf("decode adaptation adapter result: %w", err)
 	}
 
 	return adaptationcontract.ImportResultV1(resultDocument)

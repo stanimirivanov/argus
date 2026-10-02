@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/stanimirivanov/argus/internal/adaptation"
+	"github.com/stanimirivanov/argus/internal/adaptation/endpointrepair"
 	"github.com/stanimirivanov/argus/internal/catalog"
 	"github.com/stanimirivanov/argus/internal/change"
 	"github.com/stanimirivanov/argus/internal/contracts"
@@ -63,9 +64,9 @@ func TestAdaptationProcessHelper(t *testing.T) {
 	os.Exit(0)
 }
 
-func validRequest() adaptation.AdapterRequest {
-	return adaptation.AdapterRequest{
-		APIVersion: adaptation.RequestAPIVersion,
+func validRequest() endpointrepair.AdapterRequest {
+	return endpointrepair.AdapterRequest{
+		APIVersion: endpointrepair.RequestAPIVersion,
 		ProposalID: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
 		Change: change.Reference{
 			SourceRepository: catalog.Repository{
@@ -100,7 +101,7 @@ func validRequest() adaptation.AdapterRequest {
 			SuiteKey: "orders-api", TestKey: "list-orders", Name: "Lists orders",
 			Adapter: "playwright", Capabilities: []string{"list-orders"},
 		},
-		Rename: adaptation.EndpointRename{
+		Rename: endpointrepair.EndpointRename{
 			Method: "GET", OperationID: "listOrders", PreviousPath: "/v1/orders",
 			Path: "/v2/orders", Capabilities: []string{"list-orders"},
 		},

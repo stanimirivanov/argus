@@ -14,6 +14,7 @@ import (
 
 	"github.com/stanimirivanov/argus/internal/adaptation"
 	adaptationcontract "github.com/stanimirivanov/argus/internal/adaptation/adapters/contract"
+	"github.com/stanimirivanov/argus/internal/adaptation/endpointrepair"
 	"github.com/stanimirivanov/argus/internal/adaptation/outcome"
 	"github.com/stanimirivanov/argus/internal/commandline"
 	"github.com/stanimirivanov/argus/internal/contracts"
@@ -110,42 +111,42 @@ func readInputs(
 	proposalPath string,
 	evidencePath string,
 	reviewPath string,
-) (adaptation.Proposal, adaptation.ValidationEvidence, adaptation.ReviewPublication, error) {
+) (endpointrepair.Proposal, adaptation.ValidationEvidence, adaptation.ReviewPublication, error) {
 	proposalData, err := readBounded(proposalPath, "adaptation proposal")
 	if err != nil {
-		return adaptation.Proposal{}, adaptation.ValidationEvidence{}, adaptation.ReviewPublication{}, err
+		return endpointrepair.Proposal{}, adaptation.ValidationEvidence{}, adaptation.ReviewPublication{}, err
 	}
 	proposalDocument, err := contracts.DecodeAdaptationProposalV1(proposalData)
 	if err != nil {
-		return adaptation.Proposal{}, adaptation.ValidationEvidence{}, adaptation.ReviewPublication{}, err
+		return endpointrepair.Proposal{}, adaptation.ValidationEvidence{}, adaptation.ReviewPublication{}, err
 	}
 	proposal, err := adaptationcontract.ImportProposalV1(proposalDocument)
 	if err != nil {
-		return adaptation.Proposal{}, adaptation.ValidationEvidence{}, adaptation.ReviewPublication{}, err
+		return endpointrepair.Proposal{}, adaptation.ValidationEvidence{}, adaptation.ReviewPublication{}, err
 	}
 	evidenceData, err := readBounded(evidencePath, "validation evidence")
 	if err != nil {
-		return adaptation.Proposal{}, adaptation.ValidationEvidence{}, adaptation.ReviewPublication{}, err
+		return endpointrepair.Proposal{}, adaptation.ValidationEvidence{}, adaptation.ReviewPublication{}, err
 	}
 	evidenceDocument, err := contracts.DecodeValidationEvidenceV1(evidenceData)
 	if err != nil {
-		return adaptation.Proposal{}, adaptation.ValidationEvidence{}, adaptation.ReviewPublication{}, err
+		return endpointrepair.Proposal{}, adaptation.ValidationEvidence{}, adaptation.ReviewPublication{}, err
 	}
 	evidence, err := adaptationcontract.ImportValidationEvidenceV1(evidenceDocument)
 	if err != nil {
-		return adaptation.Proposal{}, adaptation.ValidationEvidence{}, adaptation.ReviewPublication{}, err
+		return endpointrepair.Proposal{}, adaptation.ValidationEvidence{}, adaptation.ReviewPublication{}, err
 	}
 	reviewData, err := readBounded(reviewPath, "adaptation review")
 	if err != nil {
-		return adaptation.Proposal{}, adaptation.ValidationEvidence{}, adaptation.ReviewPublication{}, err
+		return endpointrepair.Proposal{}, adaptation.ValidationEvidence{}, adaptation.ReviewPublication{}, err
 	}
 	reviewDocument, err := contracts.DecodeAdaptationReviewV1(reviewData)
 	if err != nil {
-		return adaptation.Proposal{}, adaptation.ValidationEvidence{}, adaptation.ReviewPublication{}, err
+		return endpointrepair.Proposal{}, adaptation.ValidationEvidence{}, adaptation.ReviewPublication{}, err
 	}
 	publication, err := adaptationcontract.ImportReviewV1(reviewDocument)
 	if err != nil {
-		return adaptation.Proposal{}, adaptation.ValidationEvidence{}, adaptation.ReviewPublication{}, err
+		return endpointrepair.Proposal{}, adaptation.ValidationEvidence{}, adaptation.ReviewPublication{}, err
 	}
 
 	return proposal, evidence, publication, nil

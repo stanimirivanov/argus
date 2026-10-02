@@ -45,6 +45,9 @@
   direct-database clients transitional.
 - [ADR-0023](../decisions/0023-separate-github-review-read-and-write-authority.md)
   separates source-read, draft-publication, and outcome-observation authority.
+- [ADR-0024](../decisions/0024-own-endpoint-repair-proposals-by-test-family.md)
+  gives functional API endpoint-repair proposal policy a family-owned domain
+  package without changing portable evidence contracts.
 - Queues and deployment topology remain deferred to ADRs and evidence from
   vertical slices.
 
@@ -346,7 +349,8 @@ the control plane framework-specific source knowledge or mutation authority:
 
 | Path | Owns | Must not own |
 |:--|:--|:--|
-| `internal/adaptation` | Proposal, validation, review-publication, and terminal-outcome vocabulary; endpoint rename and edit invariants; canonical evidence; stable errors; and policy versions | Generated contracts, process execution, filesystem access, or provider APIs |
+| `internal/adaptation` | Shared test references, byte-addressed edit structure, validation/review/outcome evidence, canonical evidence, and stable errors | Endpoint-rename proposal policy, generated contracts, process execution, filesystem access, or provider APIs |
+| `internal/adaptation/endpointrepair` | Functional API endpoint-rename proposal vocabulary, policy versions, adapter request/result invariants, and request-target edit semantics | Framework parsers, JSON, process execution, or source mutation |
 | `internal/adaptation/functionalapi` | Unique endpoint-rename proof, adapter port, proposal identity, result correlation, and constrained edit policy | Framework parsers, JSON, commands, source mutation, or review APIs |
 | `internal/adaptation/validation` | Three-phase outcome policy, exact span materialization, negative-control derivation, runner/workspace ports, restoration checks, and evidence assembly | Filesystem APIs, framework commands, JSON, persistence, or review APIs |
 | `internal/adaptation/review` | Proposal/evidence correlation, immutable-source reconstruction, deterministic review identity, review content, and the consumer-owned provider gateway | GitHub HTTP, credentials, JSON, merge policy, or reviewer outcomes |
