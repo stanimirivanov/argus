@@ -68,9 +68,9 @@ func Run(
 	if host == "" {
 		host = "github.com"
 	}
-	token := strings.TrimSpace(getenv("ARGUS_GITHUB_TOKEN"))
+	token := observationToken(getenv)
 	if token == "" {
-		return errors.New("ARGUS_GITHUB_TOKEN is required")
+		return errors.New("ARGUS_GITHUB_READ_TOKEN is required, or ARGUS_GITHUB_TOKEN for legacy single-token operation")
 	}
 	gateway, err := open(apiURL, host, token)
 	if err != nil {
@@ -96,6 +96,14 @@ func Run(
 	}
 
 	return nil
+}
+
+func observationToken(getenv func(string) string) string {
+	if token := strings.TrimSpace(getenv("ARGUS_GITHUB_READ_TOKEN")); token != "" {
+		return token
+	}
+
+	return strings.TrimSpace(getenv("ARGUS_GITHUB_TOKEN"))
 }
 
 func readInputs(

@@ -21,7 +21,7 @@ func TestPublishCreatesDraftAndExactRetryReturnsIt(t *testing.T) {
 	fixture := newGitHubFixture(t)
 	server := httptest.NewServer(fixture)
 	defer server.Close()
-	client := newTestClient(t, server)
+	client := newTestPublisher(t, server)
 	request := validPublicationRequest()
 
 	first, err := client.Publish(t.Context(), request)
@@ -50,7 +50,7 @@ func TestPublishRejectsDivergentDeterministicBranch(t *testing.T) {
 	fixture.current = []byte("changed by somebody else")
 	server := httptest.NewServer(fixture)
 	defer server.Close()
-	client := newTestClient(t, server)
+	client := newTestPublisher(t, server)
 
 	_, err := client.Publish(t.Context(), validPublicationRequest())
 	if !errors.Is(err, adaptation.ErrReviewConflict) {
@@ -64,12 +64,56 @@ func TestLoadSourceVerifiesStableRepositoryIdentity(t *testing.T) {
 	fixture.repositoryID = 999
 	server := httptest.NewServer(fixture)
 	defer server.Close()
-	client := newTestClient(t, server)
+	client := newTestSourceReader(t, server)
 	request := validPublicationRequest()
 
 	_, err := client.LoadSource(t.Context(), request.Repository, request.BaseRevision, request.Path)
 	if !errors.Is(err, adaptation.ErrReviewConflict) {
 		t.Fatalf("load transferred repository = %v, want conflict", err)
+	}
+}
+
+func TestSourceReadAndPublicationUseSeparateCredentials(t *testing.T) {
+	t.Parallel()
+	fixture := newGitHubFixture(t)
+	readServer := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		if request.Method != http.MethodGet || request.Header.Get("Authorization") != "Bearer read-token" {
+			t.Errorf("source reader used unexpected authority: %s %s", request.Method, request.Header.Get("Authorization"))
+			response.WriteHeader(http.StatusForbidden)
+			return
+		}
+		fixture.ServeHTTP(response, request)
+	}))
+	defer readServer.Close()
+	writeServer := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		if request.Header.Get("Authorization") != "Bearer write-token" {
+			t.Errorf("publisher used unexpected authority: %s", request.Header.Get("Authorization"))
+			response.WriteHeader(http.StatusForbidden)
+			return
+		}
+		fixture.ServeHTTP(response, request)
+	}))
+	defer writeServer.Close()
+	reader, err := NewSourceReader(ClientOptions{
+		HTTPClient: readServer.Client(), BaseURL: readServer.URL, Host: "github.com", Token: "read-token",
+	})
+	if err != nil {
+		t.Fatalf("create reader: %v", err)
+	}
+	publisher, err := NewPublisher(ClientOptions{
+		HTTPClient: writeServer.Client(), BaseURL: writeServer.URL, Host: "github.com", Token: "write-token",
+	})
+	if err != nil {
+		t.Fatalf("create publisher: %v", err)
+	}
+	request := validPublicationRequest()
+	content, err := reader.LoadSource(t.Context(), request.Repository, request.BaseRevision, request.Path)
+	if err != nil || digest(content) != request.OriginalSHA256 {
+		t.Fatalf("read immutable source: digest=%s err=%v", digest(content), err)
+	}
+	publication, err := publisher.Publish(t.Context(), request)
+	if err != nil || !publication.Draft {
+		t.Fatalf("publish with separate credential: %+v, %v", publication, err)
 	}
 }
 
@@ -96,7 +140,7 @@ func newGitHubFixture(t *testing.T) *githubFixture {
 func (fixture *githubFixture) ServeHTTP(response http.ResponseWriter, request *http.Request) { //nolint:gocognit // Stateful provider fixture covers one complete publication protocol.
 	fixture.mutex.Lock()
 	defer fixture.mutex.Unlock()
-	if request.Header.Get("Authorization") != "Bearer token" || request.Header.Get("X-GitHub-Api-Version") == "" {
+	if request.Header.Get("Authorization") == "" || request.Header.Get("X-GitHub-Api-Version") == "" {
 		fixture.testing.Error("missing GitHub authentication or API version")
 	}
 	switch {
@@ -177,9 +221,9 @@ func (fixture *githubFixture) writeJSON(response http.ResponseWriter, value any)
 	}
 }
 
-func newTestClient(t *testing.T, server *httptest.Server) *Client {
+func newTestPublisher(t *testing.T, server *httptest.Server) *Publisher {
 	t.Helper()
-	client, err := NewClient(ClientOptions{
+	client, err := NewPublisher(ClientOptions{
 		HTTPClient: server.Client(), BaseURL: server.URL, Host: "github.com", Token: "token",
 	})
 	if err != nil {
@@ -187,6 +231,18 @@ func newTestClient(t *testing.T, server *httptest.Server) *Client {
 	}
 
 	return client
+}
+
+func newTestSourceReader(t *testing.T, server *httptest.Server) *SourceReader {
+	t.Helper()
+	reader, err := NewSourceReader(ClientOptions{
+		HTTPClient: server.Client(), BaseURL: server.URL, Host: "github.com", Token: "token",
+	})
+	if err != nil {
+		t.Fatalf("create GitHub source reader: %v", err)
+	}
+
+	return reader
 }
 
 func TestClientRejectsGitHubRedirectWithoutForwardingToken(t *testing.T) {
@@ -201,7 +257,7 @@ func TestClientRejectsGitHubRedirectWithoutForwardingToken(t *testing.T) {
 		http.Redirect(response, request, target.URL, http.StatusFound)
 	}))
 	defer origin.Close()
-	client := newTestClient(t, origin)
+	client := newTestSourceReader(t, origin)
 	publication := validPublicationRequest()
 	_, err := client.LoadSource(t.Context(), publication.Repository, publication.BaseRevision, publication.Path)
 	if !errors.Is(err, adaptation.ErrUnavailable) || targetRequests.Load() != 0 {

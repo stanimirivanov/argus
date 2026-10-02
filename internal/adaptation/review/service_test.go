@@ -22,7 +22,7 @@ func TestPublishCreatesCorrelatedDraftRequest(t *testing.T) {
 		HeadRevision: revision(strings.Repeat("d", 40)), Draft: true, State: "open",
 		CreatedAt: time.Date(2026, 9, 27, 14, 0, 0, 0, time.UTC),
 	}}
-	publication, err := NewService(gateway).Publish(t.Context(), proposal, evidence, "main")
+	publication, err := NewService(gateway, gateway).Publish(t.Context(), proposal, evidence, "main")
 	if err != nil {
 		t.Fatalf("publish review: %v", err)
 	}
@@ -41,7 +41,7 @@ func TestPublishRejectsMismatchedEvidenceBeforeProviderWrite(t *testing.T) {
 	proposal, evidence, source := validReviewInputs()
 	evidence.ProposalID = strings.Repeat("e", 64)
 	gateway := &fakeGateway{source: source}
-	_, err := NewService(gateway).Publish(t.Context(), proposal, evidence, "main")
+	_, err := NewService(gateway, gateway).Publish(t.Context(), proposal, evidence, "main")
 	if !errors.Is(err, adaptation.ErrInvalid) || gateway.loaded {
 		t.Fatalf("publish mismatched evidence = %v, loaded=%v", err, gateway.loaded)
 	}
@@ -67,7 +67,7 @@ func TestPublishRejectsChangedSourceAndCandidateDigest(t *testing.T) {
 			candidateEvidence.Runs = append([]adaptation.ValidationRun{}, evidence.Runs...)
 			gateway := &fakeGateway{source: append([]byte{}, source...)}
 			mutate(gateway, &candidateEvidence)
-			_, err := NewService(gateway).Publish(t.Context(), proposal, candidateEvidence, "main")
+			_, err := NewService(gateway, gateway).Publish(t.Context(), proposal, candidateEvidence, "main")
 			if !errors.Is(err, adaptation.ErrInvalid) || gateway.published {
 				t.Fatalf("publish invalid source = %v, published=%v", err, gateway.published)
 			}

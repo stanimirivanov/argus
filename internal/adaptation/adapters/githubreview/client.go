@@ -1,4 +1,5 @@
-// Package githubreview publishes validated adaptation candidates as draft pull requests.
+// Package githubreview separates GitHub source reads, draft publication, and
+// terminal outcome observation behind role-specific concrete adapters.
 package githubreview
 
 import (
@@ -30,8 +31,9 @@ const (
 	maxJSONBytes      = 24 * 1024 * 1024
 )
 
-// Client owns GitHub REST calls for guarded branch, commit, and draft pull-request creation.
-type Client struct {
+// client owns transport and provider-policy mechanics shared by three narrow
+// concrete authorities. It is deliberately not exported as an all-purpose adapter.
+type client struct {
 	httpClient *http.Client
 	baseURL    *url.URL
 	host       string
@@ -40,7 +42,7 @@ type Client struct {
 	now        func() time.Time
 }
 
-// ClientOptions configures GitHub.com or one GitHub Enterprise API endpoint.
+// ClientOptions configures one scoped GitHub.com or GitHub Enterprise credential.
 type ClientOptions struct {
 	HTTPClient *http.Client
 	BaseURL    string
@@ -50,8 +52,8 @@ type ClientOptions struct {
 	Now        func() time.Time
 }
 
-// NewClient validates configuration without making a network request.
-func NewClient(options ClientOptions) (*Client, error) {
+// newClient validates configuration without making a network request.
+func newClient(options ClientOptions) (*client, error) {
 	baseURL, httpClient, err := githubtransport.Configure(options.BaseURL, options.HTTPClient, 30*time.Second)
 	if err != nil {
 		return nil, fmt.Errorf("configure GitHub review client: invalid API URL")
@@ -69,7 +71,7 @@ func NewClient(options ClientOptions) (*Client, error) {
 		now = time.Now
 	}
 
-	return &Client{
+	return &client{
 		httpClient: httpClient, baseURL: baseURL, host: host,
 		token: options.Token, apiVersion: apiVersion, now: now,
 	}, nil
@@ -77,7 +79,7 @@ func NewClient(options ClientOptions) (*Client, error) {
 
 // LoadSource returns bounded bytes from the exact immutable revision after
 // verifying that the current coordinates still identify the cataloged repository.
-func (client *Client) LoadSource(
+func (client *client) LoadSource(
 	ctx context.Context,
 	repository catalog.Repository,
 	revision catalog.Revision,
@@ -99,7 +101,7 @@ func (client *Client) LoadSource(
 
 // Publish creates or recovers a deterministic branch, one source-file commit,
 // and an open draft pull request. Existing divergent state is a conflict.
-func (client *Client) Publish(
+func (client *client) Publish(
 	ctx context.Context,
 	request review.PublicationRequest,
 ) (review.PublishedPullRequest, error) {
@@ -154,7 +156,7 @@ func (client *Client) Publish(
 
 // ObserveOutcome resolves one terminal pull request and captures the complete
 // bounded diff introduced after Argus' generated head revision.
-func (client *Client) ObserveOutcome(
+func (client *client) ObserveOutcome(
 	ctx context.Context,
 	publication adaptation.ReviewPublication,
 ) (outcome.TerminalReview, error) {
@@ -213,7 +215,7 @@ func (client *Client) ObserveOutcome(
 	}, nil
 }
 
-func (client *Client) pullRequest(
+func (client *client) pullRequest(
 	ctx context.Context,
 	publication adaptation.ReviewPublication,
 ) (pullRequestResponse, error) {
@@ -228,7 +230,7 @@ func (client *Client) pullRequest(
 	return response, nil
 }
 
-func (client *Client) compareReviewerEdits(
+func (client *client) compareReviewerEdits(
 	ctx context.Context,
 	repository catalog.Repository,
 	generated catalog.Revision,
@@ -314,7 +316,7 @@ func parseProviderTime(value string) (time.Time, error) {
 	return parsed.UTC(), nil
 }
 
-func (client *Client) validateRequest(request review.PublicationRequest) error {
+func (client *client) validateRequest(request review.PublicationRequest) error {
 	if !isSHA256(request.ReviewID) || request.Repository.Identity.Provider != catalog.ProviderGitHub ||
 		adaptation.ValidateRepository(request.Repository) != nil ||
 		adaptation.ValidateRevision(request.BaseRevision) != nil ||
@@ -331,7 +333,7 @@ func (client *Client) validateRequest(request review.PublicationRequest) error {
 	return nil
 }
 
-func (client *Client) validateCoordinates(
+func (client *client) validateCoordinates(
 	repository catalog.Repository,
 	revision catalog.Revision,
 	path string,
@@ -345,7 +347,7 @@ func (client *Client) validateCoordinates(
 	return nil
 }
 
-func (client *Client) verifyRepository(ctx context.Context, repository catalog.Repository) error {
+func (client *client) verifyRepository(ctx context.Context, repository catalog.Repository) error {
 	if strings.ToLower(repository.Identity.Host) != client.host {
 		return adaptation.ErrInvalid
 	}
@@ -361,7 +363,7 @@ func (client *Client) verifyRepository(ctx context.Context, repository catalog.R
 	return nil
 }
 
-func (client *Client) ensureBranch(ctx context.Context, request review.PublicationRequest) (string, error) {
+func (client *client) ensureBranch(ctx context.Context, request review.PublicationRequest) (string, error) {
 	path := client.repositoryPath(request.Repository) + "/git/ref/heads/" + escapePath(request.HeadBranch)
 	var existing referenceResponse
 	err := client.getJSON(ctx, path, &existing)
@@ -390,7 +392,7 @@ func (client *Client) ensureBranch(ctx context.Context, request review.Publicati
 	return created.Object.SHA, nil
 }
 
-func (client *Client) updateFile(
+func (client *client) updateFile(
 	ctx context.Context,
 	request review.PublicationRequest,
 	blobSHA string,
@@ -419,7 +421,7 @@ func (client *Client) updateFile(
 	return response.Commit.SHA, nil
 }
 
-func (client *Client) createPullRequest(
+func (client *client) createPullRequest(
 	ctx context.Context,
 	request review.PublicationRequest,
 	expectedHeadRevision string,
@@ -445,7 +447,7 @@ func (client *Client) createPullRequest(
 	return normalizePullRequest(response, request.BaseRevision.Algorithm)
 }
 
-func (client *Client) findPullRequest(
+func (client *client) findPullRequest(
 	ctx context.Context,
 	request review.PublicationRequest,
 ) (pullRequestResponse, bool, error) {
@@ -469,7 +471,7 @@ func (client *Client) findPullRequest(
 	return response[0], true, nil
 }
 
-func (client *Client) validateExistingReview(
+func (client *client) validateExistingReview(
 	ctx context.Context,
 	request review.PublicationRequest,
 	existing pullRequestResponse,
@@ -513,7 +515,7 @@ type loadedFile struct {
 	blobSHA string
 }
 
-func (client *Client) loadFile(
+func (client *client) loadFile(
 	ctx context.Context,
 	repository catalog.Repository,
 	reference string,
@@ -538,11 +540,11 @@ func (client *Client) loadFile(
 	return loadedFile{content: data, blobSHA: metadata.SHA}, nil
 }
 
-func (client *Client) repositoryPath(repository catalog.Repository) string {
+func (client *client) repositoryPath(repository catalog.Repository) string {
 	return "repos/" + url.PathEscape(repository.Owner) + "/" + url.PathEscape(repository.Name)
 }
 
-func (client *Client) getJSON(ctx context.Context, relativePath string, target any) error {
+func (client *client) getJSON(ctx context.Context, relativePath string, target any) error {
 	data, err := client.getBytes(ctx, relativePath, "application/vnd.github+json", maxJSONBytes)
 	if err != nil {
 		return err
@@ -554,7 +556,7 @@ func (client *Client) getJSON(ctx context.Context, relativePath string, target a
 	return nil
 }
 
-func (client *Client) getBytes(
+func (client *client) getBytes(
 	ctx context.Context,
 	relativePath string,
 	accept string,
@@ -584,7 +586,7 @@ func (client *Client) getBytes(
 	return data, nil
 }
 
-func (client *Client) sendJSON(
+func (client *client) sendJSON(
 	ctx context.Context,
 	method string,
 	relativePath string,
@@ -623,7 +625,7 @@ func (client *Client) sendJSON(
 	return nil
 }
 
-func (client *Client) newRequest(
+func (client *client) newRequest(
 	ctx context.Context,
 	method string,
 	relativePath string,

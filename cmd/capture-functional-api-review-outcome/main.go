@@ -34,7 +34,7 @@ func run(ctx context.Context, arguments []string) error {
 	return outcomecli.Run(
 		ctx, arguments, os.Stdout, os.Getenv,
 		func(apiURL, host, token string) (outcome.Gateway, error) {
-			return githubreview.NewClient(githubreview.ClientOptions{
+			return githubreview.NewOutcomeObserver(githubreview.ClientOptions{
 				BaseURL: apiURL, Host: host, Token: token,
 			})
 		},
