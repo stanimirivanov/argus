@@ -3,7 +3,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"os"
 	"os/signal"
@@ -12,14 +11,23 @@ import (
 	"github.com/stanimirivanov/argus/internal/adaptation/adapters/cli/proposalcli"
 	"github.com/stanimirivanov/argus/internal/adaptation/adapters/processadapter"
 	"github.com/stanimirivanov/argus/internal/adaptation/functionalapi"
+	"github.com/stanimirivanov/argus/internal/commandline"
 )
 
+var commandSpec = commandline.Spec{
+	Name:     "propose-functional-api-repair",
+	Synopsis: "propose-functional-api-repair -impact <path> -manifest <path> [options] -- <adapter-command>",
+	Role:     "CI worker",
+}
+
 func main() {
+	if code, handled := commandline.HandleMeta(os.Args[1:], os.Stdout, os.Stderr, commandSpec); handled {
+		os.Exit(code)
+	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	if err := run(ctx, os.Args[1:]); err != nil {
-		_, _ = fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+		os.Exit(commandline.Report(os.Stderr, err))
 	}
 }
 

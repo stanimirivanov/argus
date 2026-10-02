@@ -3,24 +3,26 @@ package planningcli
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/stanimirivanov/argus/internal/commandline"
 	"github.com/stanimirivanov/argus/internal/contracts"
 )
 
 func TestRunValidatesArguments(t *testing.T) {
 	t.Parallel()
-	if err := Run(t.Context(), nil, nil, &bytes.Buffer{}); err == nil ||
+	if err := Run(t.Context(), nil, nil, &bytes.Buffer{}); !errors.Is(err, commandline.ErrUsage) ||
 		!strings.Contains(err.Error(), "usage: plan-functional-api") {
 		t.Fatalf("missing arguments error = %v", err)
 	}
 	if err := Run(
 		t.Context(), []string{"-manifest", "-", "-bindings", "-"},
 		strings.NewReader("{}"), &bytes.Buffer{},
-	); err == nil || !strings.Contains(err.Error(), "usage: plan-functional-api") {
+	); !errors.Is(err, commandline.ErrUsage) || !strings.Contains(err.Error(), "usage: plan-functional-api") {
 		t.Fatalf("two stdin documents error = %v", err)
 	}
 }

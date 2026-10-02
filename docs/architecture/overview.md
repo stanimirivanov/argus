@@ -40,6 +40,9 @@
 - [ADR-0021](../decisions/0021-keep-go-contract-dtos-product-internal.md)
   confines hand-written Go wire DTOs to the product while preserving portable
   Effect and JSON Schema contracts.
+- [ADR-0022](../decisions/0022-keep-purpose-specific-command-boundaries.md)
+  retains separate server, administrator, and worker executables while marking
+  direct-database clients transitional.
 - Queues and deployment topology remain deferred to ADRs and evidence from
   vertical slices.
 
@@ -179,6 +182,11 @@ bounded pool and the separately opened `Migrator` owns schema administration.
 Domain structs intentionally have no
 JSON tags: the descriptor DTO, command output DTO, and persisted fingerprint
 are distinct compatibility boundaries and evolve independently.
+
+Across capabilities, `internal/commandline` owns only top-level executable
+help, build identity, and typed usage-exit classification. Command roots and
+authorized CLI argument adapters may import it; domain and application code
+may not. Capability flag parsing remains with each CLI adapter.
 
 Go transport DTOs are confined to `internal/contracts`; only explicitly
 authorized CLI, process-protocol, and contract-conversion adapters import them.

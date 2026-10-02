@@ -11,6 +11,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/stanimirivanov/argus/internal/commandline"
 	"github.com/stanimirivanov/argus/internal/contracts"
 	executioncontract "github.com/stanimirivanov/argus/internal/execution/adapters/contract"
 	"github.com/stanimirivanov/argus/internal/execution/attempts"
@@ -64,11 +65,11 @@ func runIngest(
 	flags := flag.NewFlagSet("execution-evidence ingest", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
 	filePath := flags.String("file", "", "execution attempt path, or - for stdin")
-	if err := flags.Parse(arguments); err != nil {
+	if err := commandline.Parse(flags, arguments); err != nil {
 		return fmt.Errorf("execution-evidence ingest: %w", err)
 	}
 	if *filePath == "" || flags.NArg() != 0 {
-		return errors.New("usage: execution-evidence ingest -file <path|->")
+		return commandline.UsageText("usage: execution-evidence ingest -file <path|->")
 	}
 	data, err := readEvidenceDocument(*filePath, stdin, "execution attempt")
 	if err != nil {
@@ -111,12 +112,12 @@ func runPlanShadowReport(
 	flags.SetOutput(io.Discard)
 	planPath := flags.String("plan", "", "execution plan path, or - for stdin")
 	bindingsPath := flags.String("attempt-bindings", "", "attempt bindings path, or - for stdin")
-	if err := flags.Parse(arguments); err != nil {
+	if err := commandline.Parse(flags, arguments); err != nil {
 		return fmt.Errorf("execution-evidence plan-shadow-report: %w", err)
 	}
 	if *planPath == "" || *bindingsPath == "" || flags.NArg() != 0 ||
 		(*planPath == "-" && *bindingsPath == "-") {
-		return errors.New("usage: execution-evidence plan-shadow-report " +
+		return commandline.UsageText("usage: execution-evidence plan-shadow-report " +
 			"-plan <path|-> -attempt-bindings <path|->")
 	}
 	planData, err := readEvidenceDocument(*planPath, stdin, "execution plan")
@@ -176,11 +177,11 @@ func runShadowReport(
 	flags.SetOutput(io.Discard)
 	selectedID := flags.String("selected-attempt", "", "selected-stage attempt ID")
 	fullSuiteID := flags.String("full-suite-attempt", "", "full-suite-stage attempt ID")
-	if err := flags.Parse(arguments); err != nil {
+	if err := commandline.Parse(flags, arguments); err != nil {
 		return fmt.Errorf("execution-evidence shadow-report: %w", err)
 	}
 	if *selectedID == "" || *fullSuiteID == "" || flags.NArg() != 0 {
-		return errors.New("usage: execution-evidence shadow-report " +
+		return commandline.UsageText("usage: execution-evidence shadow-report " +
 			"-selected-attempt <id> -full-suite-attempt <id>")
 	}
 	runtime, err := openStore(ctx, databaseURL, open)
@@ -262,5 +263,5 @@ func encodeJSON(output io.Writer, value any) error {
 }
 
 func usageError() error {
-	return errors.New("usage: execution-evidence <ingest|shadow-report|plan-shadow-report> [options]")
+	return commandline.UsageText("usage: execution-evidence <ingest|shadow-report|plan-shadow-report> [options]")
 }

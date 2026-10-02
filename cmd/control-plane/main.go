@@ -20,6 +20,7 @@ import (
 	changeimpact "github.com/stanimirivanov/argus/internal/change/impact"
 	"github.com/stanimirivanov/argus/internal/change/ingest"
 	"github.com/stanimirivanov/argus/internal/change/workflow"
+	"github.com/stanimirivanov/argus/internal/commandline"
 	"github.com/stanimirivanov/argus/internal/postgres"
 )
 
@@ -28,11 +29,24 @@ const (
 	shutdownPeriod = 10 * time.Second
 )
 
+var commandSpec = commandline.Spec{
+	Name:     componentName,
+	Synopsis: componentName,
+	Role:     "server",
+}
+
 func main() {
 	os.Exit(realMain())
 }
 
 func realMain() int {
+	if code, handled := commandline.HandleMeta(os.Args[1:], os.Stdout, os.Stderr, commandSpec); handled {
+		return code
+	}
+	if len(os.Args) != 1 {
+		return commandline.Report(os.Stderr, commandline.UsageText("usage: control-plane"))
+	}
+
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 

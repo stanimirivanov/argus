@@ -14,6 +14,7 @@ import (
 	"github.com/stanimirivanov/argus/internal/adaptation"
 	adaptationcontract "github.com/stanimirivanov/argus/internal/adaptation/adapters/contract"
 	"github.com/stanimirivanov/argus/internal/adaptation/validation"
+	"github.com/stanimirivanov/argus/internal/commandline"
 	"github.com/stanimirivanov/argus/internal/contracts"
 )
 
@@ -42,12 +43,12 @@ func Run(
 	proposalPath := flags.String("proposal", "", "adaptation proposal JSON path")
 	workspaceRoot := flags.String("disposable-workspace", "", "disposable test checkout root")
 	timeout := flags.Duration("timeout", 30*time.Minute, "maximum complete validation runtime")
-	if err := flags.Parse(arguments); err != nil {
+	if err := commandline.Parse(flags, arguments); err != nil {
 		return fmt.Errorf("validate functional API repair: %w", err)
 	}
 	command := flags.Args()
 	if *proposalPath == "" || *workspaceRoot == "" || len(command) == 0 {
-		return errors.New("usage: validate-functional-api-repair -proposal <path> " +
+		return commandline.UsageText("usage: validate-functional-api-repair -proposal <path> " +
 			"-disposable-workspace <path> -- <command> [args...]")
 	}
 	if *timeout <= 0 || *timeout > maxTimeout {

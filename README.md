@@ -13,6 +13,8 @@
 - The current end-to-end slice covers functional API cataloging, impact,
   selection, execution evidence, bounded repair, validation, and review
   outcomes; later test families remain planned work.
+- Purpose-specific executables expose safe top-level help and build identity;
+  direct-database clients remain transitional, not ordinary CI dependencies.
 
 Argus is an adaptive test intelligence and evolution platform. It determines
 which tests should run for a software change, identifies stale or missing test
@@ -77,6 +79,25 @@ configured loopback test server.
 pinned in the Go modules and pnpm lock files; `make verify` is
 network-independent afterward. Vulnerability scans also require access to the
 Go and npm advisory databases unless they are current in local caches.
+
+## Command roles and diagnostics
+
+Argus keeps separate executables for the server (`control-plane`), privileged
+schema administration (`migrate`), and CI/local workers (`descriptor`, planning,
+execution, proposal, validation, and review commands). `catalog`, `select`,
+`execution-evidence`, and `adaptation-evidence` still access PostgreSQL directly
+to support the current vertical slice; they are transitional clients, not a
+pattern for new CI integrations. [ADR-0022](docs/decisions/0022-keep-purpose-specific-command-boundaries.md)
+records the authority boundary.
+
+Every executable accepts a standalone leading `--help` or `--version`
+(`-h` and `-version` also work) before loading credentials, connecting to a
+database, or starting an adapter. Help describes the top-level invocation and
+role; it does not yet promise subcommand-specific help. Version uses Go build
+metadata and reports an explicit `devel`/`unknown` fallback when provenance is
+unavailable. Built executables exit 0 for success or metadata, 1 for operational
+failure, and 2 for invalid command syntax. `go run` may wrap a child's nonzero
+exit status; use a built binary when a script needs the exact code.
 
 ## Run the control plane
 

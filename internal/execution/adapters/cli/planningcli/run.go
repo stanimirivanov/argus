@@ -4,12 +4,12 @@ package planningcli
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"os"
 
+	"github.com/stanimirivanov/argus/internal/commandline"
 	"github.com/stanimirivanov/argus/internal/contracts"
 	executioncontract "github.com/stanimirivanov/argus/internal/execution/adapters/contract"
 	"github.com/stanimirivanov/argus/internal/execution/planning"
@@ -24,12 +24,12 @@ func Run(_ context.Context, arguments []string, stdin io.Reader, stdout io.Write
 	flags.SetOutput(io.Discard)
 	manifestPath := flags.String("manifest", "", "execution manifest path, or - for stdin")
 	bindingsPath := flags.String("bindings", "", "reviewed execution bindings path, or - for stdin")
-	if err := flags.Parse(arguments); err != nil {
+	if err := commandline.Parse(flags, arguments); err != nil {
 		return fmt.Errorf("plan functional API execution: %w", err)
 	}
 	if *manifestPath == "" || *bindingsPath == "" || flags.NArg() != 0 ||
 		(*manifestPath == "-" && *bindingsPath == "-") {
-		return errors.New("usage: plan-functional-api -manifest <path|-> -bindings <path|->")
+		return commandline.UsageText("usage: plan-functional-api -manifest <path|-> -bindings <path|->")
 	}
 
 	manifestData, err := readDocument(*manifestPath, stdin, "execution manifest")

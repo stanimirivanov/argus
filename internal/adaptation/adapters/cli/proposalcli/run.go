@@ -17,6 +17,7 @@ import (
 	"github.com/stanimirivanov/argus/internal/catalog"
 	"github.com/stanimirivanov/argus/internal/change"
 	changecontract "github.com/stanimirivanov/argus/internal/change/adapters/contract"
+	"github.com/stanimirivanov/argus/internal/commandline"
 	"github.com/stanimirivanov/argus/internal/contracts"
 	"github.com/stanimirivanov/argus/internal/selection"
 	selectioncontract "github.com/stanimirivanov/argus/internal/selection/adapters/contract"
@@ -49,13 +50,13 @@ func Run(
 	revisionAlgorithm := flags.String("test-revision-algorithm", string(catalog.RevisionGitSHA1), "test revision algorithm")
 	revisionDigest := flags.String("test-revision", "", "immutable test repository revision")
 	timeout := flags.Duration("timeout", 2*time.Minute, "maximum adapter runtime")
-	if err := flags.Parse(arguments); err != nil {
+	if err := commandline.Parse(flags, arguments); err != nil {
 		return fmt.Errorf("propose functional API repair: %w", err)
 	}
 	command := flags.Args()
 	if *impactPath == "" || *manifestPath == "" || *repositoryID == "" || *suiteKey == "" ||
 		*testKey == "" || *revisionDigest == "" || len(command) == 0 {
-		return errors.New("usage: propose-functional-api-repair -impact <path> -manifest <path> " +
+		return commandline.UsageText("usage: propose-functional-api-repair -impact <path> -manifest <path> " +
 			"-test-repository-id <id> -suite-key <key> -test-key <key> -test-revision <digest> -- <command> [args...]")
 	}
 	if *timeout <= 0 || *timeout > maxTimeout {

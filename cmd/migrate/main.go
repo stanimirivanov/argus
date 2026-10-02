@@ -10,18 +10,30 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/stanimirivanov/argus/internal/commandline"
 	"github.com/stanimirivanov/argus/internal/postgres"
 )
 
 const databaseURLEnvironment = "ARGUS_DATABASE_URL"
 
+var commandSpec = commandline.Spec{
+	Name:     "migrate",
+	Synopsis: "migrate",
+	Role:     "administrator",
+}
+
 func main() {
+	if code, handled := commandline.HandleMeta(os.Args[1:], os.Stdout, os.Stderr, commandSpec); handled {
+		os.Exit(code)
+	}
+	if len(os.Args) != 1 {
+		os.Exit(commandline.Report(os.Stderr, commandline.UsageText("usage: migrate")))
+	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
 	if err := run(ctx, os.Getenv(databaseURLEnvironment), os.Stdout); err != nil {
-		_, _ = fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+		os.Exit(commandline.Report(os.Stderr, err))
 	}
 }
 

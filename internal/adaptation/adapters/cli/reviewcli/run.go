@@ -15,6 +15,7 @@ import (
 	"github.com/stanimirivanov/argus/internal/adaptation"
 	adaptationcontract "github.com/stanimirivanov/argus/internal/adaptation/adapters/contract"
 	"github.com/stanimirivanov/argus/internal/adaptation/review"
+	"github.com/stanimirivanov/argus/internal/commandline"
 	"github.com/stanimirivanov/argus/internal/contracts"
 )
 
@@ -40,11 +41,11 @@ func Run(
 	evidencePath := flags.String("validation-evidence", "", "successful validation evidence JSON path")
 	baseBranch := flags.String("base-branch", "", "review pull request base branch")
 	timeout := flags.Duration("timeout", 2*time.Minute, "maximum GitHub publication runtime")
-	if err := flags.Parse(arguments); err != nil {
+	if err := commandline.Parse(flags, arguments); err != nil {
 		return fmt.Errorf("open functional API repair pull request: %w", err)
 	}
 	if *proposalPath == "" || *evidencePath == "" || *baseBranch == "" || flags.NArg() != 0 {
-		return errors.New("usage: open-functional-api-repair-pr -proposal <path> " +
+		return commandline.UsageText("usage: open-functional-api-repair-pr -proposal <path> " +
 			"-validation-evidence <path> -base-branch <branch>")
 	}
 	if *timeout <= 0 || *timeout > maxTimeout {

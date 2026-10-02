@@ -11,6 +11,7 @@ import (
 
 	"github.com/stanimirivanov/argus/internal/catalog"
 	"github.com/stanimirivanov/argus/internal/catalog/testquery"
+	"github.com/stanimirivanov/argus/internal/commandline"
 	"github.com/stanimirivanov/argus/internal/contracts"
 	"github.com/stanimirivanov/argus/internal/selection/adapters/catalogreader"
 	selectioncontract "github.com/stanimirivanov/argus/internal/selection/adapters/contract"
@@ -45,11 +46,11 @@ func Run(
 		contracts.RepositoryDescriptorV1APIVersion,
 		"base catalog descriptor API version",
 	)
-	if err := flags.Parse(arguments); err != nil {
+	if err := commandline.Parse(flags, arguments); err != nil {
 		return fmt.Errorf("select: %w", err)
 	}
 	if *deliveryID == "" || flags.NArg() != 0 {
-		return errors.New("usage: select [-provider github] -delivery-id <id>")
+		return commandline.UsageText("usage: select [-provider github] -delivery-id <id>")
 	}
 	if databaseURL == "" {
 		return errors.New("ARGUS_DATABASE_URL is required")

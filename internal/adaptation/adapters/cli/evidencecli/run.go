@@ -12,6 +12,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/stanimirivanov/argus/internal/commandline"
+
 	adaptationcontract "github.com/stanimirivanov/argus/internal/adaptation/adapters/contract"
 	"github.com/stanimirivanov/argus/internal/adaptation/outcome"
 	"github.com/stanimirivanov/argus/internal/adaptation/validation"
@@ -67,11 +69,11 @@ func runIngestValidationRejection(
 	flags := flag.NewFlagSet("adaptation-evidence ingest-validation-rejection", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
 	filePath := flags.String("file", "", "validation rejection path, or - for stdin")
-	if err := flags.Parse(arguments); err != nil {
+	if err := commandline.Parse(flags, arguments); err != nil {
 		return fmt.Errorf("adaptation-evidence ingest-validation-rejection: %w", err)
 	}
 	if *filePath == "" || flags.NArg() != 0 {
-		return errors.New("usage: adaptation-evidence ingest-validation-rejection -file <path|->")
+		return commandline.UsageText("usage: adaptation-evidence ingest-validation-rejection -file <path|->")
 	}
 	data, err := readEvidenceDocument(*filePath, stdin)
 	if err != nil {
@@ -112,11 +114,11 @@ func runGetValidationRejection(
 	flags := flag.NewFlagSet("adaptation-evidence get-validation-rejection", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
 	validationID := flags.String("validation-id", "", "validation rejection SHA-256 identity")
-	if err := flags.Parse(arguments); err != nil {
+	if err := commandline.Parse(flags, arguments); err != nil {
 		return fmt.Errorf("adaptation-evidence get-validation-rejection: %w", err)
 	}
 	if !validOutcomeID(*validationID) || flags.NArg() != 0 {
-		return errors.New("usage: adaptation-evidence get-validation-rejection -validation-id <sha256>")
+		return commandline.UsageText("usage: adaptation-evidence get-validation-rejection -validation-id <sha256>")
 	}
 	runtime, err := openStore(ctx, databaseURL, open)
 	if err != nil {
@@ -147,11 +149,11 @@ func runIngest(
 	flags := flag.NewFlagSet("adaptation-evidence ingest", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
 	filePath := flags.String("file", "", "review outcome path, or - for stdin")
-	if err := flags.Parse(arguments); err != nil {
+	if err := commandline.Parse(flags, arguments); err != nil {
 		return fmt.Errorf("adaptation-evidence ingest: %w", err)
 	}
 	if *filePath == "" || flags.NArg() != 0 {
-		return errors.New("usage: adaptation-evidence ingest -file <path|->")
+		return commandline.UsageText("usage: adaptation-evidence ingest -file <path|->")
 	}
 	data, err := readEvidenceDocument(*filePath, stdin)
 	if err != nil {
@@ -192,11 +194,11 @@ func runGet(
 	flags := flag.NewFlagSet("adaptation-evidence get", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
 	outcomeID := flags.String("outcome-id", "", "review outcome SHA-256 identity")
-	if err := flags.Parse(arguments); err != nil {
+	if err := commandline.Parse(flags, arguments); err != nil {
 		return fmt.Errorf("adaptation-evidence get: %w", err)
 	}
 	if !validOutcomeID(*outcomeID) || flags.NArg() != 0 {
-		return errors.New("usage: adaptation-evidence get -outcome-id <sha256>")
+		return commandline.UsageText("usage: adaptation-evidence get -outcome-id <sha256>")
 	}
 	runtime, err := openStore(ctx, databaseURL, open)
 	if err != nil {
@@ -286,6 +288,6 @@ func encodeJSON(output io.Writer, value any) error {
 }
 
 func usageError() error {
-	return errors.New("usage: adaptation-evidence " +
+	return commandline.UsageText("usage: adaptation-evidence " +
 		"<ingest|get|ingest-validation-rejection|get-validation-rejection> [options]")
 }
