@@ -9,6 +9,7 @@ import (
 
 	"github.com/stanimirivanov/argus/internal/catalog"
 	"github.com/stanimirivanov/argus/internal/change"
+	"github.com/stanimirivanov/argus/internal/change/ingest"
 	"github.com/stanimirivanov/argus/internal/selection"
 )
 
@@ -92,10 +93,77 @@ func TestReaderBoundsUnresolvedEvidenceSample(t *testing.T) {
 	}
 }
 
-type stubSource struct{ impact change.CapabilityImpact }
+func TestBrowserImpactRequiresEveryChangedFileToBeAnalyzed(t *testing.T) {
+	t.Parallel()
+	impact := validImpact()
+	tests := []struct {
+		name    string
+		mutate  func(*change.Set)
+		covered bool
+	}{
+		{"OpenAPI document only", func(*change.Set) {}, true},
+		{"UI source also changed", func(set *change.Set) {
+			set.Files = append(set.Files, change.File{Path: "web/checkout.tsx", Kind: change.KindModified,
+				PatchStatus: change.PatchUnavailable})
+		}, false},
+		{"provider file list truncated", func(set *change.Set) { set.FilesTruncated = true }, false},
+		{"different changed document", func(set *change.Set) { set.Files[0].Path = "api/other.yaml" }, false},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			set := validSet(impact)
+			test.mutate(&set)
+			projection, err := New(stubSource{impact: impact, set: set}).ReadBrowserImpact(
+				t.Context(), catalog.ProviderGitHub, "delivery-42")
+			if err != nil {
+				t.Fatalf("read browser impact: %v", err)
+			}
+			if projection.BrowserChangeCovered != test.covered {
+				t.Fatalf("browser coverage = %t, want %t", projection.BrowserChangeCovered, test.covered)
+			}
+		})
+	}
+}
+
+func TestBrowserImpactRejectsMismatchedChangeProvenance(t *testing.T) {
+	t.Parallel()
+	impact := validImpact()
+	set := validSet(impact)
+	set.PullRequestNumber++
+	_, err := New(stubSource{impact: impact, set: set}).ReadBrowserImpact(
+		t.Context(), catalog.ProviderGitHub, "delivery-42")
+	if !errors.Is(err, selection.ErrUnavailable) {
+		t.Fatalf("mismatched delivery error = %v", err)
+	}
+}
+
+type stubSource struct {
+	impact change.CapabilityImpact
+	set    change.Set
+}
 
 func (source stubSource) FindCapabilityImpact(context.Context, catalog.Provider, string) (change.CapabilityImpact, error) {
 	return source.impact, nil
+}
+
+func (source stubSource) FindDelivery(context.Context, catalog.Provider, string) (ingest.StoredDelivery, error) {
+	if source.set.APIVersion == "" {
+		return ingest.StoredDelivery{ChangeSet: validSet(source.impact)}, nil
+	}
+	return ingest.StoredDelivery{ChangeSet: source.set}, nil
+}
+
+func validSet(impact change.CapabilityImpact) change.Set {
+	reference := impact.Change
+
+	return change.Set{
+		APIVersion: change.SetAPIVersion, SourceRepository: reference.SourceRepository,
+		PullRequestNumber: reference.PullRequestNumber, BaseRevision: reference.BaseRevision,
+		HeadRevision: reference.HeadRevision, ObservedAt: reference.ObservedAt, Trigger: reference.Trigger,
+		Files: []change.File{{Path: "api/openapi.yaml", Kind: change.KindModified,
+			PatchStatus: change.PatchUnavailable}},
+	}
 }
 
 func validImpact() change.CapabilityImpact {

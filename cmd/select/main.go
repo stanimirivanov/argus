@@ -1,4 +1,4 @@
-// Command select generates an explainable functional API execution manifest.
+// Command select generates an explainable test-family execution manifest.
 package main
 
 import (
@@ -14,7 +14,7 @@ import (
 
 var commandSpec = commandline.Spec{
 	Name:     "select",
-	Synopsis: "select [-provider github] -delivery-id <id>",
+	Synopsis: "select [-provider github] [-family functional-api|functional-ui] -delivery-id <id>",
 	Role:     "transitional direct-database client",
 }
 

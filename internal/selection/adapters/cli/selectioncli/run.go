@@ -16,7 +16,7 @@ import (
 	"github.com/stanimirivanov/argus/internal/selection/adapters/catalogreader"
 	selectioncontract "github.com/stanimirivanov/argus/internal/selection/adapters/contract"
 	"github.com/stanimirivanov/argus/internal/selection/adapters/impactreader"
-	"github.com/stanimirivanov/argus/internal/selection/functionalapi"
+	"github.com/stanimirivanov/argus/internal/selection/capabilitymapped"
 )
 
 // Runtime is the infrastructure required by the selection command.
@@ -29,7 +29,8 @@ type Runtime interface {
 // OpenRuntime creates infrastructure after arguments are validated.
 type OpenRuntime func(context.Context, string) (Runtime, error)
 
-// Run creates one functional API execution manifest.
+// Run creates one versioned capability-selection manifest for the requested
+// test family. The default preserves the functional API v1 command behavior.
 func Run(
 	ctx context.Context,
 	arguments []string,
@@ -40,6 +41,7 @@ func Run(
 	flags := flag.NewFlagSet("select", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
 	provider := flags.String("provider", string(catalog.ProviderGitHub), "delivery provider")
+	family := flags.String("family", string(catalog.TestFamilyFunctionalAPI), "test family: functional-api or functional-ui")
 	deliveryID := flags.String("delivery-id", "", "verified provider delivery ID")
 	descriptorVersion := flags.String(
 		"descriptor-api-version",
@@ -49,8 +51,9 @@ func Run(
 	if err := commandline.Parse(flags, arguments); err != nil {
 		return fmt.Errorf("select: %w", err)
 	}
-	if *deliveryID == "" || flags.NArg() != 0 {
-		return commandline.UsageText("usage: select [-provider github] -delivery-id <id>")
+	if *deliveryID == "" || flags.NArg() != 0 ||
+		(*family != string(catalog.TestFamilyFunctionalAPI) && *family != string(catalog.TestFamilyFunctionalUI)) {
+		return commandline.UsageText("usage: select [-provider github] [-family functional-api|functional-ui] -delivery-id <id>")
 	}
 	if databaseURL == "" {
 		return errors.New("ARGUS_DATABASE_URL is required")
@@ -64,17 +67,22 @@ func Run(
 	}
 	defer runtime.Close()
 
-	service := functionalapi.NewService(impactreader.New(runtime), catalogreader.New(runtime))
-	manifest, err := service.Select(ctx, functionalapi.Request{
+	service := capabilitymapped.NewService(impactreader.New(runtime), catalogreader.New(runtime))
+	manifest, err := service.Select(ctx, capabilitymapped.Request{
 		Provider: catalog.Provider(*provider), DeliveryID: *deliveryID,
-		DescriptorAPIVersion: *descriptorVersion,
+		DescriptorAPIVersion: *descriptorVersion, Family: catalog.TestFamily(*family),
 	})
 	if err != nil {
-		return fmt.Errorf("select functional API tests: %w", err)
+		return fmt.Errorf("select %s tests: %w", *family, err)
 	}
-	document, err := selectioncontract.ExportV1(manifest)
+	var document any
+	if manifest.Family == catalog.TestFamilyFunctionalUI {
+		document, err = selectioncontract.ExportV2(manifest)
+	} else {
+		document, err = selectioncontract.ExportV1(manifest)
+	}
 	if err != nil {
-		return err
+		return fmt.Errorf("export %s manifest: %w", *family, err)
 	}
 	encoder := json.NewEncoder(output)
 	encoder.SetIndent("", "  ")

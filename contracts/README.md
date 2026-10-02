@@ -21,6 +21,8 @@
 - Execution-manifest v1 records deterministic functional API inclusion and
   omission decisions, immutable input provenance, remaining-suite obligations,
   and uncovered capabilities.
+- Execution-manifest v2 records capability-based `functional-ui` decisions for
+  OpenAPI-only changes; unknown UI impact conservatively requires every test.
 - Functional API adapter request/result v1 and execution-attempt v1 provide a
   bounded framework-neutral CI execution boundary with exact result
   correlation.
@@ -72,6 +74,7 @@ actually fetched.
 | `source/change-set-v1.ts` | Authoritative normalized pull-request change contract. |
 | `source/capability-impact-v1.ts` | Authoritative semantic OpenAPI capability-impact result. |
 | `source/execution-manifest-v1.ts` | Authoritative functional API execution-manifest result. |
+| `source/execution-manifest-v2.ts` | Authoritative functional UI capability-selection result. |
 | `source/functional-api-execution-v1.ts` | Authoritative adapter request/result and normalized execution-attempt contracts. |
 | `source/functional-api-execution-plan-v1.ts` | Authoritative reviewed execution-bindings and generated execution-plan contracts. |
 | `source/selection-shadow-report-v1.ts` | Authoritative selected-versus-full-suite shadow report contract. |
@@ -92,6 +95,7 @@ actually fetched.
 | `fixtures/change-set/v1/` | Positive and negative normalized-change fixtures. |
 | `fixtures/capability-impact/v1/` | Positive and negative semantic-impact fixtures. |
 | `fixtures/execution-manifest/v1/` | Positive and negative selection-manifest fixtures. |
+| `fixtures/execution-manifest/v2/` | Browser capability-selection compatibility fixture. |
 | `fixtures/functional-api-adapter-request/v1/` | Adapter request conformance fixtures. |
 | `fixtures/functional-api-adapter-result/v1/` | Adapter result conformance fixtures. |
 | `fixtures/execution-attempt/v1/` | Normalized attempt conformance fixtures. |
@@ -144,8 +148,8 @@ The family vocabulary is descriptive, not an implementation claim:
 |:--|:--:|:--:|:--:|
 | Unit | Yes | No | No |
 | Component, contract, integration | Yes | Later | No committed scope |
-| Functional API | Yes | Planned first | Narrow validated repairs planned |
-| Functional UI | Yes | After API | Narrow locator repairs planned |
+| Functional API | Yes | Selection and execution evidence | Narrow validated repairs |
+| Functional UI | Yes | Selection for fully covered API changes only; no execution yet | Narrow locator repairs planned |
 | End-to-end | Yes | Later | Review-first at most |
 | Performance | Yes | Delegated to Perfeng | Delegated to Perfeng |
 | Security, resilience, other | Yes | Policy-dependent later | No committed scope |

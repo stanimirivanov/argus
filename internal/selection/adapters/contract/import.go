@@ -16,6 +16,18 @@ func ImportV1(document contracts.ExecutionManifestV1) (selection.Manifest, error
 	if err := contracts.ValidateExecutionManifestV1(document); err != nil {
 		return selection.Manifest{}, err
 	}
+	return importValidatedManifest(document)
+}
+
+// ImportV2 converts a browser selection document into the domain manifest.
+func ImportV2(document contracts.ExecutionManifestV2) (selection.Manifest, error) {
+	if err := contracts.ValidateExecutionManifestV2(document); err != nil {
+		return selection.Manifest{}, err
+	}
+	return importValidatedManifest(contracts.ExecutionManifestV1(document))
+}
+
+func importValidatedManifest(document contracts.ExecutionManifestV1) (selection.Manifest, error) {
 	observedAt, err := time.Parse(time.RFC3339Nano, document.Change.ObservedAt)
 	if err != nil {
 		return selection.Manifest{}, fmt.Errorf("parse manifest observation time: %w", err)

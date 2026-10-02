@@ -7,12 +7,12 @@ import (
 	"github.com/stanimirivanov/argus/internal/catalog"
 	"github.com/stanimirivanov/argus/internal/catalog/testquery"
 	"github.com/stanimirivanov/argus/internal/selection"
-	"github.com/stanimirivanov/argus/internal/selection/functionalapi"
+	"github.com/stanimirivanov/argus/internal/selection/capabilitymapped"
 )
 
 const maxScannedCatalogTests = 50_000
 
-// Reader scans immutable catalog pages and retains bounded functional API tests.
+// Reader scans immutable catalog pages and retains bounded tests of one family.
 type Reader struct {
 	source testquery.TestCatalogReader
 }
@@ -22,16 +22,18 @@ func New(source testquery.TestCatalogReader) *Reader {
 	return &Reader{source: source}
 }
 
-// ReadFunctionalAPICatalog returns all functional API candidates or fails
-// closed when either the candidate or scan bound would be exceeded.
-func (reader *Reader) ReadFunctionalAPICatalog(
+// ReadCatalog returns every candidate of the requested family or fails closed
+// when either the candidate or scan bound would be exceeded.
+func (reader *Reader) ReadCatalog(
 	ctx context.Context,
 	key catalog.SnapshotKey,
-) (functionalapi.Catalog, error) {
-	if reader == nil || reader.source == nil || !key.Valid() {
-		return functionalapi.Catalog{}, selection.ErrInvalid
+	family catalog.TestFamily,
+) (capabilitymapped.Catalog, error) {
+	if reader == nil || reader.source == nil || !key.Valid() ||
+		(family != catalog.TestFamilyFunctionalAPI && family != catalog.TestFamilyFunctionalUI) {
+		return capabilitymapped.Catalog{}, selection.ErrInvalid
 	}
-	result := functionalapi.Catalog{Tests: make([]selection.TestReference, 0)}
+	result := capabilitymapped.Catalog{Tests: make([]selection.TestReference, 0)}
 	var after *catalog.TestIdentity
 	scanned := 0
 	for {
@@ -39,14 +41,14 @@ func (reader *Reader) ReadFunctionalAPICatalog(
 			Snapshot: key, Limit: testquery.MaxTestCatalogPageSize, After: after,
 		})
 		if err != nil {
-			return functionalapi.Catalog{}, err
+			return capabilitymapped.Catalog{}, err
 		}
 		if page.Snapshot.Key() != key || (page.HasMore && len(page.Items) == 0) {
-			return functionalapi.Catalog{}, selection.ErrUnavailable
+			return capabilitymapped.Catalog{}, selection.ErrUnavailable
 		}
 		result.Snapshot = page.Snapshot
-		if err := appendCandidates(&result, page.Items, &scanned); err != nil {
-			return functionalapi.Catalog{}, err
+		if err := appendCandidates(&result, page.Items, family, &scanned); err != nil {
+			return capabilitymapped.Catalog{}, err
 		}
 		if !page.HasMore {
 			return result, nil
@@ -57,8 +59,9 @@ func (reader *Reader) ReadFunctionalAPICatalog(
 }
 
 func appendCandidates(
-	result *functionalapi.Catalog,
+	result *capabilitymapped.Catalog,
 	entries []testquery.TestCatalogEntry,
+	family catalog.TestFamily,
 	scanned *int,
 ) error {
 	for _, entry := range entries {
@@ -66,7 +69,7 @@ func appendCandidates(
 		if *scanned > maxScannedCatalogTests {
 			return selection.ErrUnavailable
 		}
-		if entry.Family != catalog.TestFamilyFunctionalAPI {
+		if entry.Family != family {
 			continue
 		}
 		result.Tests = append(result.Tests, testReference(entry))
@@ -90,4 +93,4 @@ func testReference(entry testquery.TestCatalogEntry) selection.TestReference {
 	}
 }
 
-var _ functionalapi.CatalogReader = (*Reader)(nil)
+var _ capabilitymapped.CatalogReader = (*Reader)(nil)

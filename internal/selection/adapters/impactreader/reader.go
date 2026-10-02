@@ -9,12 +9,67 @@ import (
 
 	"github.com/stanimirivanov/argus/internal/catalog"
 	"github.com/stanimirivanov/argus/internal/change"
+	"github.com/stanimirivanov/argus/internal/change/ingest"
 	"github.com/stanimirivanov/argus/internal/selection"
 )
 
 // Source loads the immutable assessment retained by change ingestion.
 type Source interface {
 	FindCapabilityImpact(context.Context, catalog.Provider, string) (change.CapabilityImpact, error)
+	FindDelivery(context.Context, catalog.Provider, string) (ingest.StoredDelivery, error)
+}
+
+// ReadBrowserImpact adds changed-file coverage to the OpenAPI projection.
+// A browser subset is safe only when the complete provider file list consists
+// solely of the same documents that the semantic analyzer assessed.
+func (reader *Reader) ReadBrowserImpact(
+	ctx context.Context, provider catalog.Provider, deliveryID string,
+) (selection.ImpactProjection, error) {
+	impact, projection, err := reader.readImpact(ctx, provider, deliveryID)
+	if err != nil {
+		return selection.ImpactProjection{}, err
+	}
+	stored, err := reader.source.FindDelivery(ctx, provider, deliveryID)
+	if err != nil {
+		return selection.ImpactProjection{}, err
+	}
+	set := change.CanonicalSet(stored.ChangeSet)
+	if err := change.ValidateSet(set); err != nil || !sameChangeReference(set.Reference(), projection.Change) {
+		return selection.ImpactProjection{}, fmt.Errorf("%w: change and impact provenance differ", selection.ErrUnavailable)
+	}
+	projection.BrowserChangeCovered = browserFilesCovered(set, impact)
+
+	return projection, nil
+}
+
+func sameChangeReference(left, right change.Reference) bool {
+	return left.SourceRepository == right.SourceRepository && left.PullRequestNumber == right.PullRequestNumber &&
+		left.BaseRevision == right.BaseRevision && left.HeadRevision == right.HeadRevision &&
+		left.ObservedAt.Equal(right.ObservedAt) && left.Trigger == right.Trigger
+}
+
+func browserFilesCovered(set change.Set, impact change.CapabilityImpact) bool {
+	if set.FilesTruncated || len(set.Files) == 0 || len(set.Files) != len(impact.Documents) {
+		return false
+	}
+	documents := make(map[string]change.DocumentImpact, len(impact.Documents))
+	for _, document := range impact.Documents {
+		if _, exists := documents[document.Path]; exists {
+			return false
+		}
+		documents[document.Path] = document
+	}
+	for _, file := range set.Files {
+		document, exists := documents[file.Path]
+		if !exists || (file.PreviousPath == nil) != (document.PreviousPath == nil) {
+			return false
+		}
+		if file.PreviousPath != nil && *file.PreviousPath != *document.PreviousPath {
+			return false
+		}
+	}
+
+	return true
 }
 
 // Reader implements selection's impact port using persisted OpenAPI evidence.
@@ -28,23 +83,30 @@ func New(source Source) *Reader { return &Reader{source: source} }
 func (reader *Reader) ReadImpact(
 	ctx context.Context, provider catalog.Provider, deliveryID string,
 ) (selection.ImpactProjection, error) {
+	_, projection, err := reader.readImpact(ctx, provider, deliveryID)
+	return projection, err
+}
+
+func (reader *Reader) readImpact(
+	ctx context.Context, provider catalog.Provider, deliveryID string,
+) (change.CapabilityImpact, selection.ImpactProjection, error) {
 	if reader == nil || reader.source == nil {
-		return selection.ImpactProjection{}, selection.ErrUnavailable
+		return change.CapabilityImpact{}, selection.ImpactProjection{}, selection.ErrUnavailable
 	}
 	impact, err := reader.source.FindCapabilityImpact(ctx, provider, deliveryID)
 	if err != nil {
-		return selection.ImpactProjection{}, err
+		return change.CapabilityImpact{}, selection.ImpactProjection{}, err
 	}
 	impact = change.CanonicalCapabilityImpact(impact)
 	if err := change.ValidateCapabilityImpact(impact); err != nil {
-		return selection.ImpactProjection{}, fmt.Errorf("%w: invalid stored impact", selection.ErrUnavailable)
+		return change.CapabilityImpact{}, selection.ImpactProjection{}, fmt.Errorf("%w: invalid stored impact", selection.ErrUnavailable)
 	}
 	projection := projectOpenAPI(impact)
 	if err := selection.ValidateImpactProjection(projection); err != nil {
-		return selection.ImpactProjection{}, fmt.Errorf("%w: invalid impact projection: %w", selection.ErrUnavailable, err)
+		return change.CapabilityImpact{}, selection.ImpactProjection{}, fmt.Errorf("%w: invalid impact projection: %w", selection.ErrUnavailable, err)
 	}
 
-	return projection, nil
+	return impact, projection, nil
 }
 
 // projectOpenAPI preserves producer provenance and retains a bounded sample of

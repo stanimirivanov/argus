@@ -338,6 +338,13 @@ remains.
 
 **Message:** Extend mapping and constrained adaptation to browser tests.
 
+The first M07 selection slice uses already cataloged `functional-ui` tests and
+explicit capability mappings to select browser tests for OpenAPI-only changes.
+It emits a separate v2 manifest and requires all UI candidates whenever any
+changed file is outside the analyzed OpenAPI documents. This does not yet
+discover Playwright tests, map UI routes/components, execute browser tests, or
+authorize a UI subset as a release gate.
+
 Acceptance ingredients:
 
 - Define the browser-test adapter contract and Playwright conformance fixtures.

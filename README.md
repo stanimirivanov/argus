@@ -12,7 +12,8 @@
   runs `make db-validate`.
 - The current end-to-end slice covers functional API cataloging, impact,
   selection, execution evidence, bounded repair, validation, and review
-  outcomes; later test families remain planned work.
+  outcomes. Functional UI now has a conservative selection-only slice;
+  browser execution and adaptation remain planned work.
 - Purpose-specific executables expose safe top-level help and build identity;
   direct-database clients remain transitional, not ordinary CI dependencies.
 
@@ -193,6 +194,30 @@ functional API candidates are `SKIP_FOR_NOW` in the early stage and explicitly
 required in a later full-suite control. Partial, empty, or unmapped impact
 switches to fallback mode and requires every functional API candidate. The
 manifest reports affected capabilities without a mapped test.
+
+## Select cataloged functional UI tests
+
+For a source repository whose approved descriptor already declares
+`functional-ui` suites and capability mappings, use the same delivery with an
+explicit family:
+
+~~~sh
+go run ./cmd/select \
+  -provider github \
+  -family functional-ui \
+  -delivery-id 01234567-89ab-cdef-0123-456789abcdef \
+  > browser-selection.json
+~~~
+
+This emits `argus.dev/execution-manifest/v2`, separate from the default
+functional API v1. Only an OpenAPI-only change with complete mapped impact can
+target UI tests by shared capability. Any other changed file, truncated file
+list, incomplete impact, or unmapped operation requires every cataloged UI
+candidate. Omitted early-stage tests retain a full-suite obligation.
+
+The current functional API planner and runner accept only v1; they MUST NOT be
+used to execute this browser manifest. Playwright discovery, UI route/component
+impact, browser execution evidence, and locator repair remain M07 follow-ups.
 
 ## Plan heterogeneous functional API execution
 
