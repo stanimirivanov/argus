@@ -13,6 +13,7 @@ import (
 
 	"github.com/stanimirivanov/argus/internal/adaptation"
 	adaptationcontract "github.com/stanimirivanov/argus/internal/adaptation/adapters/contract"
+	"github.com/stanimirivanov/argus/internal/adaptation/endpointrepair"
 	"github.com/stanimirivanov/argus/internal/adaptation/validation"
 	"github.com/stanimirivanov/argus/internal/commandline"
 	"github.com/stanimirivanov/argus/internal/contracts"
@@ -100,25 +101,25 @@ func encodeDocument(output io.Writer, document any, label string) error {
 	return nil
 }
 
-func readProposal(path string) (adaptation.Proposal, error) {
+func readProposal(path string) (endpointrepair.Proposal, error) {
 	file, err := os.Open(path)
 	if err != nil {
-		return adaptation.Proposal{}, fmt.Errorf("open adaptation proposal: %w", err)
+		return endpointrepair.Proposal{}, fmt.Errorf("open adaptation proposal: %w", err)
 	}
 	data, readErr := io.ReadAll(io.LimitReader(file, maxProposalBytes+1))
 	closeErr := file.Close()
 	if readErr != nil {
-		return adaptation.Proposal{}, fmt.Errorf("read adaptation proposal: %w", readErr)
+		return endpointrepair.Proposal{}, fmt.Errorf("read adaptation proposal: %w", readErr)
 	}
 	if closeErr != nil {
-		return adaptation.Proposal{}, fmt.Errorf("close adaptation proposal: %w", closeErr)
+		return endpointrepair.Proposal{}, fmt.Errorf("close adaptation proposal: %w", closeErr)
 	}
 	if len(data) > maxProposalBytes {
-		return adaptation.Proposal{}, errors.New("adaptation proposal exceeds 16 MiB limit")
+		return endpointrepair.Proposal{}, errors.New("adaptation proposal exceeds 16 MiB limit")
 	}
 	document, err := contracts.DecodeAdaptationProposalV1(data)
 	if err != nil {
-		return adaptation.Proposal{}, err
+		return endpointrepair.Proposal{}, err
 	}
 
 	return adaptationcontract.ImportProposalV1(document)

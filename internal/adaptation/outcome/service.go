@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/stanimirivanov/argus/internal/adaptation"
+	"github.com/stanimirivanov/argus/internal/adaptation/endpointrepair"
 	"github.com/stanimirivanov/argus/internal/catalog"
 )
 
@@ -40,7 +41,7 @@ func NewService(gateway Gateway) *Service {
 // reviewer reason separately from the generated candidate and final diff.
 func (service *Service) Capture(
 	ctx context.Context,
-	proposal adaptation.Proposal,
+	proposal endpointrepair.Proposal,
 	evidence adaptation.ValidationEvidence,
 	publication adaptation.ReviewPublication,
 	reasonCode adaptation.ReviewReasonCode,
@@ -82,11 +83,11 @@ func (service *Service) Capture(
 }
 
 func correlate(
-	proposal adaptation.Proposal,
+	proposal endpointrepair.Proposal,
 	evidence adaptation.ValidationEvidence,
 	publication adaptation.ReviewPublication,
 ) error {
-	if err := adaptation.ValidateProposal(proposal); err != nil {
+	if err := endpointrepair.ValidateProposal(proposal); err != nil {
 		return err
 	}
 	if err := adaptation.ValidateValidationEvidence(evidence); err != nil {

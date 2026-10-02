@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/stanimirivanov/argus/internal/adaptation"
+	"github.com/stanimirivanov/argus/internal/adaptation/endpointrepair"
 	"github.com/stanimirivanov/argus/internal/catalog"
 	"github.com/stanimirivanov/argus/internal/change"
 )
@@ -102,7 +103,7 @@ func (gateway *fakeGateway) Publish(
 	return gateway.result, nil
 }
 
-func validReviewInputs() (adaptation.Proposal, adaptation.ValidationEvidence, []byte) {
+func validReviewInputs() (endpointrepair.Proposal, adaptation.ValidationEvidence, []byte) {
 	source := []byte("await request.get('/v1/orders')")
 	start := strings.Index(string(source), "/v1/orders")
 	edit := adaptation.TextEdit{
@@ -120,8 +121,8 @@ func validReviewInputs() (adaptation.Proposal, adaptation.ValidationEvidence, []
 		Revision: revision(strings.Repeat("c", 40)), SuiteKey: "orders-api", TestKey: "list-orders",
 		Name: "lists orders", Adapter: "playwright", Capabilities: []string{"list-orders"},
 	}
-	proposal := adaptation.Proposal{
-		APIVersion: adaptation.ProposalAPIVersion, PolicyVersion: adaptation.PolicyVersion,
+	proposal := endpointrepair.Proposal{
+		APIVersion: endpointrepair.ProposalAPIVersion, PolicyVersion: endpointrepair.PolicyVersion,
 		ProposalID: strings.Repeat("a", 64), ImpactAPIVersion: change.ImpactAPIVersion,
 		ImpactAnalyzerVersion: change.OpenAPIAnalyzerVersion,
 		Change: change.Reference{
@@ -135,9 +136,9 @@ func validReviewInputs() (adaptation.Proposal, adaptation.ValidationEvidence, []
 			ObservedAt:   time.Date(2026, 9, 27, 10, 0, 0, 0, time.UTC),
 			Trigger:      change.Trigger{Provider: catalog.ProviderGitHub, DeliveryID: "delivery-42", Event: "pull_request", Action: "synchronize"},
 		},
-		Test: test, Classification: adaptation.ClassificationInvalidated,
-		Decision: adaptation.DecisionPatchAndValidate,
-		Rename: adaptation.EndpointRename{
+		Test: test, Classification: endpointrepair.ClassificationInvalidated,
+		Decision: endpointrepair.DecisionPatchAndValidate,
+		Rename: endpointrepair.EndpointRename{
 			Method: "GET", OperationID: "listOrders", PreviousPath: "/v1/orders", Path: "/v2/orders",
 			Capabilities: []string{"list-orders"},
 		},

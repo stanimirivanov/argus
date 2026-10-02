@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/stanimirivanov/argus/internal/adaptation"
+	"github.com/stanimirivanov/argus/internal/adaptation/endpointrepair"
 	"github.com/stanimirivanov/argus/internal/catalog"
 	"github.com/stanimirivanov/argus/internal/change"
 )
@@ -236,12 +237,12 @@ func (runner *fakeRunner) Execute(
 	return result, nil
 }
 
-func validProposal() (adaptation.Proposal, []byte) {
+func validProposal() (endpointrepair.Proposal, []byte) {
 	source := []byte("const endpoint = \"/v1/orders\";\n")
 	start := bytes.Index(source, []byte("/v1/orders"))
 	proposalID := "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-	proposal := adaptation.Proposal{
-		APIVersion: adaptation.ProposalAPIVersion, PolicyVersion: adaptation.PolicyVersion,
+	proposal := endpointrepair.Proposal{
+		APIVersion: endpointrepair.ProposalAPIVersion, PolicyVersion: endpointrepair.PolicyVersion,
 		ProposalID: proposalID, ImpactAPIVersion: change.ImpactAPIVersion,
 		ImpactAnalyzerVersion: change.OpenAPIAnalyzerVersion,
 		Change: change.Reference{
@@ -277,9 +278,9 @@ func validProposal() (adaptation.Proposal, []byte) {
 			SuiteKey: "orders-api", TestKey: "list-orders", Name: "Lists orders",
 			Adapter: "playwright", Capabilities: []string{"list-orders"},
 		},
-		Classification: adaptation.ClassificationInvalidated,
-		Decision:       adaptation.DecisionPatchAndValidate,
-		Rename: adaptation.EndpointRename{
+		Classification: endpointrepair.ClassificationInvalidated,
+		Decision:       endpointrepair.DecisionPatchAndValidate,
+		Rename: endpointrepair.EndpointRename{
 			Method: "GET", OperationID: "listOrders", PreviousPath: "/v1/orders",
 			Path: "/v2/orders", Capabilities: []string{"list-orders"},
 		},

@@ -22,6 +22,9 @@ const (
 	ValidationRejectionAPIVersion = "argus.dev/validation-rejection/v1"
 	// ValidationPolicyVersion identifies the original/candidate/negative-control policy.
 	ValidationPolicyVersion = "argus.dev/validation-policy/functional-api-endpoint-rename/v1"
+	// ValidationProposalPolicyVersion is the proposal policy admitted by this
+	// version of the functional API validation evidence contract.
+	ValidationProposalPolicyVersion = "argus.dev/adaptation-policy/functional-api-endpoint-rename/v1"
 )
 
 // ValidationRejectionReason explains which discriminating gate rejected a
@@ -241,7 +244,7 @@ func ValidateValidationEvidence(evidence ValidationEvidence) error {
 	if evidence.APIVersion != ValidationEvidenceAPIVersion ||
 		evidence.PolicyVersion != ValidationPolicyVersion ||
 		!sha256Pattern.MatchString(evidence.ValidationID) || !sha256Pattern.MatchString(evidence.ProposalID) ||
-		evidence.ProposalPolicyVersion != PolicyVersion || !catalogKey(evidence.AdapterID) ||
+		evidence.ProposalPolicyVersion != ValidationProposalPolicyVersion || !catalogKey(evidence.AdapterID) ||
 		strings.TrimSpace(evidence.AdapterVersion) == "" || len(evidence.AdapterVersion) > 127 {
 		return fmt.Errorf("%w: validation evidence envelope", ErrInvalid)
 	}
@@ -249,7 +252,7 @@ func ValidateValidationEvidence(evidence ValidationEvidence) error {
 		return err
 	}
 	if evidence.AdapterID != evidence.Test.Adapter || !validRepositoryPath(evidence.Source.Path) ||
-		validateTextEdit(evidence.Edit) != nil || evidence.Edit.Path != evidence.Source.Path ||
+		validateValidationTextEdit(evidence.Edit) != nil || evidence.Edit.Path != evidence.Source.Path ||
 		evidence.Edit.BeforeSHA256 != evidence.Source.OriginalSHA256 ||
 		!sha256Pattern.MatchString(evidence.Source.OriginalSHA256) ||
 		!sha256Pattern.MatchString(evidence.Source.CandidateSHA256) ||
@@ -294,7 +297,7 @@ func ValidateValidationRejectionEvidence(evidence ValidationRejectionEvidence) e
 	if evidence.APIVersion != ValidationRejectionAPIVersion ||
 		evidence.PolicyVersion != ValidationPolicyVersion ||
 		!sha256Pattern.MatchString(evidence.ValidationID) || !sha256Pattern.MatchString(evidence.ProposalID) ||
-		evidence.ProposalPolicyVersion != PolicyVersion || !catalogKey(evidence.AdapterID) ||
+		evidence.ProposalPolicyVersion != ValidationProposalPolicyVersion || !catalogKey(evidence.AdapterID) ||
 		strings.TrimSpace(evidence.AdapterVersion) == "" || len(evidence.AdapterVersion) > 127 {
 		return fmt.Errorf("%w: validation rejection envelope", ErrInvalid)
 	}
@@ -374,7 +377,7 @@ func validateValidationSource(
 	source ValidationSourceEvidence,
 ) error {
 	if adapterID != test.Adapter || !validRepositoryPath(source.Path) ||
-		validateTextEdit(edit) != nil || edit.Path != source.Path ||
+		validateValidationTextEdit(edit) != nil || edit.Path != source.Path ||
 		edit.BeforeSHA256 != source.OriginalSHA256 ||
 		!sha256Pattern.MatchString(source.OriginalSHA256) ||
 		!sha256Pattern.MatchString(source.CandidateSHA256) ||
@@ -419,6 +422,17 @@ func validateValidationFailure(failure *ValidationFailure) error {
 	if failure == nil || !catalogKey(failure.Code) || strings.TrimSpace(failure.Message) == "" ||
 		len(failure.Message) > 2000 {
 		return fmt.Errorf("%w: validation failure", ErrInvalid)
+	}
+
+	return nil
+}
+
+func validateValidationTextEdit(edit TextEdit) error {
+	if err := ValidateTextEdit(edit); err != nil {
+		return err
+	}
+	if edit.SemanticRole != "request-target" {
+		return fmt.Errorf("%w: validation request-target edit", ErrInvalid)
 	}
 
 	return nil

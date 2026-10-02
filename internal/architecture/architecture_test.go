@@ -59,6 +59,7 @@ const (
 // That makes an otherwise invisible new boundary a reviewable policy change.
 var productionPackagePolicy = map[string]packagePolicy{
 	modulePath + "/internal/adaptation":                                   {domainLayer, adaptationCapability},
+	modulePath + "/internal/adaptation/endpointrepair":                    {domainLayer, adaptationCapability},
 	modulePath + "/internal/adaptation/functionalapi":                     {applicationLayer, adaptationCapability},
 	modulePath + "/internal/adaptation/outcome":                           {applicationLayer, adaptationCapability},
 	modulePath + "/internal/adaptation/review":                            {applicationLayer, adaptationCapability},

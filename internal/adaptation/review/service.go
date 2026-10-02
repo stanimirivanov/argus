@@ -14,6 +14,7 @@ import (
 	"unicode"
 
 	"github.com/stanimirivanov/argus/internal/adaptation"
+	"github.com/stanimirivanov/argus/internal/adaptation/endpointrepair"
 	"github.com/stanimirivanov/argus/internal/catalog"
 )
 
@@ -73,7 +74,7 @@ func NewService(source SourceReader, publisher Publisher) *Service {
 // validated proposal. An exact retry returns the same provider review.
 func (service *Service) Publish(
 	ctx context.Context,
-	proposal adaptation.Proposal,
+	proposal endpointrepair.Proposal,
 	evidence adaptation.ValidationEvidence,
 	baseBranch string,
 ) (adaptation.ReviewPublication, error) {
@@ -123,11 +124,11 @@ func (service *Service) Publish(
 }
 
 func validateInputs(
-	proposal adaptation.Proposal,
+	proposal endpointrepair.Proposal,
 	evidence adaptation.ValidationEvidence,
 	baseBranch string,
 ) error {
-	if err := adaptation.ValidateProposal(proposal); err != nil {
+	if err := endpointrepair.ValidateProposal(proposal); err != nil {
 		return err
 	}
 	if err := adaptation.ValidateValidationEvidence(evidence); err != nil {
@@ -164,7 +165,7 @@ func materializeCandidate(original []byte, edit adaptation.TextEdit) ([]byte, er
 }
 
 func deriveReviewID(
-	proposal adaptation.Proposal,
+	proposal endpointrepair.Proposal,
 	evidence adaptation.ValidationEvidence,
 	baseBranch string,
 ) string {
@@ -180,7 +181,7 @@ func deriveReviewID(
 	return hex.EncodeToString(hash.Sum(nil))
 }
 
-func reviewTitle(proposal adaptation.Proposal) string {
+func reviewTitle(proposal endpointrepair.Proposal) string {
 	value := fmt.Sprintf(
 		"Repair %s/%s for %s %s",
 		proposal.Test.SuiteKey, proposal.Test.TestKey, proposal.Rename.Method, proposal.Rename.Path,
@@ -200,7 +201,7 @@ func reviewTitle(proposal adaptation.Proposal) string {
 
 func reviewBody(
 	reviewID string,
-	proposal adaptation.Proposal,
+	proposal endpointrepair.Proposal,
 	evidence adaptation.ValidationEvidence,
 ) string {
 	var builder strings.Builder

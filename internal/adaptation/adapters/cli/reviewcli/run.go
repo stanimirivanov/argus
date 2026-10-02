@@ -14,6 +14,7 @@ import (
 
 	"github.com/stanimirivanov/argus/internal/adaptation"
 	adaptationcontract "github.com/stanimirivanov/argus/internal/adaptation/adapters/contract"
+	"github.com/stanimirivanov/argus/internal/adaptation/endpointrepair"
 	"github.com/stanimirivanov/argus/internal/adaptation/review"
 	"github.com/stanimirivanov/argus/internal/commandline"
 	"github.com/stanimirivanov/argus/internal/contracts"
@@ -111,14 +112,14 @@ func reviewTokens(getenv func(string) string) (string, string) {
 	return readToken, writeToken
 }
 
-func readProposal(path string) (adaptation.Proposal, error) {
+func readProposal(path string) (endpointrepair.Proposal, error) {
 	data, err := readBounded(path, "adaptation proposal")
 	if err != nil {
-		return adaptation.Proposal{}, err
+		return endpointrepair.Proposal{}, err
 	}
 	document, err := contracts.DecodeAdaptationProposalV1(data)
 	if err != nil {
-		return adaptation.Proposal{}, err
+		return endpointrepair.Proposal{}, err
 	}
 
 	return adaptationcontract.ImportProposalV1(document)

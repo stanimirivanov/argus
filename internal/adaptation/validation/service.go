@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/stanimirivanov/argus/internal/adaptation"
+	"github.com/stanimirivanov/argus/internal/adaptation/endpointrepair"
 )
 
 // Each integrity check and mandatory restoration has an independent budget.
@@ -46,12 +47,12 @@ func NewService(workspace Workspace, runner Runner) *Service {
 // mutation paths; a restoration failure prevents evidence publication.
 func (service *Service) Validate(
 	ctx context.Context,
-	proposal adaptation.Proposal,
+	proposal endpointrepair.Proposal,
 ) (adaptation.ValidationEvidence, error) {
 	if service == nil || service.workspace == nil || service.runner == nil {
 		return adaptation.ValidationEvidence{}, adaptation.ErrUnavailable
 	}
-	if err := adaptation.ValidateProposal(proposal); err != nil {
+	if err := endpointrepair.ValidateProposal(proposal); err != nil {
 		return adaptation.ValidationEvidence{}, err
 	}
 	material, err := service.prepare(ctx, proposal)
@@ -105,7 +106,7 @@ type policyRejection struct {
 
 func (service *Service) prepare(
 	ctx context.Context,
-	proposal adaptation.Proposal,
+	proposal endpointrepair.Proposal,
 ) (validationMaterial, error) {
 	original, err := service.workspace.Read(ctx, proposal.Edit.Path)
 	if err != nil {
@@ -145,7 +146,7 @@ func (service *Service) prepare(
 
 func (service *Service) executePhases(
 	ctx context.Context,
-	proposal adaptation.Proposal,
+	proposal endpointrepair.Proposal,
 	material validationMaterial,
 ) (phaseRuns, *policyRejection, error) {
 	originalRun, err := service.runOriginal(
@@ -222,7 +223,7 @@ func (service *Service) verifyRestored(ctx context.Context, path string, origina
 }
 
 func buildEvidence(
-	proposal adaptation.Proposal,
+	proposal endpointrepair.Proposal,
 	material validationMaterial,
 	runs phaseRuns,
 	restoredSHA string,
@@ -250,7 +251,7 @@ func buildEvidence(
 }
 
 func buildRejectionEvidence(
-	proposal adaptation.Proposal,
+	proposal endpointrepair.Proposal,
 	material validationMaterial,
 	runs phaseRuns,
 	rejection policyRejection,
@@ -283,7 +284,7 @@ func buildRejectionEvidence(
 
 func (service *Service) runOriginal(
 	ctx context.Context,
-	proposal adaptation.Proposal,
+	proposal endpointrepair.Proposal,
 	validationID string,
 	original []byte,
 	originalSHA string,
@@ -313,7 +314,7 @@ func (service *Service) runOriginal(
 
 func (service *Service) runVariant(
 	ctx context.Context,
-	proposal adaptation.Proposal,
+	proposal endpointrepair.Proposal,
 	validationID string,
 	phase adaptation.ValidationPhase,
 	original []byte,
@@ -360,7 +361,7 @@ func cleanupContext(ctx context.Context) (context.Context, context.CancelFunc) {
 
 func (service *Service) run(
 	ctx context.Context,
-	proposal adaptation.Proposal,
+	proposal endpointrepair.Proposal,
 	validationID string,
 	phase adaptation.ValidationPhase,
 	sourceSHA string,
@@ -403,7 +404,7 @@ func replaceSpan(original []byte, edit adaptation.TextEdit, replacement string) 
 }
 
 func validationID(
-	proposal adaptation.Proposal,
+	proposal endpointrepair.Proposal,
 	candidateSHA string,
 	negativeSHA string,
 	negativePath string,

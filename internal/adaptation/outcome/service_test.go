@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/stanimirivanov/argus/internal/adaptation"
+	"github.com/stanimirivanov/argus/internal/adaptation/endpointrepair"
 	"github.com/stanimirivanov/argus/internal/catalog"
 	"github.com/stanimirivanov/argus/internal/change"
 )
@@ -142,7 +143,7 @@ func (gateway *fakeGateway) ObserveOutcome(
 	return gateway.terminal, nil
 }
 
-func validOutcomeInputs() (adaptation.Proposal, adaptation.ValidationEvidence, adaptation.ReviewPublication) {
+func validOutcomeInputs() (endpointrepair.Proposal, adaptation.ValidationEvidence, adaptation.ReviewPublication) {
 	repository := catalog.Repository{
 		Identity: catalog.RepositoryIdentity{
 			Provider: catalog.ProviderGitHub, Host: "github.com", ProviderRepositoryID: "tests-1",
@@ -159,8 +160,8 @@ func validOutcomeInputs() (adaptation.Proposal, adaptation.ValidationEvidence, a
 		StartByte: 120, EndByte: 130, Original: "/v1/orders", Replacement: "/v2/orders",
 		SemanticRole: "request-target",
 	}
-	proposal := adaptation.Proposal{
-		APIVersion: adaptation.ProposalAPIVersion, PolicyVersion: adaptation.PolicyVersion,
+	proposal := endpointrepair.Proposal{
+		APIVersion: endpointrepair.ProposalAPIVersion, PolicyVersion: endpointrepair.PolicyVersion,
 		ProposalID: strings.Repeat("a", 64), ImpactAPIVersion: change.ImpactAPIVersion,
 		ImpactAnalyzerVersion: change.OpenAPIAnalyzerVersion,
 		Change: change.Reference{
@@ -177,9 +178,9 @@ func validOutcomeInputs() (adaptation.Proposal, adaptation.ValidationEvidence, a
 				Event: "pull_request", Action: "synchronize",
 			},
 		},
-		Test: test, Classification: adaptation.ClassificationInvalidated,
-		Decision: adaptation.DecisionPatchAndValidate,
-		Rename: adaptation.EndpointRename{
+		Test: test, Classification: endpointrepair.ClassificationInvalidated,
+		Decision: endpointrepair.DecisionPatchAndValidate,
+		Rename: endpointrepair.EndpointRename{
 			Method: "GET", OperationID: "listOrders", PreviousPath: "/v1/orders",
 			Path: "/v2/orders", Capabilities: []string{"list-orders"},
 		},
