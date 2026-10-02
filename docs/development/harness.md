@@ -78,6 +78,7 @@ handoff.
 | `make test` | Deterministic ordinary Go and TypeScript behavior passes without cached Go results | T1; bootstrapped workspaces | Changed capabilities |
 | `make verify` | Build, repository checks, and ordinary tests pass as the closed inner loop | T1; network-independent after bootstrap | Repository maintainers |
 | `make race` | Go tests pass with the race detector | T2; supported compiler/platform and more CPU time | Go capability owners |
+| `make fuzz-smoke` | Bounded native fuzz campaigns exercise webhook payloads, catalog cursors, OpenAPI documents, process results, and source paths | T3; Go fuzzing support and additional CPU time | Untrusted-input boundary owners |
 | `make vuln` | Go and production Node dependencies have no unaccepted known vulnerability | T2; network or current vulnerability caches | Security and dependency policy |
 | `make license` | Runtime dependencies satisfy the license allowlist | T2; bootstrapped dependency graphs | Dependency policy |
 | `make supply-chain` | Vulnerability and license sensors pass together | T2; same dependencies as `vuln` and `license` | Security and dependency policy |
@@ -89,6 +90,14 @@ handoff.
 `make binaries` is the explicit artifact-producing target and writes ignored
 executables under `bin/`. Additional workspaces MUST join `make verify` and
 `make validate`; contributors MUST NOT be expected to discover hidden checks.
+
+The fuzz targets' checked-in seed cases execute during ordinary `go test`, so
+`make verify` and `make validate` gate their deterministic regression behavior.
+`make fuzz-smoke` additionally runs short mutation campaigns locally. Longer
+targeted campaigns MAY be run with `go test -run '^$' -fuzz '^FuzzName$'
+-fuzztime=...` in the owning package; triage a failure by keeping the generated
+corpus file as a reviewed regression fixture. Mutation campaigns are not a CI
+merge gate because their runtime and findings depend on generated inputs.
 
 ## Steering loop
 
