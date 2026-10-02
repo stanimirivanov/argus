@@ -1,4 +1,4 @@
-package functionalapi
+package capabilitymapped
 
 import (
 	"context"
@@ -28,6 +28,9 @@ func TestSelectTargetsMappedTestsAndExplainsOmissions(t *testing.T) {
 	}
 	if manifest.Mode != selection.ModeTargeted || len(manifest.Decisions) != 2 {
 		t.Fatalf("mode/decisions = %s/%d", manifest.Mode, len(manifest.Decisions))
+	}
+	if manifest.APIVersion != selection.ManifestAPIVersion || manifest.PolicyVersion != selection.FunctionalAPIPolicyVersion {
+		t.Fatalf("functional API v1 provenance changed: %+v", manifest)
 	}
 	if manifest.Decisions[0].Outcome != selection.OutcomeRunRequired ||
 		manifest.Decisions[0].Reasons[0].Code != selection.ReasonDirectCapabilityImpact {
@@ -81,11 +84,83 @@ func TestSelectRejectsInvalidProjectionBeforeReadingCatalog(t *testing.T) {
 	}
 }
 
+func TestSelectFunctionalUITargetsMappedTestsWithoutChangingAPIV1(t *testing.T) {
+	t.Parallel()
+	impact := validImpact(selection.ImpactComplete, []string{"create-order"})
+	uiTest := testCandidate("checkout-journey", "create-order")
+	uiTest.Family = catalog.TestFamilyFunctionalUI
+	uiTest.SuiteKey = "orders-ui"
+	impact.BrowserChangeCovered = true
+	service := NewService(&stubImpactReader{impact: impact},
+		&stubCatalogReader{catalog: candidateCatalog(impact.Change, []selection.TestReference{uiTest})})
+	request := validRequest()
+	request.Family = catalog.TestFamilyFunctionalUI
+	manifest, err := service.Select(t.Context(), request)
+	if err != nil {
+		t.Fatalf("select UI test: %v", err)
+	}
+	if manifest.APIVersion != selection.BrowserManifestAPIVersion ||
+		manifest.PolicyVersion != selection.FunctionalUIPolicyVersion ||
+		manifest.Family != catalog.TestFamilyFunctionalUI ||
+		len(manifest.Decisions) != 1 || manifest.Decisions[0].Outcome != selection.OutcomeRunRequired {
+		t.Fatalf("UI manifest = %+v", manifest)
+	}
+}
+
+func TestSelectFunctionalUIFallsBackOnIncompleteImpact(t *testing.T) {
+	t.Parallel()
+	impact := validImpact(selection.ImpactIncomplete, nil)
+	impact.UnresolvedCount = 1
+	impact.UnresolvedEvidence = []selection.ImpactEvidenceReference{{Source: "api", Path: "orders"}}
+	impact.BrowserChangeCovered = true
+	uiTest := testCandidate("checkout-journey", "create-order")
+	uiTest.Family = catalog.TestFamilyFunctionalUI
+	service := NewService(&stubImpactReader{impact: impact},
+		&stubCatalogReader{catalog: candidateCatalog(impact.Change, []selection.TestReference{uiTest})})
+	request := validRequest()
+	request.Family = catalog.TestFamilyFunctionalUI
+	manifest, err := service.Select(t.Context(), request)
+	if err != nil {
+		t.Fatalf("select UI fallback: %v", err)
+	}
+	if manifest.Mode != selection.ModeFallback || manifest.Decisions[0].Outcome != selection.OutcomeRunRequired ||
+		manifest.Decisions[0].Reasons[0].Code != selection.ReasonConservativeFallback {
+		t.Fatalf("UI fallback = %+v", manifest)
+	}
+}
+
+func TestSelectFunctionalUIRequiresAllTestsWhenChangedFilesAreNotCovered(t *testing.T) {
+	t.Parallel()
+	impact := validImpact(selection.ImpactComplete, []string{"create-order"})
+	uiTest := testCandidate("checkout-journey", "unrelated-capability")
+	uiTest.Family = catalog.TestFamilyFunctionalUI
+	service := NewService(&stubImpactReader{impact: impact},
+		&stubCatalogReader{catalog: candidateCatalog(impact.Change, []selection.TestReference{uiTest})})
+	request := validRequest()
+	request.Family = catalog.TestFamilyFunctionalUI
+	manifest, err := service.Select(t.Context(), request)
+	if err != nil {
+		t.Fatalf("select UI fallback: %v", err)
+	}
+	if manifest.Mode != selection.ModeFallback || manifest.Decisions[0].Outcome != selection.OutcomeRunRequired ||
+		len(manifest.Warnings) != 1 {
+		t.Fatalf("uncovered changed files did not require all UI tests: %+v", manifest)
+	}
+}
+
 type stubImpactReader struct {
 	impact selection.ImpactProjection
 }
 
 func (reader *stubImpactReader) ReadImpact(
+	context.Context,
+	catalog.Provider,
+	string,
+) (selection.ImpactProjection, error) {
+	return reader.impact, nil
+}
+
+func (reader *stubImpactReader) ReadBrowserImpact(
 	context.Context,
 	catalog.Provider,
 	string,
@@ -99,14 +174,15 @@ type stubCatalogReader struct {
 
 type countingCatalogReader struct{ calls int }
 
-func (reader *countingCatalogReader) ReadFunctionalAPICatalog(context.Context, catalog.SnapshotKey) (Catalog, error) {
+func (reader *countingCatalogReader) ReadCatalog(context.Context, catalog.SnapshotKey, catalog.TestFamily) (Catalog, error) {
 	reader.calls++
 	return Catalog{}, nil
 }
 
-func (reader *stubCatalogReader) ReadFunctionalAPICatalog(
+func (reader *stubCatalogReader) ReadCatalog(
 	context.Context,
 	catalog.SnapshotKey,
+	catalog.TestFamily,
 ) (Catalog, error) {
 	return reader.catalog, nil
 }
@@ -115,6 +191,7 @@ func validRequest() Request {
 	return Request{
 		Provider: catalog.ProviderGitHub, DeliveryID: "delivery-42",
 		DescriptorAPIVersion: "argus.dev/repository-descriptor/v1",
+		Family:               catalog.TestFamilyFunctionalAPI,
 	}
 }
 

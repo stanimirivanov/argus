@@ -34,7 +34,7 @@ func TestReaderPaginatesAndFiltersFunctionalAPITests(t *testing.T) {
 		},
 	}}
 
-	result, err := New(source).ReadFunctionalAPICatalog(t.Context(), key)
+	result, err := New(source).ReadCatalog(t.Context(), key, catalog.TestFamilyFunctionalAPI)
 	if err != nil {
 		t.Fatalf("read selection catalog: %v", err)
 	}
@@ -44,6 +44,29 @@ func TestReaderPaginatesAndFiltersFunctionalAPITests(t *testing.T) {
 	}
 	if source.requests != 2 || source.secondAfter.TestKey != "create-order" {
 		t.Fatalf("requests/after = %d/%+v", source.requests, source.secondAfter)
+	}
+}
+
+func TestReaderFiltersFunctionalUITestsAcrossPages(t *testing.T) {
+	t.Parallel()
+	key := selectionSnapshotKey()
+	reference := catalog.SnapshotReference{
+		SourceRepository: catalog.Repository{Identity: key.Repository, Owner: "example", Name: "orders"},
+		Revision:         key.Revision, DescriptorAPIVersion: key.APIVersion,
+	}
+	source := &pagedReader{pages: []testquery.TestCatalogReadPage{{
+		Snapshot: reference,
+		Items: []testquery.TestCatalogEntry{
+			catalogEntry("api-test", catalog.TestFamilyFunctionalAPI),
+			catalogEntry("checkout-ui", catalog.TestFamilyFunctionalUI),
+		},
+	}}}
+	result, err := New(source).ReadCatalog(t.Context(), key, catalog.TestFamilyFunctionalUI)
+	if err != nil {
+		t.Fatalf("read UI catalog: %v", err)
+	}
+	if len(result.Tests) != 1 || result.Tests[0].TestKey != "checkout-ui" {
+		t.Fatalf("UI candidates = %#v", result.Tests)
 	}
 }
 

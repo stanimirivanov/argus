@@ -106,7 +106,7 @@ var productionPackagePolicy = map[string]packagePolicy{
 	modulePath + "/internal/githubtransport":                              {adapterLayer, productCapability},
 	modulePath + "/internal/processprotocol":                              {adapterLayer, productCapability},
 	modulePath + "/internal/selection":                                    {domainLayer, selectionCapability},
-	modulePath + "/internal/selection/functionalapi":                      {applicationLayer, selectionCapability},
+	modulePath + "/internal/selection/capabilitymapped":                   {applicationLayer, selectionCapability},
 	modulePath + "/internal/selection/adapters/catalogreader":             {adapterLayer, selectionCapability},
 	modulePath + "/internal/selection/adapters/cli/selectioncli":          {adapterLayer, selectionCapability},
 	modulePath + "/internal/selection/adapters/contract":                  {adapterLayer, selectionCapability},

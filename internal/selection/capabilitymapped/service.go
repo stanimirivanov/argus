@@ -1,5 +1,5 @@
-// Package functionalapi implements deterministic functional API test selection.
-package functionalapi
+// Package capabilitymapped selects cataloged tests from explicit capability impact.
+package capabilitymapped
 
 import (
 	"context"
@@ -13,17 +13,18 @@ import (
 // ImpactReader loads selection-owned impact by verified delivery identity.
 type ImpactReader interface {
 	ReadImpact(context.Context, catalog.Provider, string) (selection.ImpactProjection, error)
+	ReadBrowserImpact(context.Context, catalog.Provider, string) (selection.ImpactProjection, error)
 }
 
-// Catalog contains the functional API candidates from one immutable snapshot.
+// Catalog contains one test family's candidates from an immutable snapshot.
 type Catalog struct {
 	Snapshot catalog.SnapshotReference
 	Tests    []selection.TestReference
 }
 
-// CatalogReader loads all bounded functional API candidates for selection.
+// CatalogReader loads all bounded candidates of the requested family.
 type CatalogReader interface {
-	ReadFunctionalAPICatalog(context.Context, catalog.SnapshotKey) (Catalog, error)
+	ReadCatalog(context.Context, catalog.SnapshotKey, catalog.TestFamily) (Catalog, error)
 }
 
 // Request selects one persisted delivery using the matching base catalog.
@@ -31,6 +32,7 @@ type Request struct {
 	Provider             catalog.Provider
 	DeliveryID           string
 	DescriptorAPIVersion string
+	Family               catalog.TestFamily
 }
 
 // Service combines semantic impact with explicit catalog mappings.
@@ -44,14 +46,21 @@ func NewService(impacts ImpactReader, catalogReader CatalogReader) *Service {
 	return &Service{impacts: impacts, catalog: catalogReader}
 }
 
-// Select produces an inclusion or omission decision for every functional API
-// candidate. Partial, empty, or unmapped impact falls back to run-all.
+// Select produces an inclusion or omission decision for every candidate of
+// the requested family. Partial, empty, or unmapped impact falls back to run-all.
 func (service *Service) Select(ctx context.Context, request Request) (selection.Manifest, error) {
 	if service == nil || service.impacts == nil || service.catalog == nil ||
-		request.Provider == "" || request.DeliveryID == "" || request.DescriptorAPIVersion == "" {
+		request.Provider == "" || request.DeliveryID == "" || request.DescriptorAPIVersion == "" ||
+		(request.Family != catalog.TestFamilyFunctionalAPI && request.Family != catalog.TestFamilyFunctionalUI) {
 		return selection.Manifest{}, selection.ErrInvalid
 	}
-	impact, err := service.impacts.ReadImpact(ctx, request.Provider, request.DeliveryID)
+	var impact selection.ImpactProjection
+	var err error
+	if request.Family == catalog.TestFamilyFunctionalUI {
+		impact, err = service.impacts.ReadBrowserImpact(ctx, request.Provider, request.DeliveryID)
+	} else {
+		impact, err = service.impacts.ReadImpact(ctx, request.Provider, request.DeliveryID)
+	}
 	if err != nil {
 		return selection.Manifest{}, err
 	}
@@ -66,7 +75,7 @@ func (service *Service) Select(ctx context.Context, request Request) (selection.
 	if err := catalog.ValidateSnapshotKey(snapshotKey); err != nil {
 		return selection.Manifest{}, fmt.Errorf("%w: catalog key", selection.ErrInvalid)
 	}
-	candidates, err := service.catalog.ReadFunctionalAPICatalog(ctx, snapshotKey)
+	candidates, err := service.catalog.ReadCatalog(ctx, snapshotKey, request.Family)
 	if err != nil {
 		return selection.Manifest{}, err
 	}
@@ -74,7 +83,7 @@ func (service *Service) Select(ctx context.Context, request Request) (selection.
 		return selection.Manifest{}, selection.ErrUnavailable
 	}
 
-	manifest := buildManifest(impact, candidates)
+	manifest := buildManifest(impact, candidates, request.Family)
 	manifest = selection.CanonicalManifest(manifest)
 	if err := selection.ValidateManifest(manifest); err != nil {
 		return selection.Manifest{}, fmt.Errorf("%w: invalid generated manifest", selection.ErrUnavailable)
@@ -83,15 +92,24 @@ func (service *Service) Select(ctx context.Context, request Request) (selection.
 	return manifest, nil
 }
 
-func buildManifest(impact selection.ImpactProjection, candidates Catalog) selection.Manifest {
+func buildManifest(impact selection.ImpactProjection, candidates Catalog, family catalog.TestFamily) selection.Manifest {
 	affected := append([]string{}, impact.AffectedCapabilities...)
-	fallback := impact.Completeness == selection.ImpactIncomplete
+	fallback := impact.Completeness == selection.ImpactIncomplete ||
+		(family == catalog.TestFamilyFunctionalUI && !impact.BrowserChangeCovered)
 	manifest := selection.Manifest{
 		APIVersion: selection.ManifestAPIVersion, PolicyVersion: selection.FunctionalAPIPolicyVersion,
 		ImpactAPIVersion: impact.ProducerAPIVersion, ImpactAnalyzerVersion: impact.ProducerVersion,
-		Change: impact.Change, Catalog: candidates.Snapshot, Family: catalog.TestFamilyFunctionalAPI,
+		Change: impact.Change, Catalog: candidates.Snapshot, Family: family,
 		Mode: selection.ModeTargeted, AffectedCapabilities: affected,
 		Warnings: append([]string{}, impact.Warnings...),
+	}
+	if family == catalog.TestFamilyFunctionalUI {
+		manifest.APIVersion = selection.BrowserManifestAPIVersion
+		manifest.PolicyVersion = selection.FunctionalUIPolicyVersion
+		if !impact.BrowserChangeCovered {
+			manifest.Warnings = append(manifest.Warnings,
+				"browser change coverage is incomplete; all UI tests are required")
+		}
 	}
 	if fallback {
 		manifest.Mode = selection.ModeFallback

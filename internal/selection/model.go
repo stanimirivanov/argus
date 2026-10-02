@@ -15,8 +15,12 @@ import (
 const (
 	// ManifestAPIVersion identifies the first execution-manifest contract.
 	ManifestAPIVersion = "argus.dev/execution-manifest/v1"
+	// BrowserManifestAPIVersion identifies the browser selection contract.
+	BrowserManifestAPIVersion = "argus.dev/execution-manifest/v2"
 	// FunctionalAPIPolicyVersion identifies the deterministic initial policy.
 	FunctionalAPIPolicyVersion = "argus.dev/selection-policy/functional-api/v1"
+	// FunctionalUIPolicyVersion identifies capability-based browser selection.
+	FunctionalUIPolicyVersion = "argus.dev/selection-policy/functional-ui-capability/v1"
 	// MaxManifestDecisions bounds one selection result.
 	MaxManifestDecisions = 10_000
 	// MaxManifestCapabilities bounds affected and per-test mapping evidence.
@@ -100,7 +104,7 @@ type Reason struct {
 	Capabilities []string
 }
 
-// Decision records inclusion or omission for one functional API test.
+// Decision records inclusion or omission for one cataloged test.
 type Decision struct {
 	Test               TestReference
 	Outcome            Outcome
@@ -153,15 +157,17 @@ func CanonicalManifest(manifest Manifest) Manifest {
 
 // ValidateManifest enforces policy-result invariants independent of transports.
 func ValidateManifest(manifest Manifest) error {
-	if manifest.APIVersion != ManifestAPIVersion ||
-		manifest.PolicyVersion != FunctionalAPIPolicyVersion ||
+	validVersion := manifest.APIVersion == ManifestAPIVersion &&
+		manifest.PolicyVersion == FunctionalAPIPolicyVersion && manifest.Family == catalog.TestFamilyFunctionalAPI
+	validBrowserVersion := manifest.APIVersion == BrowserManifestAPIVersion &&
+		manifest.PolicyVersion == FunctionalUIPolicyVersion && manifest.Family == catalog.TestFamilyFunctionalUI
+	if (!validVersion && !validBrowserVersion) ||
 		strings.TrimSpace(manifest.ImpactAPIVersion) == "" ||
 		strings.TrimSpace(manifest.ImpactAnalyzerVersion) == "" ||
 		len(manifest.ImpactAPIVersion) > 255 || len(manifest.ImpactAnalyzerVersion) > 255 {
 		return fmt.Errorf("%w: version", ErrInvalid)
 	}
-	if manifest.Family != catalog.TestFamilyFunctionalAPI ||
-		(manifest.Mode != ModeTargeted && manifest.Mode != ModeFallback) {
+	if manifest.Mode != ModeTargeted && manifest.Mode != ModeFallback {
 		return fmt.Errorf("%w: family or mode", ErrInvalid)
 	}
 	if err := validateChangeReference(manifest.Change); err != nil {
@@ -182,7 +188,7 @@ func ValidateManifest(manifest Manifest) error {
 	}
 	identities := make(map[catalog.TestIdentity]struct{}, len(manifest.Decisions))
 	for _, decision := range manifest.Decisions {
-		if err := validateDecision(decision, manifest.Mode, manifest.AffectedCapabilities); err != nil {
+		if err := validateDecision(decision, manifest.Family, manifest.Mode, manifest.AffectedCapabilities); err != nil {
 			return err
 		}
 		identity := decision.Test.Identity()
@@ -225,8 +231,8 @@ func validateCapabilitySets(manifest Manifest) error {
 	return nil
 }
 
-func validateDecision(decision Decision, mode Mode, affected []string) error {
-	if !decision.Test.Identity().Valid() || decision.Test.Family != catalog.TestFamilyFunctionalAPI ||
+func validateDecision(decision Decision, family catalog.TestFamily, mode Mode, affected []string) error {
+	if !decision.Test.Identity().Valid() || decision.Test.Family != family ||
 		strings.TrimSpace(decision.Test.Adapter) == "" || strings.TrimSpace(decision.Test.Name) == "" ||
 		len(decision.Test.Capabilities) == 0 ||
 		len(decision.Test.Capabilities) > MaxManifestCapabilities || len(decision.Reasons) == 0 {

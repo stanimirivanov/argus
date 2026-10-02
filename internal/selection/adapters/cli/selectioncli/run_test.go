@@ -19,6 +19,9 @@ func TestRunValidatesArgumentsBeforeInfrastructure(t *testing.T) {
 	if err := Run(t.Context(), []string{"--unknown"}, "", &bytes.Buffer{}, nil); !errors.Is(err, commandline.ErrUsage) {
 		t.Fatalf("unknown flag error = %v, want usage classification", err)
 	}
+	if err := Run(t.Context(), []string{"-family", "unit", "-delivery-id", "delivery-42"}, "", &bytes.Buffer{}, nil); !errors.Is(err, commandline.ErrUsage) {
+		t.Fatalf("unsupported family error = %v, want usage classification", err)
+	}
 	if err := Run(
 		t.Context(),
 		[]string{"-delivery-id", "delivery-42"},

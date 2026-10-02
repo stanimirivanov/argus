@@ -15,6 +15,7 @@ import {
 import { CapabilityImpactV1 } from "../source/capability-impact-v1.js";
 import { ChangeSetV1 } from "../source/change-set-v1.js";
 import { ExecutionManifestV1 } from "../source/execution-manifest-v1.js";
+import { ExecutionManifestV2 } from "../source/execution-manifest-v2.js";
 import {
   FunctionalAPIExecutionBindingsV1,
   FunctionalAPIExecutionPlanV1,
@@ -232,6 +233,17 @@ const artifacts = [
     document: {
       $id: "https://argus.dev/contracts/execution-manifest/v1/schema.json",
       ...JSONSchema.make(ExecutionManifestV1, { target: "jsonSchema2020-12" }),
+    },
+  },
+  {
+    name: "browser capability selection manifest",
+    outputPath: new URL(
+      "../generated/execution-manifest/v2/execution-manifest.schema.json",
+      import.meta.url,
+    ),
+    document: {
+      $id: "https://argus.dev/contracts/execution-manifest/v2/schema.json",
+      ...JSONSchema.make(ExecutionManifestV2, { target: "jsonSchema2020-12" }),
     },
   },
   {

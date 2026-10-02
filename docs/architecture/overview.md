@@ -48,6 +48,9 @@
 - [ADR-0024](../decisions/0024-own-endpoint-repair-proposals-by-test-family.md)
   gives functional API endpoint-repair proposal policy a family-owned domain
   package without changing portable evidence contracts.
+- [ADR-0025](../decisions/0025-select-browser-tests-only-for-fully-covered-api-changes.md)
+  adds a conservative browser capability-selection manifest without changing
+  functional API v1 execution authority.
 - Queues and deployment topology remain deferred to ADRs and evidence from
   vertical slices.
 
@@ -268,7 +271,7 @@ remain visible so M05 can broaden or abstain. The architecture test enforces
 inward dependencies for the domain, application, workflow, and driving-adapter
 packages.
 
-### Current functional API selection boundaries
+### Current capability-mapped selection boundaries
 
 The first M05 slice consumes M03 catalog and M04 impact through selection-owned
 ports:
@@ -276,10 +279,10 @@ ports:
 | Path | Owns | Must not own |
 |:--|:--|:--|
 | `internal/selection` | Manifest and producer-neutral impact-projection vocabulary, outcomes, reasons, bounds, and invariants | SQL, generated contracts, catalog queries, or execution |
-| `internal/selection/functionalapi` | Deterministic targeted/fallback policy and coverage-gap derivation from projected capabilities and completeness | OpenAPI document structure, PostgreSQL, JSON, CLI arguments, or framework commands |
+| `internal/selection/capabilitymapped` | Deterministic targeted/fallback policy for cataloged functional API and UI tests, with family-specific versioning and UI changed-file coverage gating | OpenAPI document structure, PostgreSQL, JSON, CLI arguments, or framework commands |
 | `internal/selection/adapters/catalogreader` | Bounded traversal and projection of immutable catalog pages | Selection policy |
-| `internal/selection/adapters/impactreader` | Validate persisted OpenAPI impact and translate it into selection-owned capabilities, unresolved evidence, and producer provenance | Selection policy or manifest serialization |
-| `internal/selection/adapters/contract` | Domain-to-execution-manifest v1 conversion | Policy or persistence |
+| `internal/selection/adapters/impactreader` | Validate persisted OpenAPI impact, project capability completeness, and verify changed-file coverage before UI targeting | Selection policy or manifest serialization |
+| `internal/selection/adapters/contract` | Domain-to-execution-manifest v1/v2 conversion | Policy or persistence |
 | `internal/selection/adapters/cli/selectioncli` | Local arguments and JSON output through injected ports | Concrete infrastructure |
 | `cmd/select` | PostgreSQL composition, process lifecycle, and environment configuration | Selection or serialization policy |
 
@@ -292,11 +295,20 @@ retain a mandatory full-suite path, and affected capabilities without a mapped
 test are reported as coverage gaps. The manifest is deterministic output, not
 release authority.
 
+For cataloged `functional-ui` tests, the same capability policy emits
+`execution-manifest/v2`. Targeting is permitted only when the complete changed-
+file list is exactly the set of analyzed OpenAPI documents. A changed UI file,
+truncated file list, incomplete assessment, or unmapped operation requires
+every UI candidate. This is an API-capability bridge to UI selection, not yet
+UI route/component impact or Playwright discovery. Functional API selection
+continues to emit its unchanged v1 contract by default.
+
 The selector's inward projection can accept another impact producer without
 changing its policy. The public execution-manifest v1 Effect contract still
 pins the OpenAPI impact and analyzer versions; adding a producer requires a
-separately reviewed contract version and compatibility fixtures. This refactor
-does not change current JSON or fallback semantics.
+separately reviewed contract version and compatibility fixtures. The browser
+manifest is a distinct v2 contract; it does not change v1 JSON or fallback
+semantics.
 
 ### Current functional API execution boundaries
 

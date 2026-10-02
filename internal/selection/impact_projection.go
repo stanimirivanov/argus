@@ -30,10 +30,13 @@ type ImpactEvidenceReference struct {
 // ImpactProjection is the selection-owned input derived from one immutable
 // impact assessment. UnresolvedCount can exceed the bounded diagnostic sample.
 type ImpactProjection struct {
-	Change               change.Reference
-	ProducerAPIVersion   string
-	ProducerVersion      string
-	Completeness         ImpactCompleteness
+	Change             change.Reference
+	ProducerAPIVersion string
+	ProducerVersion    string
+	Completeness       ImpactCompleteness
+	// BrowserChangeCovered is true only when every changed file is an analyzed
+	// OpenAPI document. A false value prevents targeted browser selection.
+	BrowserChangeCovered bool
 	AffectedCapabilities []string
 	Evidence             []ImpactEvidenceReference
 	UnresolvedEvidence   []ImpactEvidenceReference

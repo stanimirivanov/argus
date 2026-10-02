@@ -13,6 +13,38 @@ import (
 
 // ExportV1 converts a validated manifest to its public Effect-authored contract.
 func ExportV1(manifest selection.Manifest) (contracts.ExecutionManifestV1, error) {
+	if manifest.APIVersion != selection.ManifestAPIVersion {
+		return contracts.ExecutionManifestV1{}, selection.ErrInvalid
+	}
+	result, err := exportManifest(manifest)
+	if err != nil {
+		return contracts.ExecutionManifestV1{}, err
+	}
+	if err := contracts.ValidateExecutionManifestV1(result); err != nil {
+		return contracts.ExecutionManifestV1{}, fmt.Errorf("export execution manifest v1: %w", err)
+	}
+
+	return result, nil
+}
+
+// ExportV2 converts a functional UI manifest to its distinct v2 contract.
+func ExportV2(manifest selection.Manifest) (contracts.ExecutionManifestV2, error) {
+	if manifest.APIVersion != selection.BrowserManifestAPIVersion {
+		return contracts.ExecutionManifestV2{}, selection.ErrInvalid
+	}
+	result, err := exportManifest(manifest)
+	if err != nil {
+		return contracts.ExecutionManifestV2{}, err
+	}
+	document := contracts.ExecutionManifestV2(result)
+	if err := contracts.ValidateExecutionManifestV2(document); err != nil {
+		return contracts.ExecutionManifestV2{}, fmt.Errorf("export execution manifest v2: %w", err)
+	}
+
+	return document, nil
+}
+
+func exportManifest(manifest selection.Manifest) (contracts.ExecutionManifestV1, error) {
 	manifest = selection.CanonicalManifest(manifest)
 	if err := selection.ValidateManifest(manifest); err != nil {
 		return contracts.ExecutionManifestV1{}, err
@@ -51,9 +83,6 @@ func ExportV1(manifest selection.Manifest) (contracts.ExecutionManifestV1, error
 		AffectedCapabilities:  append([]string{}, manifest.AffectedCapabilities...),
 		UncoveredCapabilities: append([]string{}, manifest.UncoveredCapabilities...),
 		Decisions:             decisions, Warnings: append([]string{}, manifest.Warnings...),
-	}
-	if err := contracts.ValidateExecutionManifestV1(result); err != nil {
-		return contracts.ExecutionManifestV1{}, fmt.Errorf("export execution manifest v1: %w", err)
 	}
 
 	return result, nil
