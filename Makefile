@@ -34,7 +34,7 @@ TOOL_LICENSE_EXCEPTIONS := \
 	--ignore github.com/leonklingele/grouper \
 	--ignore github.com/xen0n/gosmopolitan
 
-.PHONY: help bootstrap doctor build binaries generate-contracts fmt fmt-check docs-check architecture-check check test verify race db-validate vuln license supply-chain validate
+.PHONY: help bootstrap doctor build binaries generate-contracts fmt fmt-check docs-check architecture-check check test verify race fuzz-smoke db-validate vuln license supply-chain validate
 
 help:
 	@echo Argus engineering-foundation command surface
@@ -51,6 +51,7 @@ help:
 	@echo   make test   Run ordinary tests without cached results
 	@echo   make verify  Run the fast network-independent development feedback loop
 	@echo   make race   Run all tests with the race detector
+	@echo   make fuzz-smoke  Run bounded native fuzzing of untrusted Go inputs
 	@echo   make db-validate  Run PostgreSQL integration tests against a disposable local server
 	@echo   make vuln   Scan reachable dependencies for known vulnerabilities
 	@echo   make license  Enforce runtime and development-tool license policy
@@ -115,6 +116,16 @@ verify: build check test
 
 race:
 	go test -vet=off -race -count=1 ./...
+
+# Ordinary go test already executes each fuzz target's seed corpus. This
+# separate, bounded campaign is a T3 developer sensor, not a CI merge gate.
+fuzz-smoke:
+	go test -run '^$$' -fuzz '^FuzzTestCatalogCursor$$' -fuzztime=2s ./internal/catalog/testquery
+	go test -run '^$$' -fuzz '^FuzzImpactEdgeCursor$$' -fuzztime=2s ./internal/catalog/impact
+	go test -run '^$$' -fuzz '^FuzzWebhookDecode$$' -fuzztime=2s ./internal/change/adapters/github
+	go test -run '^$$' -fuzz '^FuzzOpenAPIDocumentParsing$$' -fuzztime=2s ./internal/change/adapters/openapi
+	go test -run '^$$' -fuzz '^FuzzProcessResultDecoding$$' -fuzztime=2s ./internal/contracts
+	go test -run '^$$' -fuzz '^FuzzSourcePath$$' -fuzztime=2s ./internal/adaptation
 
 db-validate:
 	go test -vet=off -tags=integration -race -count=1 -timeout=5m ./internal/postgres

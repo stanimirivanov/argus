@@ -343,7 +343,7 @@ func validRepositoryPath(path string) bool {
 	cleaned := strings.ReplaceAll(path, `\`, "/")
 	return path == cleaned && path != "" && path != "." && path == pathpkg.Clean(path) &&
 		len(path) <= MaxSourcePathLength && !strings.HasPrefix(path, "/") &&
-		!strings.HasPrefix(path, "../") && !strings.ContainsRune(path, '\x00')
+		!strings.HasPrefix(path, "../") && !strings.ContainsAny(path, ":\x00")
 }
 
 // ValidateSourcePath verifies a normalized repository-relative source path for
