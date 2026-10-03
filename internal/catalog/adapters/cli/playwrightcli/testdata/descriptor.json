@@ -1,0 +1,16 @@
+{
+  "apiVersion": "argus.dev/repository-descriptor/v1",
+  "repository": {"provider": "github", "host": "github.com", "providerRepositoryId": "source-1", "owner": "example", "name": "orders"},
+  "capabilities": [{"key": "checkout", "name": "Checkout"}],
+  "components": [{"key": "web", "root": "web", "capabilities": ["checkout"]}],
+  "testSuites": [{
+    "key": "checkout-ui",
+    "repository": {"provider": "github", "host": "github.com", "providerRepositoryId": "tests-1", "owner": "example", "name": "orders-tests"},
+    "family": "functional-ui",
+    "adapter": "playwright",
+    "tests": [
+      {"key": "checkout-happy", "name": "checkout happy path", "capabilities": ["checkout"]},
+      {"key": "checkout-error", "name": "checkout error", "capabilities": ["checkout"]}
+    ]
+  }]
+}

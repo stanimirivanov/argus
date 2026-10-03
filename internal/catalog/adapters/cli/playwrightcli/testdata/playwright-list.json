@@ -1,0 +1,25 @@
+{
+  "config": {"rootDir": "/test-checkout", "projects": [{"name": "chromium"}, {"name": "firefox"}]},
+  "suites": [{
+    "title": "checkout.spec.ts",
+    "file": "tests/checkout.spec.ts",
+    "specs": [
+      {
+        "title": "checkout happy path",
+        "file": "tests/checkout.spec.ts",
+        "tags": ["smoke"],
+        "tests": [
+          {"projectName": "chromium", "annotations": [{"type": "argus.test-key", "description": "checkout-happy"}, {"type": "argus.owner", "description": "web-team"}], "results": []},
+          {"projectName": "firefox", "annotations": [{"type": "argus.test-key", "description": "checkout-happy"}, {"type": "argus.owner", "description": "web-team"}], "results": []}
+        ]
+      },
+      {
+        "title": "checkout error",
+        "file": "tests/checkout.spec.ts",
+        "tags": ["error"],
+        "tests": [{"projectName": "chromium", "annotations": [{"type": "argus.test-key", "description": "checkout-error"}], "results": []}]
+      }
+    ]
+  }],
+  "errors": []
+}

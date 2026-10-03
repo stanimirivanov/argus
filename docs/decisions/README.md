@@ -124,3 +124,4 @@ How will the assumptions and consequences be verified?
 | [ADR-0023](0023-separate-github-review-read-and-write-authority.md) | Separate GitHub review read and write authority | Proposed | 2026-10-02 |
 | [ADR-0024](0024-own-endpoint-repair-proposals-by-test-family.md) | Own endpoint repair proposals by test family | Proposed | 2026-10-02 |
 | [ADR-0025](0025-select-browser-tests-only-for-fully-covered-api-changes.md) | Select browser tests only for fully covered API changes | Proposed | 2026-10-02 |
+| [ADR-0026](0026-check-playwright-inventory-against-declared-tests.md) | Check Playwright inventory against declared tests | Proposed | 2026-10-03 |

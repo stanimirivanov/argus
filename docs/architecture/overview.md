@@ -51,6 +51,9 @@
 - [ADR-0025](../decisions/0025-select-browser-tests-only-for-fully-covered-api-changes.md)
   adds a conservative browser capability-selection manifest without changing
   functional API v1 execution authority.
+- [ADR-0026](../decisions/0026-check-playwright-inventory-against-declared-tests.md)
+  checks Playwright's collected test list against declared stable keys without
+  treating generated runner IDs as durable identity.
 - Queues and deployment topology remain deferred to ADRs and evidence from
   vertical slices.
 
@@ -174,14 +177,17 @@ topology:
 | `internal/catalog` | Shared repository, revision, snapshot, and test identity vocabulary; canonical ordering; invariants; and stable catalog errors | Use-case orchestration, consumer ports, generated contracts, SQL, or adapters |
 | `internal/catalog/snapshot` | Snapshot ingestion/retrieval service and its consumer-owned `Store` port | Transport conversion, SQL, or schema administration |
 | `internal/catalog/testquery` | Bounded test query service, keyset cursor policy, and its reader port | JSON output, SQL, or impact policy |
+| `internal/catalog/discovery` | Reconcile observed Playwright project variants with one declared UI suite | Vendor JSON, CLI arguments, persistence, or selection authority |
 | `internal/catalog/impact` | Immutable evidence ingestion, edge query and temporal/conflict policy, cursors, and consumer-owned ports | Generated DTOs, SQL, or selection thresholds |
 | `internal/catalog/adapters/contract/*` | Conversion from versioned generated transports and transport-specific semantic errors | Persistence or application orchestration |
 | `internal/contracts` | Product-internal Go wire DTOs and schema validation using embedded portable artifacts | Domain policy, persistence, or a supported Go SDK surface |
 | `contracts` | Authoritative Effect sources, portable generated JSON Schemas, fixtures, and a narrow Go schema-asset accessor | Public Go DTOs or domain models |
 | `internal/catalog/adapters/cli/*` | Catalog and descriptor CLI parsing, local file input, application invocation, and versioned JSON output | Concrete infrastructure selection, SQL, or domain policy |
+| `internal/catalog/adapters/cli/playwrightcli` | Bounded Playwright JSON-list parsing and local conformance diagnostics | Durable discovery claims, browser execution, or selection policy |
 | `internal/postgres` | One bounded runtime pool, capability-scoped catalog/change/execution/adaptation stores, private fingerprints and error translation, and explicit migrations | Public wire formats, application policy, or a runtime object that implements every capability port |
 | `cmd/catalog` | Process lifecycle, environment configuration, and concrete adapter composition | Argument policy, output mapping, cursor policy, or direct SQL orchestration |
 | `cmd/descriptor` | Descriptor-command process wiring | Descriptor validation, file parsing, or output mapping |
+| `cmd/playwright-catalog` | Local Playwright checker process wiring | Catalog reconciliation or vendor report parsing |
 | `cmd/migrate` | Explicit composition of the privileged migration capability | Runtime catalog reads or writes |
 
 Runtime catalog code depends on the narrow `snapshot.Store` port. The
@@ -300,8 +306,10 @@ For cataloged `functional-ui` tests, the same capability policy emits
 file list is exactly the set of analyzed OpenAPI documents. A changed UI file,
 truncated file list, incomplete assessment, or unmapped operation requires
 every UI candidate. This is an API-capability bridge to UI selection, not yet
-UI route/component impact or Playwright discovery. Functional API selection
-continues to emit its unchanged v1 contract by default.
+UI route/component impact. A separate local checker validates Playwright's
+collected test keys against one declared UI suite, but its observations are not
+persisted or consumed by selection. Functional API selection continues to
+emit its unchanged v1 contract by default.
 
 The selector's inward projection can accept another impact producer without
 changing its policy. The public execution-manifest v1 Effect contract still

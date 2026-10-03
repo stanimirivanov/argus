@@ -21,6 +21,7 @@ var commandNames = []string{
 	"migrate",
 	"open-functional-api-repair-pr",
 	"plan-functional-api",
+	"playwright-catalog",
 	"propose-functional-api-repair",
 	"run-functional-api",
 	"select",
@@ -95,6 +96,8 @@ func testExitCodes(t *testing.T, binDirectory string) {
 		{name: "migrate", code: 1},
 		{name: "descriptor", code: 2},
 		{name: "descriptor", args: []string{"--unknown"}, code: 2},
+		{name: "playwright-catalog", code: 2},
+		{name: "playwright-catalog", args: []string{"--unknown"}, code: 2},
 	} {
 		output, code := runBinary(t, commandBinary(binDirectory, test.name), test.args...)
 		if code != test.code {

@@ -12,8 +12,8 @@
   runs `make db-validate`.
 - The current end-to-end slice covers functional API cataloging, impact,
   selection, execution evidence, bounded repair, validation, and review
-  outcomes. Functional UI now has a conservative selection-only slice;
-  browser execution and adaptation remain planned work.
+  outcomes. Functional UI has a conservative selection slice and a local
+  Playwright catalog checker; browser execution and adaptation remain planned.
 - Purpose-specific executables expose safe top-level help and build identity;
   direct-database clients remain transitional, not ordinary CI dependencies.
 
@@ -140,6 +140,49 @@ Schema, applies catalog-domain invariants, and prints a normalized summary. The
 revision argument represents trusted ingestion context and is deliberately not
 read from the repository-owned document.
 
+## Check a Playwright UI catalog
+
+In the test repository's controlled CI checkout, collect the complete test
+inventory without running browser tests:
+
+~~~sh
+PLAYWRIGHT_JSON_OUTPUT_NAME=playwright-list.json \
+  npx playwright test --list --reporter=json
+~~~
+
+Each test in the declared `functional-ui`/`playwright` suite needs a stable
+annotation in its Playwright declaration. An optional owner annotation and
+ordinary Playwright tags are included in the local inventory:
+
+~~~ts
+test("checkout succeeds", {
+  tag: "@smoke",
+  annotation: [
+    { type: "argus.test-key", description: "checkout-happy" },
+    { type: "argus.owner", description: "web-team" },
+  ],
+}, async ({ page }) => { /* existing test body */ });
+~~~
+
+Run the checker from Argus with the descriptor and JSON list from the intended
+checkouts:
+
+~~~sh
+go run ./cmd/playwright-catalog \
+  -source-revision 0123456789abcdef0123456789abcdef01234567 \
+  -suite checkout-ui \
+  ./descriptor.json ./playwright-list.json
+~~~
+
+It fails when a declared test is absent, a discovered key is undeclared, a key
+appears twice in one project, or collection contains errors or executed results.
+It prints stable keys, project variants, tags, and owners for review. This is a
+local conformance check, not a catalog write or trusted selection signal. The
+caller MUST run the unfiltered `--list` command at a controlled, pinned test
+revision and supply the descriptor from its claimed source revision; Argus does
+not verify either checkout here. Playwright collection evaluates repository
+code, so it MUST run only in an appropriately isolated CI environment.
+
 ## Persist and read catalog snapshots
 
 Apply migrations explicitly before starting a writer. Database URLs are
@@ -216,8 +259,10 @@ list, incomplete impact, or unmapped operation requires every cataloged UI
 candidate. Omitted early-stage tests retain a full-suite obligation.
 
 The current functional API planner and runner accept only v1; they MUST NOT be
-used to execute this browser manifest. Playwright discovery, UI route/component
-impact, browser execution evidence, and locator repair remain M07 follow-ups.
+used to execute this browser manifest. The Playwright checker above validates
+declared test identity locally but is not yet persisted or joined to selection.
+UI route/component impact, browser execution evidence, and locator repair
+remain M07 follow-ups.
 
 ## Plan heterogeneous functional API execution
 
