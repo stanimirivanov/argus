@@ -42,6 +42,7 @@ func Run(
 	flags.SetOutput(io.Discard)
 	provider := flags.String("provider", string(catalog.ProviderGitHub), "delivery provider")
 	family := flags.String("family", string(catalog.TestFamilyFunctionalAPI), "test family: functional-api or functional-ui")
+	uiImpact := flags.String("ui-impact", "openapi", "UI impact policy: openapi or components")
 	deliveryID := flags.String("delivery-id", "", "verified provider delivery ID")
 	descriptorVersion := flags.String(
 		"descriptor-api-version",
@@ -52,8 +53,10 @@ func Run(
 		return fmt.Errorf("select: %w", err)
 	}
 	if *deliveryID == "" || flags.NArg() != 0 ||
-		(*family != string(catalog.TestFamilyFunctionalAPI) && *family != string(catalog.TestFamilyFunctionalUI)) {
-		return commandline.UsageText("usage: select [-provider github] [-family functional-api|functional-ui] -delivery-id <id>")
+		(*family != string(catalog.TestFamilyFunctionalAPI) && *family != string(catalog.TestFamilyFunctionalUI)) ||
+		(*uiImpact != "openapi" && *uiImpact != "components") ||
+		(*family != string(catalog.TestFamilyFunctionalUI) && *uiImpact != "openapi") {
+		return commandline.UsageText("usage: select [-provider github] [-family functional-api|functional-ui] [-ui-impact openapi|components] -delivery-id <id>")
 	}
 	if databaseURL == "" {
 		return errors.New("ARGUS_DATABASE_URL is required")
@@ -68,15 +71,21 @@ func Run(
 	defer runtime.Close()
 
 	service := capabilitymapped.NewService(impactreader.New(runtime), catalogreader.New(runtime))
+	selectedUIImpact := ""
+	if *uiImpact == "components" {
+		selectedUIImpact = "components"
+	}
 	manifest, err := service.Select(ctx, capabilitymapped.Request{
 		Provider: catalog.Provider(*provider), DeliveryID: *deliveryID,
-		DescriptorAPIVersion: *descriptorVersion, Family: catalog.TestFamily(*family),
+		DescriptorAPIVersion: *descriptorVersion, Family: catalog.TestFamily(*family), UIImpact: selectedUIImpact,
 	})
 	if err != nil {
 		return fmt.Errorf("select %s tests: %w", *family, err)
 	}
 	var document any
-	if manifest.Family == catalog.TestFamilyFunctionalUI {
+	if manifest.APIVersion == contracts.ExecutionManifestV3APIVersion {
+		document, err = selectioncontract.ExportV3(manifest)
+	} else if manifest.Family == catalog.TestFamilyFunctionalUI {
 		document, err = selectioncontract.ExportV2(manifest)
 	} else {
 		document, err = selectioncontract.ExportV1(manifest)

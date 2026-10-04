@@ -168,6 +168,37 @@ func (reader *stubImpactReader) ReadBrowserImpact(
 	return reader.impact, nil
 }
 
+func (reader *stubImpactReader) ReadComponentImpact(
+	context.Context, catalog.Provider, string, string,
+) (selection.ImpactProjection, error) {
+	return reader.impact, nil
+}
+
+func TestSelectComponentImpactUsesDistinctPolicy(t *testing.T) {
+	t.Parallel()
+	impact := validImpact(selection.ImpactComplete, []string{"create-order"})
+	impact.ProducerAPIVersion = "argus.dev/component-root-impact/v1"
+	impact.ProducerVersion = "argus-component-roots/v1"
+	create := testCandidate("create-order-test", "create-order")
+	create.Family = catalog.TestFamilyFunctionalUI
+	other := testCandidate("other", "other")
+	other.Family = catalog.TestFamilyFunctionalUI
+	service := NewService(&stubImpactReader{impact: impact}, &stubCatalogReader{catalog: candidateCatalog(
+		impact.Change, []selection.TestReference{create, other},
+	)})
+	request := validRequest()
+	request.Family = catalog.TestFamilyFunctionalUI
+	request.UIImpact = "components"
+	manifest, err := service.Select(t.Context(), request)
+	if err != nil {
+		t.Fatalf("select component impact: %v", err)
+	}
+	if manifest.APIVersion != selection.ComponentManifestAPIVersion || manifest.PolicyVersion != selection.UIComponentPolicyVersion ||
+		manifest.Mode != selection.ModeTargeted || manifest.Decisions[1].Outcome != selection.OutcomeSkipForNow {
+		t.Fatalf("component selection = %+v", manifest)
+	}
+}
+
 type stubCatalogReader struct {
 	catalog Catalog
 }

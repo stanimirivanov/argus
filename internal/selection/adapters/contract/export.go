@@ -44,6 +44,23 @@ func ExportV2(manifest selection.Manifest) (contracts.ExecutionManifestV2, error
 	return document, nil
 }
 
+// ExportV3 converts an opt-in component-root browser manifest.
+func ExportV3(manifest selection.Manifest) (contracts.ExecutionManifestV3, error) {
+	if manifest.APIVersion != selection.ComponentManifestAPIVersion {
+		return contracts.ExecutionManifestV3{}, selection.ErrInvalid
+	}
+	result, err := exportManifest(manifest)
+	if err != nil {
+		return contracts.ExecutionManifestV3{}, err
+	}
+	document := contracts.ExecutionManifestV3(result)
+	if err := contracts.ValidateExecutionManifestV3(document); err != nil {
+		return contracts.ExecutionManifestV3{}, fmt.Errorf("export execution manifest v3: %w", err)
+	}
+
+	return document, nil
+}
+
 func exportManifest(manifest selection.Manifest) (contracts.ExecutionManifestV1, error) {
 	manifest = selection.CanonicalManifest(manifest)
 	if err := selection.ValidateManifest(manifest); err != nil {

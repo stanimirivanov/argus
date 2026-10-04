@@ -15,6 +15,9 @@ const (
 	// ExecutionManifestV2APIVersion identifies browser capability selection.
 	ExecutionManifestV2APIVersion = "argus.dev/execution-manifest/v2"
 	executionManifestV2SchemaID   = "https://argus.dev/contracts/execution-manifest/v2/schema.json"
+	// ExecutionManifestV3APIVersion identifies component-root browser selection.
+	ExecutionManifestV3APIVersion = "argus.dev/execution-manifest/v3"
+	executionManifestV3SchemaID   = "https://argus.dev/contracts/execution-manifest/v3/schema.json"
 )
 
 var executionManifestV1SchemaJSON = mustReadSchema("execution-manifest/v1/execution-manifest.schema.json")
@@ -27,6 +30,12 @@ var executionManifestV2SchemaJSON = mustReadSchema("execution-manifest/v2/execut
 
 var loadExecutionManifestV2Schema = sync.OnceValues(func() (*jsonschema.Schema, error) {
 	return compileEmbeddedSchema(executionManifestV2SchemaJSON, executionManifestV2SchemaID, "browser execution manifest")
+})
+
+var executionManifestV3SchemaJSON = mustReadSchema("execution-manifest/v3/execution-manifest.schema.json")
+
+var loadExecutionManifestV3Schema = sync.OnceValues(func() (*jsonschema.Schema, error) {
+	return compileEmbeddedSchema(executionManifestV3SchemaJSON, executionManifestV3SchemaID, "component execution manifest")
 })
 
 // ExecutionManifestV1 is the versioned functional API selection result.
@@ -48,6 +57,9 @@ type ExecutionManifestV1 struct {
 // It intentionally has the same field shape as v1 but distinct family and
 // policy invariants enforced by its own Effect-authored schema.
 type ExecutionManifestV2 ExecutionManifestV1
+
+// ExecutionManifestV3 is the opt-in source-root browser selection result.
+type ExecutionManifestV3 ExecutionManifestV1
 
 // ManifestImpactReference identifies the analyzer contract used for selection.
 type ManifestImpactReference struct {
@@ -155,6 +167,45 @@ func validateExecutionManifestV2JSON(data []byte) error {
 	}
 	if err := schema.Validate(untyped); err != nil {
 		return fmt.Errorf("validate browser execution manifest schema: %w", err)
+	}
+
+	return nil
+}
+
+// DecodeExecutionManifestV3 validates and decodes a component selection manifest.
+func DecodeExecutionManifestV3(data []byte) (ExecutionManifestV3, error) {
+	var document ExecutionManifestV3
+	if err := validateExecutionManifestV3JSON(data); err != nil {
+		return document, err
+	}
+	if err := json.Unmarshal(data, &document); err != nil {
+		return document, fmt.Errorf("decode component execution manifest: %w", err)
+	}
+
+	return document, nil
+}
+
+// ValidateExecutionManifestV3 checks a typed value against the v3 schema.
+func ValidateExecutionManifestV3(document ExecutionManifestV3) error {
+	data, err := json.Marshal(document)
+	if err != nil {
+		return fmt.Errorf("encode component execution manifest for validation: %w", err)
+	}
+
+	return validateExecutionManifestV3JSON(data)
+}
+
+func validateExecutionManifestV3JSON(data []byte) error {
+	schema, err := loadExecutionManifestV3Schema()
+	if err != nil {
+		return err
+	}
+	untyped, err := decodeSingleJSONValue(data, "component execution manifest")
+	if err != nil {
+		return err
+	}
+	if err := schema.Validate(untyped); err != nil {
+		return fmt.Errorf("validate component execution manifest schema: %w", err)
 	}
 
 	return nil

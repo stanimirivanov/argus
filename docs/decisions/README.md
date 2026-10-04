@@ -125,3 +125,4 @@ How will the assumptions and consequences be verified?
 | [ADR-0024](0024-own-endpoint-repair-proposals-by-test-family.md) | Own endpoint repair proposals by test family | Proposed | 2026-10-02 |
 | [ADR-0025](0025-select-browser-tests-only-for-fully-covered-api-changes.md) | Select browser tests only for fully covered API changes | Proposed | 2026-10-02 |
 | [ADR-0026](0026-check-playwright-inventory-against-declared-tests.md) | Check Playwright inventory against declared tests | Proposed | 2026-10-03 |
+| [ADR-0027](0027-opt-in-browser-selection-from-declared-component-roots.md) | Opt in to browser selection from declared component roots | Proposed | 2026-10-03 |

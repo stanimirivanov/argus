@@ -14,7 +14,7 @@ import (
 
 var commandSpec = commandline.Spec{
 	Name:     "select",
-	Synopsis: "select [-provider github] [-family functional-api|functional-ui] -delivery-id <id>",
+	Synopsis: "select [-provider github] [-family functional-api|functional-ui] [-ui-impact openapi|components] -delivery-id <id>",
 	Role:     "transitional direct-database client",
 }
 
