@@ -35,7 +35,8 @@ type ImpactProjection struct {
 	ProducerVersion    string
 	Completeness       ImpactCompleteness
 	// BrowserChangeCovered is true only when every changed file is an analyzed
-	// OpenAPI document. A false value prevents targeted browser selection.
+	// OpenAPI document. The v2 browser policy requires it for targeting; the
+	// opt-in component-root v3 policy uses its own complete-path proof.
 	BrowserChangeCovered bool
 	AffectedCapabilities []string
 	Evidence             []ImpactEvidenceReference

@@ -341,11 +341,12 @@ remains.
 The first M07 selection slice uses already cataloged `functional-ui` tests and
 explicit capability mappings to select browser tests for OpenAPI-only changes.
 It emits a separate v2 manifest and requires all UI candidates whenever any
-changed file is outside the analyzed OpenAPI documents. The next slice adds a
-local Playwright JSON-list conformance checker for explicit stable test keys,
-projects, tags, and owner annotations. It does not persist discovery evidence,
-map UI routes/components, execute browser tests, or authorize a UI subset as a
-release gate.
+changed file is outside the analyzed OpenAPI documents. A local Playwright
+JSON-list checker verifies declared test keys, projects, tags, and owners.
+An opt-in component-root policy now maps complete source-file changes through
+the immutable base descriptor's declared roots and emits a separate v3
+manifest. Neither policy persists Playwright discovery evidence, executes
+browser tests, infers UI routes, or authorizes a UI subset as a release gate.
 
 Acceptance ingredients:
 

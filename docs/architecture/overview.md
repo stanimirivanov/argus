@@ -311,12 +311,21 @@ collected test keys against one declared UI suite, but its observations are not
 persisted or consumed by selection. Functional API selection continues to
 emit its unchanged v1 contract by default.
 
+The opt-in `-ui-impact components` policy reads the verified change set and
+the immutable base catalog snapshot. It unions capabilities from every
+declared component root matching each changed path, including rename/copy
+predecessors, on path-segment boundaries. Truncated or unmatched paths require
+all UI candidates. This emits execution-manifest v3 and does not alter either
+the default API v1 or OpenAPI-only UI v2 policy. The projection is derived
+read-only at selection time; no new persisted impact document or route
+inference is implied. See [ADR-0027](../decisions/0027-opt-in-browser-selection-from-declared-component-roots.md).
+
 The selector's inward projection can accept another impact producer without
 changing its policy. The public execution-manifest v1 Effect contract still
 pins the OpenAPI impact and analyzer versions; adding a producer requires a
-separately reviewed contract version and compatibility fixtures. The browser
-manifest is a distinct v2 contract; it does not change v1 JSON or fallback
-semantics.
+separately reviewed contract version and compatibility fixtures. The
+OpenAPI browser manifest is a distinct v2 contract, while the opt-in
+component-root policy has v3. Neither changes v1 JSON or fallback semantics.
 
 ### Current functional API execution boundaries
 

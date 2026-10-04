@@ -17,10 +17,14 @@ const (
 	ManifestAPIVersion = "argus.dev/execution-manifest/v1"
 	// BrowserManifestAPIVersion identifies the browser selection contract.
 	BrowserManifestAPIVersion = "argus.dev/execution-manifest/v2"
+	// ComponentManifestAPIVersion identifies opt-in source-root browser selection.
+	ComponentManifestAPIVersion = "argus.dev/execution-manifest/v3"
 	// FunctionalAPIPolicyVersion identifies the deterministic initial policy.
 	FunctionalAPIPolicyVersion = "argus.dev/selection-policy/functional-api/v1"
 	// FunctionalUIPolicyVersion identifies capability-based browser selection.
 	FunctionalUIPolicyVersion = "argus.dev/selection-policy/functional-ui-capability/v1"
+	// UIComponentPolicyVersion maps complete changed-file sets through base-catalog roots.
+	UIComponentPolicyVersion = "argus.dev/selection-policy/functional-ui-component/v1"
 	// MaxManifestDecisions bounds one selection result.
 	MaxManifestDecisions = 10_000
 	// MaxManifestCapabilities bounds affected and per-test mapping evidence.
@@ -161,7 +165,9 @@ func ValidateManifest(manifest Manifest) error {
 		manifest.PolicyVersion == FunctionalAPIPolicyVersion && manifest.Family == catalog.TestFamilyFunctionalAPI
 	validBrowserVersion := manifest.APIVersion == BrowserManifestAPIVersion &&
 		manifest.PolicyVersion == FunctionalUIPolicyVersion && manifest.Family == catalog.TestFamilyFunctionalUI
-	if (!validVersion && !validBrowserVersion) ||
+	validComponentVersion := manifest.APIVersion == ComponentManifestAPIVersion &&
+		manifest.PolicyVersion == UIComponentPolicyVersion && manifest.Family == catalog.TestFamilyFunctionalUI
+	if (!validVersion && !validBrowserVersion && !validComponentVersion) ||
 		strings.TrimSpace(manifest.ImpactAPIVersion) == "" ||
 		strings.TrimSpace(manifest.ImpactAnalyzerVersion) == "" ||
 		len(manifest.ImpactAPIVersion) > 255 || len(manifest.ImpactAnalyzerVersion) > 255 {

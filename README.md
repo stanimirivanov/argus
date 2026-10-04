@@ -258,11 +258,29 @@ target UI tests by shared capability. Any other changed file, truncated file
 list, incomplete impact, or unmapped operation requires every cataloged UI
 candidate. Omitted early-stage tests retain a full-suite obligation.
 
+For source changes covered by the base descriptor's declared component roots,
+opt into a separate policy:
+
+~~~sh
+go run ./cmd/select \
+  -family functional-ui \
+  -ui-impact components \
+  -delivery-id 01234567-89ab-cdef-0123-456789abcdef \
+  > browser-component-selection.json
+~~~
+
+This emits `argus.dev/execution-manifest/v3`. Every changed file and any
+rename/copy predecessor must match a declared component root. A missing root,
+empty or truncated file list, or invalid catalog evidence prevents targeted
+omissions. Roots match complete path segments, and overlapping mappings are
+combined. The v3 policy does not parse routes or run Playwright. Omissions
+still require a later full-suite control.
+
 The current functional API planner and runner accept only v1; they MUST NOT be
 used to execute this browser manifest. The Playwright checker above validates
 declared test identity locally but is not yet persisted or joined to selection.
-UI route/component impact, browser execution evidence, and locator repair
-remain M07 follow-ups.
+UI route inference, browser execution evidence, and locator repair remain
+M07 follow-ups.
 
 ## Plan heterogeneous functional API execution
 

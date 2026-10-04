@@ -1,11 +1,13 @@
-// Package impactreader translates persisted OpenAPI impact into selection's
-// producer-neutral projection.
+// Package impactreader translates immutable change and catalog evidence into
+// selection-owned, producer-neutral impact projections.
 package impactreader
 
 import (
 	"context"
 	"fmt"
+	"path"
 	"slices"
+	"strings"
 
 	"github.com/stanimirivanov/argus/internal/catalog"
 	"github.com/stanimirivanov/argus/internal/change"
@@ -13,10 +15,125 @@ import (
 	"github.com/stanimirivanov/argus/internal/selection"
 )
 
-// Source loads the immutable assessment retained by change ingestion.
+// Source loads immutable change evidence and the base catalog snapshot.
 type Source interface {
 	FindCapabilityImpact(context.Context, catalog.Provider, string) (change.CapabilityImpact, error)
 	FindDelivery(context.Context, catalog.Provider, string) (ingest.StoredDelivery, error)
+	GetSnapshot(context.Context, catalog.SnapshotKey) (catalog.Snapshot, error)
+}
+
+const (
+	componentImpactAPIVersion = "argus.dev/component-root-impact/v1"
+	componentAnalyzerVersion  = "argus-component-roots/v1"
+)
+
+// ReadComponentImpact derives browser capability impact from every observed
+// source path and the matching immutable base catalog. No checkout is read.
+// Unmapped or truncated file evidence cannot authorize an omission.
+func (reader *Reader) ReadComponentImpact(
+	ctx context.Context, provider catalog.Provider, deliveryID, descriptorVersion string,
+) (selection.ImpactProjection, error) {
+	if reader == nil || reader.source == nil || descriptorVersion == "" {
+		return selection.ImpactProjection{}, selection.ErrInvalid
+	}
+	stored, err := reader.source.FindDelivery(ctx, provider, deliveryID)
+	if err != nil {
+		return selection.ImpactProjection{}, err
+	}
+	set := change.CanonicalSet(stored.ChangeSet)
+	if err := change.ValidateSet(set); err != nil || set.Trigger.Provider != provider || set.Trigger.DeliveryID != deliveryID {
+		return selection.ImpactProjection{}, fmt.Errorf("%w: invalid delivery change set", selection.ErrUnavailable)
+	}
+	key := catalog.SnapshotKey{Repository: set.SourceRepository.Identity, Revision: set.BaseRevision, APIVersion: descriptorVersion}
+	if !key.Valid() {
+		return selection.ImpactProjection{}, selection.ErrInvalid
+	}
+	snapshot, err := reader.source.GetSnapshot(ctx, key)
+	if err != nil {
+		return selection.ImpactProjection{}, err
+	}
+	if snapshot.Repository.Identity != key.Repository || snapshot.Revision != key.Revision || snapshot.APIVersion != key.APIVersion {
+		return selection.ImpactProjection{}, fmt.Errorf("%w: catalog provenance differs", selection.ErrUnavailable)
+	}
+
+	return projectComponents(set, snapshot)
+}
+
+// projectComponents uses path-segment boundaries, so a root such as web/app
+// never claims web/application. Rename/copy predecessors are independently
+// mapped: both sides can affect capabilities.
+func projectComponents(set change.Set, snapshot catalog.Snapshot) (selection.ImpactProjection, error) {
+	projection := selection.ImpactProjection{
+		Change: set.Reference(), ProducerAPIVersion: componentImpactAPIVersion,
+		ProducerVersion: componentAnalyzerVersion, Completeness: selection.ImpactComplete,
+	}
+	if err := validateComponents(snapshot); err != nil {
+		return selection.ImpactProjection{}, err
+	}
+	if set.FilesTruncated || len(set.Files) == 0 {
+		projection.Completeness = selection.ImpactIncomplete
+		projection.Warnings = append(projection.Warnings, "changed-file evidence is incomplete; all UI tests are required")
+	}
+	for _, file := range set.Files {
+		projectComponentPath(&projection, file.Path, snapshot.Components)
+		if file.PreviousPath != nil {
+			projectComponentPath(&projection, *file.PreviousPath, snapshot.Components)
+		}
+	}
+	slices.Sort(projection.AffectedCapabilities)
+	projection.AffectedCapabilities = slices.Compact(projection.AffectedCapabilities)
+	if len(projection.AffectedCapabilities) == 0 {
+		projection.Completeness = selection.ImpactIncomplete
+	}
+	if projection.UnresolvedCount != 0 {
+		projection.Warnings = append(projection.Warnings, "some changed paths have no declared component root; all UI tests are required")
+	}
+	if err := selection.ValidateImpactProjection(projection); err != nil {
+		return selection.ImpactProjection{}, fmt.Errorf("%w: invalid component projection: %w", selection.ErrUnavailable, err)
+	}
+
+	return projection, nil
+}
+
+func validateComponents(snapshot catalog.Snapshot) error {
+	known := make(map[string]struct{}, len(snapshot.Capabilities))
+	for _, capability := range snapshot.Capabilities {
+		known[capability.Key] = struct{}{}
+	}
+	for _, component := range snapshot.Components {
+		if path.Clean(component.Root) != component.Root || component.Root == "." || strings.HasPrefix(component.Root, "/") ||
+			component.Root == ".." || strings.HasPrefix(component.Root, "../") || strings.Contains(component.Root, "\\") ||
+			(len(component.Root) >= 2 && component.Root[1] == ':') || len(component.Capabilities) == 0 {
+			return fmt.Errorf("%w: invalid component root", selection.ErrUnavailable)
+		}
+		for _, capability := range component.Capabilities {
+			if _, exists := known[capability]; !exists || !catalog.IsLocalKey(capability) {
+				return fmt.Errorf("%w: invalid component capability", selection.ErrUnavailable)
+			}
+		}
+	}
+
+	return nil
+}
+
+func projectComponentPath(projection *selection.ImpactProjection, filePath string, components []catalog.Component) {
+	mapped := false
+	for _, component := range components {
+		if filePath != component.Root && !strings.HasPrefix(filePath, component.Root+"/") {
+			continue
+		}
+		mapped = true
+		projection.AffectedCapabilities = append(projection.AffectedCapabilities, component.Capabilities...)
+	}
+	if mapped {
+		return
+	}
+	projection.Completeness = selection.ImpactIncomplete
+	projection.UnresolvedCount++
+	if len(projection.UnresolvedEvidence) < selection.MaxImpactEvidenceReferences {
+		projection.UnresolvedEvidence = append(projection.UnresolvedEvidence,
+			selection.ImpactEvidenceReference{Source: "changed-file", Path: filePath})
+	}
 }
 
 // ReadBrowserImpact adds changed-file coverage to the OpenAPI projection.

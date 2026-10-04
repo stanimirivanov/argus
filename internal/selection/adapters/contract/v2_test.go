@@ -1,6 +1,7 @@
 package contract_test
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
@@ -45,5 +46,46 @@ func TestBrowserManifestV2RoundTripsAndV1RejectsIt(t *testing.T) {
 	manifest.Decisions[0].Test.Family = catalog.TestFamilyFunctionalAPI
 	if err := selection.ValidateManifest(manifest); err == nil {
 		t.Fatal("mixed-family browser manifest was accepted")
+	}
+}
+
+func TestComponentManifestV3RoundTripsAndV2RejectsIt(t *testing.T) {
+	t.Parallel()
+	path := filepath.Join("..", "..", "..", "..", "contracts", "fixtures", "execution-manifest", "v2", "valid", "browser-capability.json")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read browser fixture: %v", err)
+	}
+	v2, err := contracts.DecodeExecutionManifestV2(data)
+	if err != nil {
+		t.Fatalf("decode browser fixture: %v", err)
+	}
+	v3 := contracts.ExecutionManifestV3(v2)
+	v3.APIVersion = selection.ComponentManifestAPIVersion
+	v3.PolicyVersion = selection.UIComponentPolicyVersion
+	v3.Impact.APIVersion = "argus.dev/component-root-impact/v1"
+	v3.Impact.AnalyzerVersion = "argus-component-roots/v1"
+	if err := contracts.ValidateExecutionManifestV3(v3); err != nil {
+		t.Fatalf("validate v3: %v", err)
+	}
+	encoded, err := json.Marshal(v3)
+	if err != nil {
+		t.Fatalf("encode v3: %v", err)
+	}
+	if _, err := contracts.DecodeExecutionManifestV2(encoded); err == nil {
+		t.Fatal("v2 decoder accepted v3")
+	}
+	if _, err := contracts.DecodeExecutionManifestV3(encoded); err != nil {
+		t.Fatalf("decode v3: %v", err)
+	}
+	manifest, err := selectioncontract.ImportV3(v3)
+	if err != nil {
+		t.Fatalf("import v3: %v", err)
+	}
+	if _, err := selectioncontract.ExportV2(manifest); err == nil {
+		t.Fatal("v2 exporter accepted v3")
+	}
+	if _, err := selectioncontract.ExportV3(manifest); err != nil {
+		t.Fatalf("export v3: %v", err)
 	}
 }

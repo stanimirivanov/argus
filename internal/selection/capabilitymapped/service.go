@@ -14,6 +14,7 @@ import (
 type ImpactReader interface {
 	ReadImpact(context.Context, catalog.Provider, string) (selection.ImpactProjection, error)
 	ReadBrowserImpact(context.Context, catalog.Provider, string) (selection.ImpactProjection, error)
+	ReadComponentImpact(context.Context, catalog.Provider, string, string) (selection.ImpactProjection, error)
 }
 
 // Catalog contains one test family's candidates from an immutable snapshot.
@@ -33,6 +34,8 @@ type Request struct {
 	DeliveryID           string
 	DescriptorAPIVersion string
 	Family               catalog.TestFamily
+	// UIImpact selects the optional component-root policy; empty retains v2.
+	UIImpact string
 }
 
 // Service combines semantic impact with explicit catalog mappings.
@@ -56,7 +59,12 @@ func (service *Service) Select(ctx context.Context, request Request) (selection.
 	}
 	var impact selection.ImpactProjection
 	var err error
-	if request.Family == catalog.TestFamilyFunctionalUI {
+	if request.UIImpact != "" && (request.Family != catalog.TestFamilyFunctionalUI || request.UIImpact != "components") {
+		return selection.Manifest{}, selection.ErrInvalid
+	}
+	if request.UIImpact == "components" {
+		impact, err = service.impacts.ReadComponentImpact(ctx, request.Provider, request.DeliveryID, request.DescriptorAPIVersion)
+	} else if request.Family == catalog.TestFamilyFunctionalUI {
 		impact, err = service.impacts.ReadBrowserImpact(ctx, request.Provider, request.DeliveryID)
 	} else {
 		impact, err = service.impacts.ReadImpact(ctx, request.Provider, request.DeliveryID)
@@ -83,7 +91,7 @@ func (service *Service) Select(ctx context.Context, request Request) (selection.
 		return selection.Manifest{}, selection.ErrUnavailable
 	}
 
-	manifest := buildManifest(impact, candidates, request.Family)
+	manifest := buildManifest(impact, candidates, request.Family, request.UIImpact)
 	manifest = selection.CanonicalManifest(manifest)
 	if err := selection.ValidateManifest(manifest); err != nil {
 		return selection.Manifest{}, fmt.Errorf("%w: invalid generated manifest", selection.ErrUnavailable)
@@ -92,10 +100,10 @@ func (service *Service) Select(ctx context.Context, request Request) (selection.
 	return manifest, nil
 }
 
-func buildManifest(impact selection.ImpactProjection, candidates Catalog, family catalog.TestFamily) selection.Manifest {
+func buildManifest(impact selection.ImpactProjection, candidates Catalog, family catalog.TestFamily, uiImpact string) selection.Manifest {
 	affected := append([]string{}, impact.AffectedCapabilities...)
 	fallback := impact.Completeness == selection.ImpactIncomplete ||
-		(family == catalog.TestFamilyFunctionalUI && !impact.BrowserChangeCovered)
+		(family == catalog.TestFamilyFunctionalUI && uiImpact == "" && !impact.BrowserChangeCovered)
 	manifest := selection.Manifest{
 		APIVersion: selection.ManifestAPIVersion, PolicyVersion: selection.FunctionalAPIPolicyVersion,
 		ImpactAPIVersion: impact.ProducerAPIVersion, ImpactAnalyzerVersion: impact.ProducerVersion,
@@ -104,9 +112,14 @@ func buildManifest(impact selection.ImpactProjection, candidates Catalog, family
 		Warnings: append([]string{}, impact.Warnings...),
 	}
 	if family == catalog.TestFamilyFunctionalUI {
-		manifest.APIVersion = selection.BrowserManifestAPIVersion
-		manifest.PolicyVersion = selection.FunctionalUIPolicyVersion
-		if !impact.BrowserChangeCovered {
+		if uiImpact == "components" {
+			manifest.APIVersion = selection.ComponentManifestAPIVersion
+			manifest.PolicyVersion = selection.UIComponentPolicyVersion
+		} else {
+			manifest.APIVersion = selection.BrowserManifestAPIVersion
+			manifest.PolicyVersion = selection.FunctionalUIPolicyVersion
+		}
+		if uiImpact == "" && !impact.BrowserChangeCovered {
 			manifest.Warnings = append(manifest.Warnings,
 				"browser change coverage is incomplete; all UI tests are required")
 		}

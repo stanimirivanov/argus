@@ -27,6 +27,14 @@ func ImportV2(document contracts.ExecutionManifestV2) (selection.Manifest, error
 	return importValidatedManifest(contracts.ExecutionManifestV1(document))
 }
 
+// ImportV3 converts a component-root browser selection document.
+func ImportV3(document contracts.ExecutionManifestV3) (selection.Manifest, error) {
+	if err := contracts.ValidateExecutionManifestV3(document); err != nil {
+		return selection.Manifest{}, err
+	}
+	return importValidatedManifest(contracts.ExecutionManifestV1(document))
+}
+
 func importValidatedManifest(document contracts.ExecutionManifestV1) (selection.Manifest, error) {
 	observedAt, err := time.Parse(time.RFC3339Nano, document.Change.ObservedAt)
 	if err != nil {

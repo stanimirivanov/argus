@@ -139,8 +139,82 @@ func TestBrowserImpactRejectsMismatchedChangeProvenance(t *testing.T) {
 }
 
 type stubSource struct {
-	impact change.CapabilityImpact
-	set    change.Set
+	impact   change.CapabilityImpact
+	set      change.Set
+	snapshot catalog.Snapshot
+}
+
+func (source stubSource) GetSnapshot(_ context.Context, key catalog.SnapshotKey) (catalog.Snapshot, error) {
+	if source.snapshot.APIVersion != "" {
+		return source.snapshot, nil
+	}
+
+	return catalog.Snapshot{
+		APIVersion: key.APIVersion, Repository: source.impact.Change.SourceRepository,
+		Revision:     key.Revision,
+		Capabilities: []catalog.Capability{{Key: "create-order"}, {Key: "list-orders"}},
+		Components:   []catalog.Component{{Key: "web", Root: "web/app", Capabilities: []string{"create-order"}}},
+	}, nil
+}
+
+func TestComponentImpactCoversPathsWithSegmentBoundaries(t *testing.T) {
+	t.Parallel()
+	impact := validImpact()
+	base := validSet(impact)
+	base.Files = []change.File{{Path: "web/app/checkout.tsx", Kind: change.KindModified, PatchStatus: change.PatchUnavailable}}
+	previous := "web/app/old.tsx"
+	outside := "shared/old.tsx"
+	cases := []struct {
+		name string
+		set  change.Set
+		want selection.ImpactCompleteness
+	}{
+		{"mapped source", base, selection.ImpactComplete},
+		{"similarly prefixed sibling", func() change.Set {
+			set := change.CanonicalSet(base)
+			set.Files[0].Path = "web/application/checkout.tsx"
+			return set
+		}(), selection.ImpactIncomplete},
+		{"mapped rename predecessor", func() change.Set {
+			set := base
+			set.Files = []change.File{{Path: "web/app/checkout.tsx", PreviousPath: &previous, Kind: change.KindRenamed, PatchStatus: change.PatchUnavailable}}
+			return set
+		}(), selection.ImpactComplete},
+		{"outside rename predecessor", func() change.Set {
+			set := base
+			set.Files = []change.File{{Path: "web/app/checkout.tsx", PreviousPath: &outside, Kind: change.KindRenamed, PatchStatus: change.PatchUnavailable}}
+			return set
+		}(), selection.ImpactIncomplete},
+		{"truncated list", func() change.Set { set := change.CanonicalSet(base); set.FilesTruncated = true; return set }(), selection.ImpactIncomplete},
+		{"empty list", func() change.Set { set := change.CanonicalSet(base); set.Files = nil; return set }(), selection.ImpactIncomplete},
+	}
+	for _, test := range cases {
+		t.Run(test.name, func(t *testing.T) {
+			projection, err := New(stubSource{impact: impact, set: test.set}).ReadComponentImpact(
+				t.Context(), catalog.ProviderGitHub, "delivery-42", "argus.dev/repository-descriptor/v1")
+			if err != nil {
+				t.Fatalf("component impact: %v", err)
+			}
+			if projection.Completeness != test.want {
+				t.Fatalf("completeness = %s, want %s", projection.Completeness, test.want)
+			}
+		})
+	}
+}
+
+func TestComponentImpactRejectsCatalogProvenanceMismatch(t *testing.T) {
+	t.Parallel()
+	impact := validImpact()
+	set := validSet(impact)
+	snapshot := catalog.Snapshot{
+		APIVersion: "argus.dev/repository-descriptor/v1", Repository: impact.Change.SourceRepository,
+		Revision: impact.Change.HeadRevision,
+	}
+	_, err := New(stubSource{impact: impact, set: set, snapshot: snapshot}).ReadComponentImpact(
+		t.Context(), catalog.ProviderGitHub, "delivery-42", snapshot.APIVersion)
+	if !errors.Is(err, selection.ErrUnavailable) {
+		t.Fatalf("mismatched base snapshot error = %v", err)
+	}
 }
 
 func (source stubSource) FindCapabilityImpact(context.Context, catalog.Provider, string) (change.CapabilityImpact, error) {
