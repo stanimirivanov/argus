@@ -67,6 +67,29 @@ func TestLoadConfigRequiresSecretsAndUsesSafeDefaults(t *testing.T) {
 	}
 }
 
+func TestLoadConfigDBOSEvaluationRequiresExplicitOptIn(t *testing.T) {
+	t.Parallel()
+	values := map[string]string{
+		"ARGUS_DATABASE_URL":          "postgres://example.invalid/argus",
+		"ARGUS_GITHUB_TOKEN":          "token",
+		"ARGUS_GITHUB_WEBHOOK_SECRET": "secret",
+	}
+	read := func(name string) string { return values[name] }
+	defaultConfig, err := loadConfig(read)
+	if err != nil || defaultConfig.dbosEvaluation {
+		t.Fatalf("default evaluation = %t, error = %v", defaultConfig.dbosEvaluation, err)
+	}
+	values["ARGUS_DBOS_EVALUATION"] = "true"
+	enabled, err := loadConfig(read)
+	if err != nil || !enabled.dbosEvaluation {
+		t.Fatalf("enabled evaluation = %t, error = %v", enabled.dbosEvaluation, err)
+	}
+	values["ARGUS_DBOS_EVALUATION"] = "yes"
+	if _, err := loadConfig(read); err == nil {
+		t.Fatal("ambiguous opt-in must be rejected")
+	}
+}
+
 type fakeServer struct {
 	stopped chan struct{}
 }

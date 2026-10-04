@@ -421,6 +421,12 @@ inventing a competing identity or provenance model.
 
 **Message:** Operate Argus securely, observably, recoverably, and at scale.
 
+An opt-in M10 evaluation now coordinates webhook ingestion and impact with
+embedded DBOS Go checkpoints. It leaves the established synchronous path as
+the default. Production promotion requires crash-boundary, version-upgrade,
+error-mapping, retention, and operating-cost evidence; the evaluation does not
+select a shared Argus–Perfeng workflow service.
+
 Acceptance ingredients:
 
 - Define authentication, authorization, repository tenancy, and service

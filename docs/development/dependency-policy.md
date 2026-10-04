@@ -87,6 +87,21 @@ to the library. The import is isolated under
 `internal/change/adapters/openapi`; removal means replacing that adapter while
 preserving analyzer conformance and persisted analyzer-version semantics.
 
+The opt-in M10 workflow evaluation admits
+`github.com/dbos-inc/dbos-transact-golang` v1.5.0 as an MIT-licensed runtime
+dependency. It embeds PostgreSQL-backed workflow checkpoints in the Go control
+plane without a separate coordinator service. The dependency is confined to
+the change workflow adapter and the control-plane and migration composition
+roots; it does not enter domain policy. The explicit migration mode owns only
+the separate evaluation schema and never runs at application startup. Before
+production promotion, review its transitive licenses, vulnerability findings,
+database privileges, retention, version-upgrade behavior, and removal cost.
+DBOS brings in `github.com/jackc/pgerrcode`, whose upstream LICENSE contains
+MIT terms and a notice for underlying data under the permissive PostgreSQL
+License. The runtime gate now admits that license classification; release
+packaging MUST preserve both upstream notices. This is a reviewed allowlist
+addition, not a blanket exception for unknown or proprietary terms.
+
 The root module MUST contain only product and test dependencies. Repository
 quality tools live in `tools/quality` so linter and scanner transitive packages
 cannot obscure the deployable dependency graph or affect its version selection.
@@ -141,7 +156,8 @@ packages are accepted automatically only when `go-licenses` identifies one of:
 - BSD-2-Clause;
 - BSD-3-Clause;
 - ISC; or
-- MIT.
+- MIT; or
+- PostgreSQL License.
 
 `make license` includes test-only packages. A license outside this list is not
 automatically forbidden, but it requires legal/owner review and a package-

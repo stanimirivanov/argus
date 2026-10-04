@@ -15,7 +15,7 @@ TOOL_PACKAGES := \
 	$(GOVULNCHECK_MODULE) \
 	$(GO_LICENSES_MODULE)
 
-RUNTIME_ALLOWED_LICENSES := Apache-2.0,BSD-2-Clause,BSD-3-Clause,ISC,MIT
+RUNTIME_ALLOWED_LICENSES := Apache-2.0,BSD-2-Clause,BSD-3-Clause,ISC,MIT,PostgreSQL
 DEVELOPMENT_ALLOWED_LICENSES := $(RUNTIME_ALLOWED_LICENSES),MPL-2.0
 
 # These packages are reachable only from repository development tools. Their
