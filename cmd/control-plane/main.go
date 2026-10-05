@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -33,7 +34,7 @@ const (
 
 var commandSpec = commandline.Spec{
 	Name:     componentName,
-	Synopsis: componentName,
+	Synopsis: componentName + " [--local]",
 	Role:     "server",
 }
 
@@ -45,15 +46,16 @@ func realMain() int {
 	if code, handled := commandline.HandleMeta(os.Args[1:], os.Stdout, os.Stderr, commandSpec); handled {
 		return code
 	}
-	if len(os.Args) != 1 {
-		return commandline.Report(os.Stderr, commandline.UsageText("usage: control-plane"))
+	if len(os.Args) > 2 || (len(os.Args) == 2 && os.Args[1] != "--local") {
+		return commandline.Report(os.Stderr, commandline.UsageText("usage: control-plane [--local]"))
 	}
+	local := len(os.Args) == 2
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	application, err := newApplication(ctx, os.Getenv)
+	application, err := newApplication(ctx, os.Getenv, local)
 	if err != nil {
 		logger.Error("control plane configuration failed", "component", componentName, "error", err)
 		return 1
@@ -77,8 +79,8 @@ type application struct {
 	durable dbosgo.Context
 }
 
-func newApplication(ctx context.Context, getenv func(string) string) (*application, error) {
-	config, err := loadConfig(getenv)
+func newApplication(ctx context.Context, getenv func(string) string, local bool) (*application, error) {
+	config, err := loadConfig(getenv, local)
 	if err != nil {
 		return nil, err
 	}
@@ -189,7 +191,7 @@ type config struct {
 	dbosEvaluation bool
 }
 
-func loadConfig(getenv func(string) string) (config, error) {
+func loadConfig(getenv func(string) string, local bool) (config, error) {
 	result := config{
 		address:       strings.TrimSpace(getenv("ARGUS_HTTP_ADDRESS")),
 		databaseURL:   strings.TrimSpace(getenv("ARGUS_DATABASE_URL")),
@@ -200,6 +202,16 @@ func loadConfig(getenv func(string) string) (config, error) {
 	}
 	if result.address == "" {
 		result.address = "127.0.0.1:8080"
+	}
+	if local {
+		if result.databaseURL != "" {
+			return config{}, errors.New("--local cannot be combined with ARGUS_DATABASE_URL")
+		}
+		host, _, err := net.SplitHostPort(result.address)
+		if err != nil || (host != "127.0.0.1" && host != "::1" && host != "localhost") {
+			return config{}, errors.New("--local requires a loopback ARGUS_HTTP_ADDRESS")
+		}
+		result.databaseURL = commandline.LocalDatabaseURL
 	}
 	if result.githubAPIURL == "" {
 		result.githubAPIURL = "https://api.github.com/"

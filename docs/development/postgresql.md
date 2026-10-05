@@ -22,6 +22,8 @@
   ledger entry, or ledger gap stops migration rather than guessing.
 - The opt-in DBOS evaluation uses a separate `argus_dbos_eval` schema prepared
   by `go run ./cmd/migrate --dbos-evaluation`; normal startup verifies it.
+- For a disposable workstation database, [local startup](local-start.md) provides
+  the loopback Compose service and explicit `--local` command mode.
 
 ## Ownership and lifecycle
 
@@ -55,6 +57,11 @@ The general migration policy remains
 append-only evidence, time, confidence, expiry, and conflict semantics.
 
 ## Apply migrations
+
+The fastest workstation path is in [Start Argus locally](local-start.md). The
+`--local` mode selects only that loopback development database and cannot be
+combined with `ARGUS_DATABASE_URL`. Existing and deployed databases instead
+require an explicit URL and separately managed roles.
 
 Supply the migration role's URL through the environment rather than a command
 argument, which could be exposed in process listings:

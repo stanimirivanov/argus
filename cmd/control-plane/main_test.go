@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"testing"
 	"time"
+
+	"github.com/stanimirivanov/argus/internal/commandline"
 )
 
 const testTimeout = 5 * time.Second
@@ -45,6 +47,33 @@ func TestRunWaitsForCancellationAndLogsLifecycle(t *testing.T) {
 	assertLogValue(t, stopped, "reason", "shutdown requested")
 }
 
+func TestLoadConfigLocalDefaultsAndBoundaries(t *testing.T) {
+	t.Parallel()
+	values := map[string]string{
+		"ARGUS_GITHUB_TOKEN":          "token",
+		"ARGUS_GITHUB_WEBHOOK_SECRET": "secret",
+	}
+	read := func(name string) string { return values[name] }
+	got, err := loadConfig(read, true)
+	if err != nil || got.databaseURL != commandline.LocalDatabaseURL || got.address != "127.0.0.1:8080" {
+		t.Fatalf("local config = %#v, error = %v", got, err)
+	}
+	values["ARGUS_HTTP_ADDRESS"] = "0.0.0.0:8080"
+	if _, err := loadConfig(read, true); err == nil {
+		t.Fatal("local mode accepted a non-loopback listener")
+	}
+	values["ARGUS_HTTP_ADDRESS"] = "127.0.0.1:8080"
+	values["ARGUS_DATABASE_URL"] = "postgres://example.invalid/argus"
+	if _, err := loadConfig(read, true); err == nil {
+		t.Fatal("local mode accepted an explicit database URL")
+	}
+	delete(values, "ARGUS_DATABASE_URL")
+	delete(values, "ARGUS_GITHUB_TOKEN")
+	if _, err := loadConfig(read, true); err == nil {
+		t.Fatal("local mode accepted a missing GitHub token")
+	}
+}
+
 func TestLoadConfigRequiresSecretsAndUsesSafeDefaults(t *testing.T) {
 	t.Parallel()
 
@@ -53,7 +82,7 @@ func TestLoadConfigRequiresSecretsAndUsesSafeDefaults(t *testing.T) {
 		"ARGUS_GITHUB_TOKEN":          "token",
 		"ARGUS_GITHUB_WEBHOOK_SECRET": "secret",
 	}
-	config, err := loadConfig(func(name string) string { return values[name] })
+	config, err := loadConfig(func(name string) string { return values[name] }, false)
 	if err != nil {
 		t.Fatalf("load config: %v", err)
 	}
@@ -62,7 +91,7 @@ func TestLoadConfigRequiresSecretsAndUsesSafeDefaults(t *testing.T) {
 		t.Fatalf("unexpected defaults: %#v", config)
 	}
 	delete(values, "ARGUS_GITHUB_WEBHOOK_SECRET")
-	if _, err := loadConfig(func(name string) string { return values[name] }); err == nil {
+	if _, err := loadConfig(func(name string) string { return values[name] }, false); err == nil {
 		t.Fatal("expected missing webhook secret to fail")
 	}
 }
@@ -75,17 +104,17 @@ func TestLoadConfigDBOSEvaluationRequiresExplicitOptIn(t *testing.T) {
 		"ARGUS_GITHUB_WEBHOOK_SECRET": "secret",
 	}
 	read := func(name string) string { return values[name] }
-	defaultConfig, err := loadConfig(read)
+	defaultConfig, err := loadConfig(read, false)
 	if err != nil || defaultConfig.dbosEvaluation {
 		t.Fatalf("default evaluation = %t, error = %v", defaultConfig.dbosEvaluation, err)
 	}
 	values["ARGUS_DBOS_EVALUATION"] = "true"
-	enabled, err := loadConfig(read)
+	enabled, err := loadConfig(read, false)
 	if err != nil || !enabled.dbosEvaluation {
 		t.Fatalf("enabled evaluation = %t, error = %v", enabled.dbosEvaluation, err)
 	}
 	values["ARGUS_DBOS_EVALUATION"] = "yes"
-	if _, err := loadConfig(read); err == nil {
+	if _, err := loadConfig(read, false); err == nil {
 		t.Fatal("ambiguous opt-in must be rejected")
 	}
 }
