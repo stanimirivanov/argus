@@ -104,9 +104,9 @@ The first run can be slower because Go and pnpm resolve pinned dependencies.
 `make build` checks compilation without writing repository artifacts. Run
 `make binaries` only when platform-native executables are needed under the
 ignored `bin/` directory.
-After applying migrations and setting the database, GitHub token, and webhook
-secret variables shown in the [root README](../../README.md#run-the-control-plane),
-start the control plane with:
+For a runnable local PostgreSQL service, explicit migrations, GitHub credential
+setup, and DBOS evaluation, follow [Start Argus locally](local-start.md). With
+an existing configured database and credentials, start the control plane with:
 
 ~~~sh
 go run ./cmd/control-plane
@@ -115,6 +115,15 @@ go run ./cmd/control-plane
 It emits structured lifecycle logs and waits for `Ctrl+C`. The standalone
 `--help` and `--version` options work without configuration or external
 services; normal server startup requires the configured dependencies.
+
+Argus keeps separate executables for the server (`control-plane`), privileged
+schema administration (`migrate`), and CI/local workers. `catalog`, `select`,
+`execution-evidence`, and `adaptation-evidence` still access PostgreSQL
+directly as transitional administrative clients, not as a pattern for new CI
+integrations. Executables return 0 for success or metadata, 1 for operational
+failure, and 2 for invalid syntax. `go run` may wrap a child's nonzero exit
+status; use a built binary when a script needs the exact code. See
+[ADR-0022](../decisions/0022-keep-purpose-specific-command-boundaries.md).
 
 ## Platform setup notes
 

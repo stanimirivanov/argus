@@ -34,6 +34,31 @@ func TestRunDBOSEvaluationRequiresDatabaseURL(t *testing.T) {
 	}
 }
 
+func TestParseMode(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name          string
+		args          []string
+		wantLocal     bool
+		wantDBOS      bool
+		wantUsageFail bool
+	}{
+		{name: "ordinary"},
+		{name: "local", args: []string{"--local"}, wantLocal: true},
+		{name: "DBOS local", args: []string{"--dbos-evaluation", "--local"}, wantLocal: true, wantDBOS: true},
+		{name: "duplicate", args: []string{"--local", "--local"}, wantUsageFail: true},
+		{name: "unknown", args: []string{"--unknown"}, wantUsageFail: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			local, dbos, err := parseMode(tc.args)
+			if (err != nil) != tc.wantUsageFail || local != tc.wantLocal || dbos != tc.wantDBOS {
+				t.Fatalf("parseMode(%q) = (%t, %t, %v)", tc.args, local, dbos, err)
+			}
+		})
+	}
+}
+
 func TestRunDBOSEvaluationPreparesSchemaWithoutServerStartup(t *testing.T) {
 	url := "sqlite:" + filepath.ToSlash(filepath.Join(t.TempDir(), "evaluation.sqlite"))
 	var output bytes.Buffer

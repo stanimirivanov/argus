@@ -67,11 +67,11 @@ An HTTP timeout or disconnect does not revoke an already started durable workflo
 
 ## Compatibility and migration
 
-The flag is off by default and does not alter existing contracts or Argus migration files. Apply ordinary Argus migrations, then run `go run ./cmd/migrate --dbos-evaluation` with a privileged `ARGUS_DATABASE_URL`, and only then enable the flag with the runtime identity. Turning the flag off restores the existing composition without deleting checkpoint history. Do not drop the experimental schema while an instance may still be running.
+The flag is off by default and does not alter existing contracts or Argus migration files. Apply ordinary Argus migrations, then run `go run ./cmd/migrate --dbos-evaluation` with a privileged `ARGUS_DATABASE_URL`, and only then enable the flag with the runtime identity. For an isolated workstation database, explicit `--local` mode selects the loopback service in `compose.local.yaml`; it never silently substitutes for missing deployed configuration. Turning the flag off restores the existing composition without deleting checkpoint history. Do not drop the experimental schema while an instance may still be running.
 
 ## Security and operations
 
-The DBOS schema is separate from `argus_catalog`; use a privileged identity only for its explicit migration. The runtime identity needs only DBOS runtime privileges and the existing Argus data privileges. Database URLs are provided through environment variables, not command arguments. Workflow input contains normalized delivery metadata, not the webhook secret, token, or raw signed body. Restrict and retain DBOS history according to the same sensitivity as repository metadata.
+The DBOS schema is separate from `argus_catalog`; use a privileged identity only for its explicit migration. The runtime identity needs only DBOS runtime privileges and the existing Argus data privileges. Deployed database URLs are provided through environment variables, not command arguments. The explicit workstation mode uses a fixed, loopback-only development URL and refuses an accompanying `ARGUS_DATABASE_URL`. Workflow input contains normalized delivery metadata, not the webhook secret, token, or raw signed body. Restrict and retain DBOS history according to the same sensitivity as repository metadata.
 
 ## Validation
 

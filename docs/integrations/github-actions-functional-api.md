@@ -61,6 +61,26 @@ binding. A binding intentionally does not contain a command, token, runner
 label, environment, or per-change manifest digest. The generated plan contains
 the canonical manifest digest and is the immutable handoff to execution.
 
+## Select functional API tests
+
+After the approved base-revision catalog and matching change impact have been
+stored, generate the functional API v1 execution manifest:
+
+~~~sh
+go run ./cmd/select \
+  -provider github \
+  -delivery-id 01234567-89ab-cdef-0123-456789abcdef \
+  > ./execution-manifest.json
+~~~
+
+With complete mapped impact, tests sharing an affected capability are
+`RUN_REQUIRED`; other functional API candidates are `SKIP_FOR_NOW` in the
+early stage and required in the later full-suite control. Partial, empty, or
+unmapped impact requires every functional API candidate. The manifest also
+reports affected capabilities with no mapped test. The browser selection
+manifests are different versions and are **not** accepted by this planner or
+runner; see [functional UI selection](functional-ui-selection.md).
+
 ## Generate the matrix
 
 Create the plan before any test repository is executed:
