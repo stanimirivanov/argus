@@ -127,6 +127,31 @@ and webhook secrets are never logged. Press `Ctrl+C` for graceful shutdown.
 This endpoint is provider-authenticated ingestion, not the general Argus API;
 catalog queries remain local until the M10 identity boundary exists.
 
+### Opt-in DBOS workflow evaluation
+
+The default webhook path above is unchanged. To evaluate embedded durable
+coordination, first apply the ordinary Argus migration and then explicitly
+migrate DBOS's separate schema using the same database with a privileged
+migration identity. Do not put the database URL on a command line:
+
+~~~powershell
+go run ./cmd/migrate --dbos-evaluation
+$env:ARGUS_DBOS_EVALUATION = 'true'
+go run ./cmd/control-plane
+~~~
+
+Use a runtime database identity with the existing Argus data grants and DBOS
+runtime grants. The experimental path starts a durable instance for each signed
+delivery attempt, checkpoints ingestion and impact, and still returns the
+change-set response only after both are stored. A timeout or disconnect can
+leave a workflow running; resend the *same* signed delivery rather than
+inventing a new delivery ID. Switch the flag off to restore the default path;
+do not drop `argus_dbos_eval` while work may be active. Normal startup sets
+`SkipMigrations` and fails if the DBOS schema has not been prepared. This is an
+evaluation, not a production rollout; see
+[ADR-0028](docs/decisions/0028-evaluate-embedded-dbos-workflows-for-change-processing.md)
+for limitations and promotion criteria.
+
 ## Validate a repository descriptor
 
 ~~~sh

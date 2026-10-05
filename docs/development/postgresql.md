@@ -20,10 +20,16 @@
   PostgreSQL server configured by `ARGUS_TEST_POSTGRES_URL`.
 - Migration files are immutable after merge. A checksum mismatch, unknown
   ledger entry, or ledger gap stops migration rather than guessing.
+- The opt-in DBOS evaluation uses a separate `argus_dbos_eval` schema prepared
+  by `go run ./cmd/migrate --dbos-evaluation`; normal startup verifies it.
 
 ## Ownership and lifecycle
 
-The control plane owns the `argus_catalog` schema and its data semantics.
+The control plane owns the `argus_catalog` schema and its data semantics. The
+opt-in DBOS workflow evaluation additionally owns `argus_dbos_eval` for
+checkpoint metadata, not for authoritative change or impact evidence. Its
+schema is prepared by an explicit privileged migration mode; the ordinary
+runtime verifies rather than migrates it.
 Infrastructure owns the PostgreSQL service, database, roles, credentials, TLS,
 backups, recovery, high availability, monitoring, and major-version lifecycle.
 PostgreSQL 17 is the supported major for this slice; CI uses the exact 17.11

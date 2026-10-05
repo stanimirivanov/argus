@@ -14,6 +14,8 @@ import (
 	"syscall"
 	"time"
 
+	dbosgo "github.com/dbos-inc/dbos-transact-golang/dbos"
+	dbosadapter "github.com/stanimirivanov/argus/internal/change/adapters/dbos"
 	githubadapter "github.com/stanimirivanov/argus/internal/change/adapters/github"
 	"github.com/stanimirivanov/argus/internal/change/adapters/httpapi"
 	openapiadapter "github.com/stanimirivanov/argus/internal/change/adapters/openapi"
@@ -56,7 +58,11 @@ func realMain() int {
 		logger.Error("control plane configuration failed", "component", componentName, "error", err)
 		return 1
 	}
-	defer application.Close()
+	defer func() {
+		if err := application.Close(); err != nil {
+			logger.Error("control plane cleanup failed", "component", componentName, "error", err)
+		}
+	}()
 	if err := run(ctx, logger, application.server); err != nil {
 		logger.Error("control plane failed", "component", componentName, "error", err)
 		return 1
@@ -68,6 +74,7 @@ func realMain() int {
 type application struct {
 	server  *http.Server
 	runtime *postgres.Runtime
+	durable dbosgo.Context
 }
 
 func newApplication(ctx context.Context, getenv func(string) string) (*application, error) {
@@ -93,7 +100,26 @@ func newApplication(ctx context.Context, getenv func(string) string) (*applicati
 	changeStore := runtime.Change()
 	ingestionService := ingest.NewService(changeStore, githubClient)
 	impactService := changeimpact.NewService(changeStore, openapiadapter.NewAnalyzer(githubClient))
-	service := workflow.NewService(ingestionService, impactService)
+	var service httpapi.IngestService = workflow.NewService(ingestionService, impactService)
+	var durable dbosgo.Context
+	if config.dbosEvaluation {
+		durable, err = dbosgo.NewContext(ctx, dbosgo.Config{
+			AppName:        "argus-change-evaluation",
+			DatabaseURL:    config.databaseURL,
+			DatabaseSchema: "argus_dbos_eval",
+			SkipMigrations: true,
+		})
+		if err != nil {
+			runtime.Close()
+			return nil, fmt.Errorf("initialize DBOS evaluation: %w", err)
+		}
+		service = dbosadapter.NewService(durable, ingestionService, impactService, changeStore)
+		if err := dbosgo.Launch(durable); err != nil {
+			shutdownErr := dbosgo.Shutdown(durable, shutdownPeriod)
+			runtime.Close()
+			return nil, errors.Join(fmt.Errorf("launch DBOS evaluation: %w", err), shutdownErr)
+		}
+	}
 	server := &http.Server{
 		Addr:              config.address,
 		Handler:           httpapi.NewHandler(decoder, service),
@@ -103,11 +129,17 @@ func newApplication(ctx context.Context, getenv func(string) string) (*applicati
 		IdleTimeout:       60 * time.Second,
 	}
 
-	return &application{server: server, runtime: runtime}, nil
+	return &application{server: server, runtime: runtime, durable: durable}, nil
 }
 
-func (application *application) Close() {
+func (application *application) Close() error {
+	var shutdownErr error
+	if application.durable != nil {
+		shutdownErr = dbosgo.Shutdown(application.durable, shutdownPeriod)
+	}
 	application.runtime.Close()
+
+	return shutdownErr
 }
 
 type server interface {
@@ -148,12 +180,13 @@ func run(ctx context.Context, logger *slog.Logger, server server) error {
 }
 
 type config struct {
-	address       string
-	databaseURL   string
-	githubAPIURL  string
-	githubHost    string
-	githubToken   string
-	webhookSecret string
+	address        string
+	databaseURL    string
+	githubAPIURL   string
+	githubHost     string
+	githubToken    string
+	webhookSecret  string
+	dbosEvaluation bool
 }
 
 func loadConfig(getenv func(string) string) (config, error) {
@@ -187,6 +220,13 @@ func loadConfig(getenv func(string) string) (config, error) {
 	if len(missing) != 0 {
 		sort.Strings(missing)
 		return config{}, fmt.Errorf("required environment is missing: %s", strings.Join(missing, ", "))
+	}
+	switch strings.TrimSpace(getenv("ARGUS_DBOS_EVALUATION")) {
+	case "", "false":
+	case "true":
+		result.dbosEvaluation = true
+	default:
+		return config{}, errors.New("ARGUS_DBOS_EVALUATION must be true or false")
 	}
 
 	return result, nil

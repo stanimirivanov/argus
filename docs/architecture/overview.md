@@ -54,7 +54,10 @@
 - [ADR-0026](../decisions/0026-check-playwright-inventory-against-declared-tests.md)
   checks Playwright's collected test list against declared stable keys without
   treating generated runner IDs as durable identity.
-- Queues and deployment topology remain deferred to ADRs and evidence from
+- [ADR-0028](../decisions/0028-evaluate-embedded-dbos-workflows-for-change-processing.md)
+  evaluates an opt-in embedded workflow without replacing the existing
+  change-evidence stores or selecting a portfolio-wide runtime.
+- Production queue and deployment topology remain deferred to evidence from
   vertical slices.
 
 ## Purpose and authority
