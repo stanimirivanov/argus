@@ -10,6 +10,8 @@
   `go run ./cmd/control-plane --local` with `ARGUS_DBOS_EVALUATION=true`.
 - `--local` supplies only a loopback database URL, not GitHub credentials.
   Deployed commands still require explicit configuration.
+- `Ctrl+C` or SIGTERM gives active webhook handlers up to 10 seconds to finish
+  before DBOS and database resources close; longer work still needs redelivery.
 
 ## Prerequisites
 
@@ -63,6 +65,14 @@ Use `Ctrl+C` to stop the server. `docker compose -f compose.local.yaml down`
 stops the database but preserves its volume. Do not use `down -v` unless you
 intentionally want to delete that development database. Never point the local
 Compose service or its credentials at shared data.
+
+On `Ctrl+C` or SIGTERM, the listener stops admitting requests and gives active
+handlers a bounded 10-second drain. The application context remains live during
+that drain, so the signal alone does not cancel an accepted DBOS assessment.
+After the drain, DBOS shutdown cancels any remaining in-process work before the
+database pool closes. A delivery that did not receive a success response must
+be redelivered; this behavior does not prove process-kill recovery or justify
+production promotion of the DBOS evaluation.
 
 ## Existing or deployed PostgreSQL
 
