@@ -81,6 +81,15 @@ func TestDBOSEvaluationRetriesAssessmentAfterFailure(t *testing.T) {
 	if _, err := store.FindCapabilityImpact(t.Context(), delivery.Provider, delivery.ID); !errors.Is(err, change.ErrNotFound) {
 		t.Fatalf("assessment after failure = %v, want absent", err)
 	}
+	if err := dbosgo.Shutdown(runtime, 10*time.Second); err != nil {
+		t.Fatalf("shutdown runtime after failed assessment: %v", err)
+	}
+
+	restarted := newEvaluationRuntime(t, databaseURL, true)
+	service = dbosadapter.NewService(restarted, ingest.NewService(store, resolver), impact.NewService(store, analyzer), store)
+	if err := dbosgo.Launch(restarted); err != nil {
+		t.Fatalf("launch restarted runtime: %v", err)
+	}
 	retry, err := service.Ingest(t.Context(), delivery)
 	if err != nil || retry.Created {
 		t.Fatalf("redelivery after assessment failure: created=%t err=%v", retry.Created, err)

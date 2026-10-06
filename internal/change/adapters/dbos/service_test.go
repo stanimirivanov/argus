@@ -92,6 +92,53 @@ func TestWorkflowRedeliveryCompletesAssessmentAfterFailure(t *testing.T) {
 	}
 }
 
+func TestAcceptedWorkflowContinuesAfterCallerCancellation(t *testing.T) {
+	path := filepath.ToSlash(filepath.Join(t.TempDir(), "workflows.sqlite"))
+	runtime, err := dbosgo.NewContext(t.Context(), dbosgo.Config{
+		AppName: "argus-change-evaluation-test", DatabaseURL: "sqlite:" + path,
+	})
+	if err != nil {
+		t.Fatalf("initialize embedded DBOS: %v", err)
+	}
+	t.Cleanup(func() {
+		if err := dbosgo.Shutdown(runtime, 10*time.Second); err != nil {
+			t.Errorf("shutdown embedded DBOS: %v", err)
+		}
+	})
+	delivery := testDelivery()
+	store := &memoryStore{}
+	assessment := &gatedAnalyzer{started: make(chan struct{}), release: make(chan struct{})}
+	t.Cleanup(assessment.open)
+	service := adapter.NewService(runtime, ingest.NewService(store, &resolver{set: testSet(delivery)}),
+		impact.NewService(store, assessment), store)
+	if err := dbosgo.Launch(runtime); err != nil {
+		t.Fatalf("launch embedded DBOS: %v", err)
+	}
+	callerContext, cancel := context.WithCancel(t.Context())
+	defer cancel()
+	result := make(chan error, 1)
+	go func() {
+		_, ingestErr := service.Ingest(callerContext, delivery)
+		result <- ingestErr
+	}()
+
+	select {
+	case <-assessment.started:
+	case <-time.After(10 * time.Second):
+		t.Fatal("accepted workflow did not reach assessment")
+	}
+	cancel()
+	assessment.open()
+	select {
+	case <-result:
+	case <-time.After(10 * time.Second):
+		t.Fatal("accepted workflow did not finish after caller cancellation")
+	}
+	if _, err := store.FindCapabilityImpact(t.Context(), delivery.Provider, delivery.ID); err != nil {
+		t.Fatalf("caller cancellation prevented durable assessment: %v", err)
+	}
+}
+
 type memoryStore struct {
 	mu       sync.Mutex
 	delivery *ingest.StoredDelivery
@@ -156,6 +203,27 @@ func (r *resolver) Resolve(context.Context, ingest.Delivery) (change.Set, error)
 type analyzer struct {
 	calls     int
 	failFirst bool
+}
+
+type gatedAnalyzer struct {
+	started chan struct{}
+	release chan struct{}
+	once    sync.Once
+}
+
+func (a *gatedAnalyzer) open() {
+	a.once.Do(func() { close(a.release) })
+}
+
+func (a *gatedAnalyzer) Analyze(ctx context.Context, set change.Set) (change.CapabilityImpact, error) {
+	close(a.started)
+	<-a.release
+	if err := ctx.Err(); err != nil {
+		return change.CapabilityImpact{}, err
+	}
+
+	return change.CapabilityImpact{APIVersion: change.ImpactAPIVersion, AnalyzerVersion: change.OpenAPIAnalyzerVersion,
+		Change: set.Reference(), Status: change.ImpactComplete}, nil
 }
 
 func (a *analyzer) Analyze(_ context.Context, set change.Set) (change.CapabilityImpact, error) {

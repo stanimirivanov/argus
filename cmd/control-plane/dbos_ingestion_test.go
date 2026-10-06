@@ -157,6 +157,9 @@ func TestDBOSWebhookIngestion(t *testing.T) {
 			t.Fatalf("first recovery attempt provider reads = %d, want %d", got, beforePulls+2)
 		}
 
+		// Reconstruct the application, including its DBOS runtime, from the
+		// same database before retrying the incomplete delivery.
+		harness.restart(t)
 		beforeRetry := harness.provider.pullRequests.Load()
 		response = harness.postWebhook(recoveryDelivery, successBody)
 		assertWebhookStatus(t, response, http.StatusOK)
@@ -166,14 +169,59 @@ func TestDBOSWebhookIngestion(t *testing.T) {
 			t.Fatalf("assessment retry repeated provider resolution: reads %d -> %d", beforeRetry, got)
 		}
 	})
+
+	t.Run("client disconnect does not cancel accepted assessment", func(t *testing.T) {
+		testDBOSClientDisconnect(t, harness, successBody)
+	})
+}
+
+func testDBOSClientDisconnect(t *testing.T, harness *dbosWebhookHarness, body []byte) {
+	t.Helper()
+	const disconnectedDelivery = "dbos-e2e-disconnected"
+	gate := harness.provider.gateNextDocument(t)
+	defer gate.release()
+	requestContext, cancel := context.WithCancel(t.Context())
+	defer cancel()
+	result := make(chan webhookResponse, 1)
+	go func() {
+		result <- harness.postWebhookContext(requestContext, disconnectedDelivery, body)
+	}()
+
+	select {
+	case <-gate.reached:
+	case <-time.After(20 * time.Second):
+		t.Fatal("accepted assessment did not reach the gated provider request")
+	}
+	harness.assertRows(t, disconnectedDelivery, 1, 0)
+	cancel()
+	if response := awaitWebhook(t, result); !errors.Is(response.err, context.Canceled) {
+		t.Fatalf("disconnected webhook client: status=%d err=%v; want canceled request", response.status, response.err)
+	}
+
+	gate.release()
+	harness.awaitRows(t, disconnectedDelivery, 1, 1)
+	harness.assertCompleteImpact(t, disconnectedDelivery)
+	beforePulls := harness.provider.pullRequests.Load()
+	beforeDocuments := harness.provider.documents.Load()
+	response := harness.postWebhook(disconnectedDelivery, body)
+	assertWebhookStatus(t, response, http.StatusOK)
+	if got := harness.provider.pullRequests.Load(); got != beforePulls {
+		t.Fatalf("redelivery after disconnect repeated provider resolution: reads %d -> %d", beforePulls, got)
+	}
+	if got := harness.provider.documents.Load(); got != beforeDocuments {
+		t.Fatalf("redelivery after disconnect repeated assessment: document reads %d -> %d", beforeDocuments, got)
+	}
 }
 
 type dbosWebhookHarness struct {
-	listener *httptest.Server
-	provider *githubProviderStub
-	secret   string
-	reader   *pgx.Conn
-	store    *postgres.ChangeStore
+	ctx           context.Context
+	listener      *httptest.Server
+	application   *application
+	configuration map[string]string
+	provider      *githubProviderStub
+	secret        string
+	reader        *pgx.Conn
+	store         *postgres.ChangeStore
 }
 
 func newDBOSWebhookHarness(t *testing.T) *dbosWebhookHarness {
@@ -208,20 +256,15 @@ func newDBOSWebhookHarness(t *testing.T) *dbosWebhookHarness {
 		"ARGUS_DBOS_EVALUATION":       "true",
 	}
 	provider.token = configuration["ARGUS_GITHUB_TOKEN"]
-	application, err := newApplication(t.Context(), func(name string) string { return configuration[name] }, false)
-	if err != nil {
-		t.Fatalf("start DBOS control plane in process: %v", err)
+	harness := &dbosWebhookHarness{
+		ctx: t.Context(), configuration: configuration, provider: provider, secret: secret,
 	}
+	harness.start(t)
 	t.Cleanup(func() {
-		if err := application.Close(); err != nil {
+		if err := harness.stop(); err != nil {
 			t.Errorf("close DBOS control plane: %v", err)
 		}
 	})
-	if application.durable == nil {
-		t.Fatal("DBOS evaluation was not enabled by injected configuration")
-	}
-	listener := httptest.NewServer(application.server.Handler)
-	t.Cleanup(listener.Close)
 
 	reader, err := pgx.Connect(t.Context(), databaseURL)
 	if err != nil {
@@ -233,10 +276,51 @@ func newDBOSWebhookHarness(t *testing.T) *dbosWebhookHarness {
 		}
 	})
 
-	return &dbosWebhookHarness{
-		listener: listener, provider: provider, secret: secret,
-		reader: reader, store: application.runtime.Change(),
+	harness.reader = reader
+
+	return harness
+}
+
+func (harness *dbosWebhookHarness) start(t *testing.T) {
+	t.Helper()
+	application, err := newApplication(harness.ctx, func(name string) string {
+		return harness.configuration[name]
+	}, false)
+	if err != nil {
+		t.Fatalf("start DBOS control plane in process: %v", err)
 	}
+	if application.durable == nil {
+		if err := application.Close(); err != nil {
+			t.Errorf("close unexpectedly non-durable application: %v", err)
+		}
+		t.Fatal("DBOS evaluation was not enabled by injected configuration")
+	}
+	harness.application = application
+	harness.store = application.runtime.Change()
+	harness.listener = httptest.NewServer(application.server.Handler)
+}
+
+func (harness *dbosWebhookHarness) stop() error {
+	if harness.listener != nil {
+		harness.listener.Close()
+		harness.listener = nil
+	}
+	if harness.application == nil {
+		return nil
+	}
+	err := harness.application.Close()
+	harness.application = nil
+	harness.store = nil
+
+	return err
+}
+
+func (harness *dbosWebhookHarness) restart(t *testing.T) {
+	t.Helper()
+	if err := harness.stop(); err != nil {
+		t.Fatalf("stop DBOS control plane before restart: %v", err)
+	}
+	harness.start(t)
 }
 
 func prepareDBOSEvaluationSchemas(t *testing.T, databaseURL string) {
@@ -273,6 +357,10 @@ type webhookResponse struct {
 func (harness *dbosWebhookHarness) postWebhook(deliveryID string, body []byte) webhookResponse {
 	requestContext, cancel := context.WithTimeout(context.Background(), 35*time.Second)
 	defer cancel()
+	return harness.postWebhookContext(requestContext, deliveryID, body)
+}
+
+func (harness *dbosWebhookHarness) postWebhookContext(requestContext context.Context, deliveryID string, body []byte) webhookResponse {
 	request, err := http.NewRequestWithContext(
 		requestContext, http.MethodPost, harness.listener.URL+"/webhooks/github", bytes.NewReader(body),
 	)
@@ -302,7 +390,7 @@ func awaitWebhook(t *testing.T, result <-chan webhookResponse) webhookResponse {
 	case response := <-result:
 		return response
 	case <-time.After(35 * time.Second):
-		t.Fatal("webhook did not complete after assessment was released")
+		t.Fatal("webhook did not complete before the test deadline")
 		return webhookResponse{}
 	}
 }
@@ -316,13 +404,7 @@ func assertWebhookStatus(t *testing.T, response webhookResponse, want int) {
 
 func (harness *dbosWebhookHarness) assertRows(t *testing.T, deliveryID string, wantChanges, wantImpacts int) {
 	t.Helper()
-	var changes, impacts int
-	err := harness.reader.QueryRow(t.Context(), `
-		SELECT count(c.change_set_id), count(a.assessment_id)
-		FROM argus_catalog.change_sets AS c
-		LEFT JOIN argus_catalog.openapi_impact_assessments AS a USING (change_set_id)
-		WHERE c.delivery_provider = 'github' AND c.delivery_id = $1
-	`, deliveryID).Scan(&changes, &impacts)
+	changes, impacts, err := harness.rows(t.Context(), deliveryID)
 	if err != nil {
 		t.Fatalf("read durable delivery and assessment rows: %v", err)
 	}
@@ -330,6 +412,43 @@ func (harness *dbosWebhookHarness) assertRows(t *testing.T, deliveryID string, w
 		t.Fatalf("durable rows for %s = change:%d impact:%d; want change:%d impact:%d",
 			deliveryID, changes, impacts, wantChanges, wantImpacts)
 	}
+}
+
+// awaitRows observes the asynchronous workflow after its HTTP client leaves.
+// The bounded poll replaces timing assumptions about DBOS scheduling.
+func (harness *dbosWebhookHarness) awaitRows(t *testing.T, deliveryID string, wantChanges, wantImpacts int) {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+	ticker := time.NewTicker(20 * time.Millisecond)
+	defer ticker.Stop()
+	for {
+		changes, impacts, err := harness.rows(ctx, deliveryID)
+		if err != nil {
+			t.Fatalf("read durable delivery and assessment rows: %v", err)
+		}
+		if changes == wantChanges && impacts == wantImpacts {
+			return
+		}
+		select {
+		case <-ctx.Done():
+			t.Fatalf("durable rows for %s = change:%d impact:%d; want change:%d impact:%d: %v",
+				deliveryID, changes, impacts, wantChanges, wantImpacts, ctx.Err())
+		case <-ticker.C:
+		}
+	}
+}
+
+func (harness *dbosWebhookHarness) rows(ctx context.Context, deliveryID string) (int, int, error) {
+	var changes, impacts int
+	err := harness.reader.QueryRow(ctx, `
+		SELECT count(c.change_set_id), count(a.assessment_id)
+		FROM argus_catalog.change_sets AS c
+		LEFT JOIN argus_catalog.openapi_impact_assessments AS a USING (change_set_id)
+		WHERE c.delivery_provider = 'github' AND c.delivery_id = $1
+	`, deliveryID).Scan(&changes, &impacts)
+
+	return changes, impacts, err
 }
 
 func (harness *dbosWebhookHarness) assertCompleteImpact(t *testing.T, deliveryID string) {
@@ -391,6 +510,18 @@ type githubProviderStub struct {
 	firstDocumentReached chan struct{}
 	firstDocumentRelease chan struct{}
 	releaseOnce          sync.Once
+	gateMu               sync.Mutex
+	nextDocumentGate     *providerRequestGate
+}
+
+type providerRequestGate struct {
+	reached chan struct{}
+	opened  chan struct{}
+	once    sync.Once
+}
+
+func (gate *providerRequestGate) release() {
+	gate.once.Do(func() { close(gate.opened) })
 }
 
 func newGitHubProviderStub() *githubProviderStub {
@@ -402,6 +533,19 @@ func newGitHubProviderStub() *githubProviderStub {
 
 func (provider *githubProviderStub) releaseFirstDocument() {
 	provider.releaseOnce.Do(func() { close(provider.firstDocumentRelease) })
+}
+
+func (provider *githubProviderStub) gateNextDocument(t *testing.T) *providerRequestGate {
+	t.Helper()
+	gate := &providerRequestGate{reached: make(chan struct{}), opened: make(chan struct{})}
+	provider.gateMu.Lock()
+	defer provider.gateMu.Unlock()
+	if provider.nextDocumentGate != nil {
+		t.Fatal("a provider document request is already gated")
+	}
+	provider.nextDocumentGate = gate
+
+	return gate
 }
 
 func (provider *githubProviderStub) serveHTTP(response http.ResponseWriter, request *http.Request) {
@@ -426,29 +570,41 @@ func (provider *githubProviderStub) serveHTTP(response http.ResponseWriter, requ
 			return
 		}
 	case request.URL.Path == "/repos/octocat/hello-world/contents/api/openapi.yaml":
-		provider.documents.Add(1)
-		provider.firstDocumentOnce.Do(func() {
-			close(provider.firstDocumentReached)
-			<-provider.firstDocumentRelease
-		})
-		if provider.failNextDocument.Swap(false) {
-			http.Error(response, "synthetic provider outage", http.StatusServiceUnavailable)
-			return
-		}
-		switch request.URL.Query().Get("ref") {
-		case baseSHA:
-			if _, err := io.WriteString(response, openAPISpec("string")); err != nil {
-				return
-			}
-		case headSHA:
-			if _, err := io.WriteString(response, openAPISpec("integer")); err != nil {
-				return
-			}
-		default:
-			http.Error(response, "unknown immutable revision", http.StatusNotFound)
-		}
+		provider.serveDocument(response, request)
 	default:
 		http.Error(response, "unexpected GitHub API request", http.StatusNotFound)
+	}
+}
+
+func (provider *githubProviderStub) serveDocument(response http.ResponseWriter, request *http.Request) {
+	provider.documents.Add(1)
+	provider.firstDocumentOnce.Do(func() {
+		close(provider.firstDocumentReached)
+		<-provider.firstDocumentRelease
+	})
+	provider.gateMu.Lock()
+	gate := provider.nextDocumentGate
+	provider.nextDocumentGate = nil
+	provider.gateMu.Unlock()
+	if gate != nil {
+		close(gate.reached)
+		<-gate.opened
+	}
+	if provider.failNextDocument.Swap(false) {
+		http.Error(response, "synthetic provider outage", http.StatusServiceUnavailable)
+		return
+	}
+	switch request.URL.Query().Get("ref") {
+	case baseSHA:
+		if _, err := io.WriteString(response, openAPISpec("string")); err != nil {
+			return
+		}
+	case headSHA:
+		if _, err := io.WriteString(response, openAPISpec("integer")); err != nil {
+			return
+		}
+	default:
+		http.Error(response, "unknown immutable revision", http.StatusNotFound)
 	}
 }
 
