@@ -100,6 +100,7 @@ check: fmt-check docs-check architecture-check
 	pnpm typecheck
 	$(GOLANGCI_LINT) config verify
 	$(GOLANGCI_LINT) run ./...
+	$(GOLANGCI_LINT) run --build-tags=dbose2e ./cmd/control-plane
 	$(ACTIONLINT)
 	go mod tidy -diff
 	go mod verify
@@ -129,6 +130,10 @@ fuzz-smoke:
 
 db-validate:
 	go test -vet=off -tags=integration -race -count=1 -timeout=5m ./internal/postgres
+
+# Include the isolated DBOS end-to-end test dependency graph in supply-chain
+# scans without requiring a container runtime to execute that test.
+vuln license: export GOFLAGS := -tags=dbose2e
 
 vuln:
 	$(GOVULNCHECK) ./...

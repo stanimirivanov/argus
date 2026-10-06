@@ -203,3 +203,30 @@ jobs:
 
       - name: Run PostgreSQL integration suite
         run: make db-validate
+
+  dbos-webhook:
+    name: DBOS webhook integration
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    env:
+      GOTOOLCHAIN: local
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          check-latest: false
+          cache: true
+          cache-dependency-path: |
+            go.mod
+            go.sum
+
+      - name: Run self-provisioned DBOS webhook suite
+        run: go test -tags=dbose2e -race -count=1 -timeout=10m ./cmd/control-plane

@@ -22,6 +22,8 @@
   ledger entry, or ledger gap stops migration rather than guessing.
 - The opt-in DBOS evaluation uses a separate `argus_dbos_eval` schema prepared
   by `go run ./cmd/migrate --dbos-evaluation`; normal startup verifies it.
+- The DBOS webhook end-to-end test provisions PostgreSQL and both schemas
+  automatically with `go test -tags=dbose2e -count=1 -timeout=10m ./cmd/control-plane`.
 - For a disposable workstation database, [local startup](local-start.md) provides
   the loopback Compose service and explicit `--local` command mode.
 
@@ -344,6 +346,24 @@ omit server messages and connection configuration; do not add database URLs to
 logs, test output, shell history, or committed files.
 
 ## Local integration tests
+
+The DBOS webhook end-to-end test needs no Compose file, `.env`, database URL,
+GitHub credential, migration command, or separately started control plane:
+
+~~~sh
+go test -tags=dbose2e -count=1 -timeout=10m ./cmd/control-plane
+~~~
+
+It uses Testcontainers to start and clean up an isolated PostgreSQL 17.11
+container, applies the catalog and DBOS migrations in-process, injects
+synthetic credentials, and serves the real control-plane handler and a fake
+GitHub API in-process. A running Docker-API-compatible container runtime is
+still required; the test fails if none is available. CI runs this tagged suite
+in its own Ubuntu job. The tag keeps ordinary fast verification independent of
+container infrastructure.
+
+The broader PostgreSQL adapter integration suite below is separate and still
+uses `ARGUS_TEST_POSTGRES_URL`.
 
 Start any disposable PostgreSQL 17 server bound to loopback. With Docker, one
 option is:

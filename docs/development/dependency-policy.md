@@ -12,10 +12,11 @@
   npm/pnpm dependencies, and GitHub Actions. Updates are reviewed and validated;
   they are never implicitly trusted or auto-merged by repository policy.
 - `make license` permits a narrow runtime license allowlist and separately checks
-  development tools with named, non-distributed exceptions.
+  development tools with named, non-distributed exceptions. Its Go scan includes
+  the `dbose2e` build tag so Testcontainers dependencies are not hidden.
 - `make vuln` checks reachable Go vulnerabilities and audits production pnpm
   dependencies without requiring an optional repository-hosted dependency
-  graph.
+  graph. Its Go scan also includes the `dbose2e` build tag.
 - Novel or exploitable findings follow [SECURITY.md](../../SECURITY.md), not a
   public issue. Exceptions require an owner, rationale, scope, expiry, and
   compensating controls.
@@ -101,6 +102,19 @@ MIT terms and a notice for underlying data under the permissive PostgreSQL
 License. The runtime gate now admits that license classification; release
 packaging MUST preserve both upstream notices. This is a reviewed allowlist
 addition, not a blanket exception for unknown or proprietary terms.
+
+The tagged DBOS webhook end-to-end test admits
+`github.com/testcontainers/testcontainers-go` and its PostgreSQL module at
+v0.44.0 as test-only dependencies. The standard library cannot provision and
+clean up a disposable PostgreSQL container, and retaining a manually managed
+database would defeat this acceptance test. The modules are maintained with
+the Testcontainers project and use the MIT license; their material Docker/Moby
+and OpenTelemetry transitive packages use permissive licenses subject to the
+repository license check. Only test code imports them. The test can access the
+local container runtime and pull the pinned PostgreSQL 17.11 image, so it MUST
+run on a trusted CI runner; it uses synthetic credentials and no production
+network endpoint. Removing these dependencies removes the self-provisioned
+end-to-end lane but leaves the lower-level service and PostgreSQL tests intact.
 
 The root module MUST contain only product and test dependencies. Repository
 quality tools live in `tools/quality` so linter and scanner transitive packages
