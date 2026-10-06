@@ -24,9 +24,9 @@
   by `go run ./cmd/migrate --dbos-evaluation`; normal startup verifies it.
 - The DBOS webhook end-to-end test provisions PostgreSQL and both schemas
   automatically with `go test -tags=dbose2e -count=1 -timeout=10m ./cmd/control-plane`.
-- DBOS lifecycle tests cover a client disconnect after acceptance and
-  redelivery after a graceful control-plane restart; process-kill recovery
-  remains a separate production-promotion criterion.
+- DBOS lifecycle tests cover disconnect, graceful restart, and process-kill
+  recovery at the three webhook evidence boundaries. Workflow-version upgrades
+  remain a separate production-promotion criterion.
 - For a disposable workstation database, [local startup](local-start.md) provides
   the loopback Compose service and explicit `--local` command mode.
 
@@ -365,14 +365,18 @@ still required; the test fails if none is available. CI runs this tagged suite
 in its own Ubuntu job. The tag keeps ordinary fast verification independent of
 container infrastructure.
 
-The tagged suite also cancels an HTTP client after change evidence is stored
-and the assessment has started. It verifies that the accepted workflow still
-persists impact and that redelivery does not repeat provider work. Another
-scenario restarts the in-process control plane after a failed assessment and
-then redelivers, verifying that the stored change is reused. The PostgreSQL
-adapter suite exercises the same restart boundary with an injected analyzer
-failure. These tests use graceful shutdown, not a killed process, and do not
-yet establish crash-at-each-boundary or workflow-version-upgrade safety.
+The tagged suite cancels an HTTP client after change evidence is stored and
+the assessment has started. It verifies that the accepted workflow still
+persists impact and that redelivery does not repeat provider work. It also
+restarts the in-process control plane after a failed assessment; the
+PostgreSQL adapter suite exercises the same boundary with an injected analyzer
+failure. A separate tagged test kills a child control-plane process before
+change storage, after change storage but before impact, and after impact but
+before the HTTP response. It restarts the process against the same isolated
+database and redelivers the signed webhook, checking the single immutable
+change and impact records. The process-kill test exercises the same binary and
+schema version; workflow-version upgrades, retention, and operating cost still
+need separate evidence before production promotion.
 
 The broader PostgreSQL adapter integration suite below is separate and still
 uses `ARGUS_TEST_POSTGRES_URL`.

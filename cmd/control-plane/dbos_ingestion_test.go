@@ -361,8 +361,12 @@ func (harness *dbosWebhookHarness) postWebhook(deliveryID string, body []byte) w
 }
 
 func (harness *dbosWebhookHarness) postWebhookContext(requestContext context.Context, deliveryID string, body []byte) webhookResponse {
+	return harness.postWebhookAt(requestContext, harness.listener.URL, deliveryID, body)
+}
+
+func (harness *dbosWebhookHarness) postWebhookAt(requestContext context.Context, baseURL, deliveryID string, body []byte) webhookResponse {
 	request, err := http.NewRequestWithContext(
-		requestContext, http.MethodPost, harness.listener.URL+"/webhooks/github", bytes.NewReader(body),
+		requestContext, http.MethodPost, baseURL+"/webhooks/github", bytes.NewReader(body),
 	)
 	if err != nil {
 		return webhookResponse{err: err}
@@ -511,6 +515,7 @@ type githubProviderStub struct {
 	firstDocumentRelease chan struct{}
 	releaseOnce          sync.Once
 	gateMu               sync.Mutex
+	nextPullRequestGate  *providerRequestGate
 	nextDocumentGate     *providerRequestGate
 }
 
@@ -548,6 +553,19 @@ func (provider *githubProviderStub) gateNextDocument(t *testing.T) *providerRequ
 	return gate
 }
 
+func (provider *githubProviderStub) gateNextPullRequest(t *testing.T) *providerRequestGate {
+	t.Helper()
+	gate := &providerRequestGate{reached: make(chan struct{}), opened: make(chan struct{})}
+	provider.gateMu.Lock()
+	defer provider.gateMu.Unlock()
+	if provider.nextPullRequestGate != nil {
+		t.Fatal("a provider pull request is already gated")
+	}
+	provider.nextPullRequestGate = gate
+
+	return gate
+}
+
 func (provider *githubProviderStub) serveHTTP(response http.ResponseWriter, request *http.Request) {
 	if request.Header.Get("Authorization") != "Bearer "+provider.token {
 		http.Error(response, "synthetic token required", http.StatusUnauthorized)
@@ -561,6 +579,14 @@ func (provider *githubProviderStub) serveHTTP(response http.ResponseWriter, requ
 	switch {
 	case request.URL.Path == "/repos/octocat/hello-world/pulls/42" && request.URL.RawQuery == "":
 		provider.pullRequests.Add(1)
+		provider.gateMu.Lock()
+		gate := provider.nextPullRequestGate
+		provider.nextPullRequestGate = nil
+		provider.gateMu.Unlock()
+		if gate != nil {
+			close(gate.reached)
+			<-gate.opened
+		}
 		if _, err := io.WriteString(response, fmt.Sprintf(`{"number":42,"changed_files":1,"base":{"sha":%q,"repo":{"id":1296269}},"head":{"sha":%q}}`, baseSHA, headSHA)); err != nil {
 			return
 		}
