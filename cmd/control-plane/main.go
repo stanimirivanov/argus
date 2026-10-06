@@ -55,17 +55,47 @@ func realMain() int {
 	defer stop()
 
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	application, err := newApplication(ctx, os.Getenv, local)
+
+	return runControlPlane(ctx, logger, func(lifetimeCtx context.Context) (managedApplication, error) {
+		application, err := newApplication(lifetimeCtx, os.Getenv, local)
+		if err != nil {
+			return managedApplication{}, err
+		}
+
+		return managedApplication{server: application.server, close: application.Close}, nil
+	})
+}
+
+// managedApplication keeps the HTTP drain and application resource teardown in
+// one place; the server must stop admitting requests before its stores close.
+type managedApplication struct {
+	server server
+	close  func() error
+}
+
+// runControlPlane gives the shutdown signal control of HTTP admission while
+// keeping application resources alive through the drain and their own cleanup.
+func runControlPlane(
+	stopCtx context.Context,
+	logger *slog.Logger,
+	open func(context.Context) (managedApplication, error),
+) int {
+	// SIGTERM stops HTTP admission, but accepted DBOS work belongs to the
+	// application lifetime. Preserve context values while detaching the signal
+	// cancellation until the bounded HTTP drain and resource cleanup finish.
+	lifetimeCtx, stopLifetime := context.WithCancel(context.WithoutCancel(stopCtx))
+	defer stopLifetime()
+	application, err := open(lifetimeCtx)
 	if err != nil {
 		logger.Error("control plane configuration failed", "component", componentName, "error", err)
 		return 1
 	}
 	defer func() {
-		if err := application.Close(); err != nil {
+		if err := application.close(); err != nil {
 			logger.Error("control plane cleanup failed", "component", componentName, "error", err)
 		}
 	}()
-	if err := run(ctx, logger, application.server); err != nil {
+	if err := run(stopCtx, logger, application.server); err != nil {
 		logger.Error("control plane failed", "component", componentName, "error", err)
 		return 1
 	}

@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"log/slog"
 	"net/http"
+	"sync"
 	"testing"
 	"time"
 
@@ -13,6 +15,78 @@ import (
 )
 
 const testTimeout = 5 * time.Second
+
+func TestRunControlPlaneDrainsHTTPBeforeCancelingApplication(t *testing.T) {
+	t.Parallel()
+
+	signalCtx, stop := context.WithCancel(t.Context())
+	defer stop()
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	server := newDrainingServer()
+	defer server.allowShutdown()
+	applicationContext := make(chan context.Context, 1)
+	lifetimeAtClose := make(chan error, 1)
+	applicationClosed := make(chan struct{})
+	done := make(chan int, 1)
+	go func() {
+		done <- runControlPlane(signalCtx, logger, func(ctx context.Context) (managedApplication, error) {
+			applicationContext <- ctx
+
+			return managedApplication{server: server, close: func() error {
+				lifetimeAtClose <- ctx.Err()
+				close(applicationClosed)
+				return nil
+			}}, nil
+		})
+	}()
+
+	var lifetimeCtx context.Context
+	select {
+	case lifetimeCtx = <-applicationContext:
+	case <-time.After(testTimeout):
+		t.Fatal("control plane did not open application resources")
+	}
+	select {
+	case <-server.started:
+	case <-time.After(testTimeout):
+		t.Fatal("control plane did not start serving")
+	}
+	stop()
+	select {
+	case <-server.shutdownStarted:
+	case <-time.After(testTimeout):
+		t.Fatal("control plane did not start HTTP shutdown")
+	}
+	if err := lifetimeCtx.Err(); err != nil {
+		t.Fatalf("shutdown signal canceled application work before HTTP drain: %v", err)
+	}
+	select {
+	case <-applicationClosed:
+		t.Fatal("application resources closed before HTTP drain")
+	default:
+	}
+
+	server.allowShutdown()
+	select {
+	case code := <-done:
+		if code != 0 {
+			t.Fatalf("control plane exit code = %d, want success", code)
+		}
+	case <-time.After(testTimeout):
+		t.Fatal("control plane did not finish after HTTP drain")
+	}
+	select {
+	case <-applicationClosed:
+	default:
+		t.Fatal("application resources were not closed after HTTP drain")
+	}
+	if err := <-lifetimeAtClose; err != nil {
+		t.Fatalf("application context canceled before resource cleanup: %v", err)
+	}
+	if !errors.Is(lifetimeCtx.Err(), context.Canceled) {
+		t.Fatalf("application context after cleanup = %v, want cancellation", lifetimeCtx.Err())
+	}
+}
 
 func TestRunWaitsForCancellationAndLogsLifecycle(t *testing.T) {
 	t.Parallel()
@@ -121,6 +195,42 @@ func TestLoadConfigDBOSEvaluationRequiresExplicitOptIn(t *testing.T) {
 
 type fakeServer struct {
 	stopped chan struct{}
+}
+
+type drainingServer struct {
+	started         chan struct{}
+	shutdownStarted chan struct{}
+	release         chan struct{}
+	stopped         chan struct{}
+	once            sync.Once
+}
+
+func newDrainingServer() *drainingServer {
+	return &drainingServer{
+		started: make(chan struct{}), shutdownStarted: make(chan struct{}),
+		release: make(chan struct{}), stopped: make(chan struct{}),
+	}
+}
+
+func (server *drainingServer) allowShutdown() {
+	server.once.Do(func() { close(server.release) })
+}
+
+func (server *drainingServer) ListenAndServe() error {
+	close(server.started)
+	<-server.stopped
+	return http.ErrServerClosed
+}
+
+func (server *drainingServer) Shutdown(ctx context.Context) error {
+	close(server.shutdownStarted)
+	select {
+	case <-server.release:
+		close(server.stopped)
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
 
 func newFakeServer() *fakeServer {
