@@ -15,7 +15,6 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -25,6 +24,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/stanimirivanov/argus/internal/catalog"
 	"github.com/stanimirivanov/argus/internal/change"
+	githubadapter "github.com/stanimirivanov/argus/internal/change/adapters/github"
+	openapiadapter "github.com/stanimirivanov/argus/internal/change/adapters/openapi"
 	"github.com/stanimirivanov/argus/internal/postgres"
 	"github.com/testcontainers/testcontainers-go"
 	postgrescontainer "github.com/testcontainers/testcontainers-go/modules/postgres"
@@ -34,6 +35,52 @@ const (
 	baseSHA = "0123456789abcdef0123456789abcdef01234567"
 	headSHA = "89abcdef0123456789abcdef0123456789abcdef"
 )
+
+// This test runs without a container. It guards the provider fixture used by
+// the DBOS test against syntactically valid but semantically empty documents.
+func TestDBOSProviderFixtureProducesMappedImpact(t *testing.T) {
+	provider := newGitHubProviderStub()
+	provider.token = randomHex(t, 24)
+	provider.releaseFirstDocument()
+	providerServer := httptest.NewServer(http.HandlerFunc(provider.serveHTTP))
+	t.Cleanup(providerServer.Close)
+	client, err := githubadapter.NewClient(githubadapter.ClientOptions{
+		BaseURL: providerServer.URL,
+		Token:   provider.token,
+	})
+	if err != nil {
+		t.Fatalf("create GitHub fixture client: %v", err)
+	}
+	set := change.Set{
+		APIVersion: change.SetAPIVersion,
+		SourceRepository: catalog.Repository{
+			Identity: catalog.RepositoryIdentity{
+				Provider: catalog.ProviderGitHub, Host: "github.com", ProviderRepositoryID: "1296269",
+			},
+			Owner: "octocat", Name: "hello-world",
+		},
+		PullRequestNumber: 42,
+		BaseRevision:      catalog.Revision{Algorithm: catalog.RevisionGitSHA1, Digest: baseSHA},
+		HeadRevision:      catalog.Revision{Algorithm: catalog.RevisionGitSHA1, Digest: headSHA},
+		ObservedAt:        time.Date(2026, 9, 18, 9, 30, 0, 0, time.UTC),
+		Trigger: change.Trigger{
+			Provider: catalog.ProviderGitHub, DeliveryID: "fixture-impact",
+			Event: "pull_request", Action: "synchronize",
+		},
+		Files: []change.File{{
+			Path: "api/openapi.yaml", Kind: change.KindModified,
+			Additions: 1, Deletions: 1, PatchStatus: change.PatchUnavailable,
+		}},
+	}
+	impact, err := openapiadapter.NewAnalyzer(client).Analyze(t.Context(), set)
+	if err != nil {
+		t.Fatalf("analyze mocked immutable OpenAPI documents: %v", err)
+	}
+	assertMappedImpact(t, impact)
+	if got := provider.documents.Load(); got != 2 {
+		t.Fatalf("mocked document reads = %d, want both immutable revisions", got)
+	}
+}
 
 // TestDBOSWebhookIngestion exercises the real control-plane composition root.
 // A Docker-compatible runtime is the only external prerequisite: the test owns
@@ -291,6 +338,11 @@ func (harness *dbosWebhookHarness) assertCompleteImpact(t *testing.T, deliveryID
 	if err != nil {
 		t.Fatalf("reconstruct durable capability impact: %v", err)
 	}
+	assertMappedImpact(t, impact)
+}
+
+func assertMappedImpact(t *testing.T, impact change.CapabilityImpact) {
+	t.Helper()
 	if impact.Status != change.ImpactComplete || len(impact.Documents) != 1 ||
 		len(impact.Documents[0].Operations) != 1 ||
 		len(impact.Documents[0].Operations[0].Capabilities) != 1 ||
@@ -401,7 +453,7 @@ func (provider *githubProviderStub) serveHTTP(response http.ResponseWriter, requ
 }
 
 func openAPISpec(propertyType string) string {
-	return strings.TrimSpace(`openapi: 3.1.0
+	return `openapi: 3.1.0
 info:
   title: Orders
   version: "1"
@@ -425,5 +477,5 @@ components:
       type: object
       properties:
         item:
-          type: `) + propertyType + "\n"
+          type: ` + propertyType + "\n"
 }
