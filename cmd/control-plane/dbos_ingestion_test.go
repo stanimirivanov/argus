@@ -161,7 +161,7 @@ func newDBOSWebhookHarness(t *testing.T) *dbosWebhookHarness {
 		"ARGUS_DBOS_EVALUATION":       "true",
 	}
 	provider.token = configuration["ARGUS_GITHUB_TOKEN"]
-	application, err := newApplication(t.Context(), func(name string) string { return configuration[name] })
+	application, err := newApplication(t.Context(), func(name string) string { return configuration[name] }, false)
 	if err != nil {
 		t.Fatalf("start DBOS control plane in process: %v", err)
 	}
