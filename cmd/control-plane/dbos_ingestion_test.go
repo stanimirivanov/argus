@@ -146,6 +146,28 @@ func TestDBOSWebhookIngestion(t *testing.T) {
 		}
 	})
 
+	t.Run("missing provider evidence keeps not-found status", func(t *testing.T) {
+		const deliveryID = "dbos-e2e-not-found"
+		harness.provider.missingNextPullRequest.Store(true)
+		response := harness.postWebhook(deliveryID, successBody)
+		assertWebhookStatus(t, response, http.StatusNotFound)
+		harness.assertRows(t, deliveryID, 0, 0)
+		response = harness.postWebhook(deliveryID, successBody)
+		assertWebhookStatus(t, response, http.StatusCreated)
+		harness.assertRows(t, deliveryID, 1, 1)
+	})
+
+	t.Run("moving provider revision keeps conflict status", func(t *testing.T) {
+		const deliveryID = "dbos-e2e-stale"
+		harness.provider.staleNextPullRequest.Store(true)
+		response := harness.postWebhook(deliveryID, successBody)
+		assertWebhookStatus(t, response, http.StatusConflict)
+		harness.assertRows(t, deliveryID, 0, 0)
+		response = harness.postWebhook(deliveryID, successBody)
+		assertWebhookStatus(t, response, http.StatusCreated)
+		harness.assertRows(t, deliveryID, 1, 1)
+	})
+
 	t.Run("failed assessment resumes without resolving change again", func(t *testing.T) {
 		const recoveryDelivery = "dbos-e2e-recovery"
 		beforePulls := harness.provider.pullRequests.Load()
@@ -506,17 +528,19 @@ func randomHex(t *testing.T, byteCount int) string {
 }
 
 type githubProviderStub struct {
-	token                string
-	pullRequests         atomic.Int32
-	documents            atomic.Int32
-	failNextDocument     atomic.Bool
-	firstDocumentOnce    sync.Once
-	firstDocumentReached chan struct{}
-	firstDocumentRelease chan struct{}
-	releaseOnce          sync.Once
-	gateMu               sync.Mutex
-	nextPullRequestGate  *providerRequestGate
-	nextDocumentGate     *providerRequestGate
+	token                  string
+	pullRequests           atomic.Int32
+	documents              atomic.Int32
+	failNextDocument       atomic.Bool
+	missingNextPullRequest atomic.Bool
+	staleNextPullRequest   atomic.Bool
+	firstDocumentOnce      sync.Once
+	firstDocumentReached   chan struct{}
+	firstDocumentRelease   chan struct{}
+	releaseOnce            sync.Once
+	gateMu                 sync.Mutex
+	nextPullRequestGate    *providerRequestGate
+	nextDocumentGate       *providerRequestGate
 }
 
 type providerRequestGate struct {
@@ -587,7 +611,15 @@ func (provider *githubProviderStub) serveHTTP(response http.ResponseWriter, requ
 			close(gate.reached)
 			<-gate.opened
 		}
-		if _, err := io.WriteString(response, fmt.Sprintf(`{"number":42,"changed_files":1,"base":{"sha":%q,"repo":{"id":1296269}},"head":{"sha":%q}}`, baseSHA, headSHA)); err != nil {
+		if provider.missingNextPullRequest.Swap(false) {
+			http.Error(response, "synthetic missing pull request", http.StatusNotFound)
+			return
+		}
+		head := headSHA
+		if provider.staleNextPullRequest.Swap(false) {
+			head = baseSHA
+		}
+		if _, err := io.WriteString(response, fmt.Sprintf(`{"number":42,"changed_files":1,"base":{"sha":%q,"repo":{"id":1296269}},"head":{"sha":%q}}`, baseSHA, head)); err != nil {
 			return
 		}
 	case request.URL.Path == "/repos/octocat/hello-world/pulls/42/files" &&

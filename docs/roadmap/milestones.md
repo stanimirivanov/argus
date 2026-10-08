@@ -423,9 +423,10 @@ inventing a competing identity or provenance model.
 
 An opt-in M10 evaluation now coordinates webhook ingestion and impact with
 embedded DBOS Go checkpoints. It leaves the established synchronous path as
-the default. Automated process-kill tests now cover the three webhook evidence
-boundaries. Production promotion still requires version-upgrade, error-mapping,
-retention, and operating-cost evidence; the evaluation does not select a shared
+the default. Automated process-kill tests cover the three webhook evidence
+boundaries, and known change-failure classifications survive new DBOS
+checkpoints. Production promotion still requires version-upgrade, retention,
+and operating-cost evidence; the evaluation does not select a shared
 Argus–Perfeng workflow service.
 
 Acceptance ingredients:
