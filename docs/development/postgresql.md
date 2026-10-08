@@ -27,6 +27,8 @@
 - DBOS lifecycle tests cover disconnect, graceful restart, and process-kill
   recovery at the three webhook evidence boundaries. Workflow-version upgrades
   remain a separate production-promotion criterion.
+- Known change failure categories survive DBOS checkpoint reads after restart;
+  unknown and legacy message-only failures remain generic.
 - For a disposable workstation database, [local startup](local-start.md) provides
   the loopback Compose service and explicit `--local` command mode.
 
@@ -377,6 +379,17 @@ database and redelivers the signed webhook, checking the single immutable
 change and impact records. The process-kill test exercises the same binary and
 schema version; workflow-version upgrades, retention, and operating cost still
 need separate evidence before production promotion.
+
+Known change failures are checkpointed with a small stable code in DBOS's
+portable error envelope at the DBOS adapter. The tagged webhook test checks
+that missing pull-request evidence returns 404 and a stale revision returns
+409, while a subsequent redelivery can succeed. The adapter test restarts DBOS
+and retrieves the failed workflow
+to verify that its classification survives serialization. Unknown failures are
+not classified by matching their message text and still map to a generic 502.
+Failures checkpointed before the coded format was introduced remain
+message-only; redelivery starts a new workflow rather than changing old
+history.
 
 The broader PostgreSQL adapter integration suite below is separate and still
 uses `ARGUS_TEST_POSTGRES_URL`.

@@ -56,14 +56,14 @@ func (service *Service) Ingest(ctx context.Context, delivery ingest.Delivery) (i
 	}
 	created, err := handle.GetResult(dbosgo.WithHandleTimeout(resultWait))
 	if err != nil {
-		// DBOS may reconstruct an error from persisted text after recovery.
-		// Recheck the immutable delivery so a reused ID still fails closed.
+		// Recheck immutable evidence even when DBOS returns a coded failure.
+		// Reused delivery IDs must fail closed before error classification.
 		stored, lookupErr := service.store.FindDelivery(ctx, delivery.Provider, delivery.ID)
 		if lookupErr == nil && stored.PayloadSHA256 != delivery.PayloadSHA256 {
 			return ingest.Result{}, change.ErrConflict
 		}
 
-		return ingest.Result{}, err
+		return ingest.Result{}, restoreFailureClass(err)
 	}
 	stored, err := service.store.FindDelivery(ctx, delivery.Provider, delivery.ID)
 	if err != nil {
@@ -81,7 +81,7 @@ func (service *Service) Ingest(ctx context.Context, delivery ingest.Delivery) (i
 func (service *Service) execute(ctx dbosgo.Context, delivery ingest.Delivery) (bool, error) {
 	created, err := dbosgo.RunAsStep(ctx, func(stepCtx context.Context) (bool, error) {
 		result, ingestErr := service.ingestion.Ingest(stepCtx, delivery)
-		return result.Created, ingestErr
+		return result.Created, preserveFailureClass(ingestErr)
 	}, dbosgo.WithStepName("ingest-change"))
 	if err != nil {
 		return false, err
@@ -89,14 +89,14 @@ func (service *Service) execute(ctx dbosgo.Context, delivery ingest.Delivery) (b
 	_, err = dbosgo.RunAsStep(ctx, func(stepCtx context.Context) (bool, error) {
 		stored, lookupErr := service.store.FindDelivery(stepCtx, delivery.Provider, delivery.ID)
 		if lookupErr != nil {
-			return false, lookupErr
+			return false, preserveFailureClass(lookupErr)
 		}
 		if stored.PayloadSHA256 != delivery.PayloadSHA256 {
-			return false, change.ErrConflict
+			return false, preserveFailureClass(change.ErrConflict)
 		}
 		result, assessErr := service.impact.Assess(stepCtx, stored.ChangeSet)
 
-		return result.Created, assessErr
+		return result.Created, preserveFailureClass(assessErr)
 	}, dbosgo.WithStepName("assess-impact"))
 	if err != nil {
 		return false, err

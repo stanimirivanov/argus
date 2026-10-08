@@ -58,7 +58,7 @@ An HTTP timeout or disconnect does not revoke an already started durable workflo
 - The evaluation adds a dependency, checkpoint storage, schema upgrade procedure, and workflow-code versioning obligation.
 - DBOS-managed schema versions are outside Argus's checksummed SQL migration ledger. This is an evaluation-only exception; production promotion requires an explicit migration-ownership and upgrade policy under the SQL migration criteria.
 - Separate workflow instances for exact redeliveries consume DBOS history; retention and cost must be measured before adoption.
-- DBOS may reconstruct failed-step errors from persisted text, so exact transport error mapping after recovery needs additional proof before production promotion.
+- Argus now checkpoints a small code in DBOS's built-in portable error envelope for known change failures, then restores their HTTP classification at the adapter boundary. Previously checkpointed message-only failures cannot be retroactively classified; unknown failures remain generic rather than being inferred from error text.
 
 ### Neutral or follow-up
 
@@ -75,4 +75,4 @@ The DBOS schema is separate from `argus_catalog`; use a privileged identity only
 
 ## Validation
 
-Run the normal Argus suite, license and vulnerability gates, and PostgreSQL integration tests with a disposable loopback database. Exercise first delivery, exact retry, conflicting body, assessment failure followed by redelivery, and restart. The tagged webhook suite now kills a separate control-plane process before change storage, between change and impact storage, and after impact storage but before acknowledgment; each case restarts against the same database and redelivers. Before accepting DBOS as production architecture, add rollout/versioning tests, database load/retention measurements, and error-mapping review. The same-binary crash test does not establish upgrade safety.
+Run the normal Argus suite, license and vulnerability gates, and PostgreSQL integration tests with a disposable loopback database. Exercise first delivery, exact retry, conflicting body, assessment failure followed by redelivery, and restart. The tagged webhook suite kills a separate control-plane process before change storage, between change and impact storage, and after impact storage but before acknowledgment; each case restarts against the same database and redelivers. It also checks missing and stale GitHub evidence against the webhook's not-found and conflict statuses. A DBOS adapter test retrieves failed workflows after restart and verifies their known error classifications without parsing messages. Before accepting DBOS as production architecture, add rollout/versioning tests and database load/retention measurements. The same-binary crash and error-classification tests do not establish upgrade safety.

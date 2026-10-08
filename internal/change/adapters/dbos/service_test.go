@@ -139,6 +139,104 @@ func TestAcceptedWorkflowContinuesAfterCallerCancellation(t *testing.T) {
 	}
 }
 
+func TestCheckpointedWorkflowFailureRetainsSafeClassification(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		cause error
+		want  error
+		code  string
+	}{
+		{name: "missing pull request", cause: change.ErrNotFound, want: change.ErrNotFound, code: "not-found"},
+		{name: "moving pull request", cause: change.ErrStale, want: change.ErrStale, code: "stale"},
+		{name: "invalid provider evidence", cause: change.ErrInvalid, want: change.ErrInvalid, code: "invalid"},
+		{name: "invalid delivery", cause: ingest.ErrInvalidDelivery, want: ingest.ErrInvalidDelivery, code: "invalid-delivery"},
+		{name: "immutable conflict", cause: change.ErrConflict, want: change.ErrConflict, code: "conflict"},
+		{name: "unavailable dependency", cause: change.ErrUnavailable, want: change.ErrUnavailable, code: "unavailable"},
+		{name: "unclassified failure", cause: errors.New(change.ErrNotFound.Error())},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			testCheckpointedFailure(t, tc.cause, tc.want, tc.code)
+		})
+	}
+}
+
+func testCheckpointedFailure(t *testing.T, cause, want error, code string) {
+	t.Helper()
+	path := filepath.ToSlash(filepath.Join(t.TempDir(), "workflows.sqlite"))
+	configuration := dbosgo.Config{AppName: "argus-change-evaluation-test", DatabaseURL: "sqlite:" + path}
+	runtime, err := dbosgo.NewContext(t.Context(), configuration)
+	if err != nil {
+		t.Fatalf("initialize embedded DBOS: %v", err)
+	}
+	store := &memoryStore{}
+	resolver := &resolver{fail: cause}
+	service := adapter.NewService(runtime, ingest.NewService(store, resolver), impact.NewService(store, &analyzer{}), store)
+	if err := dbosgo.Launch(runtime); err != nil {
+		t.Fatalf("launch embedded DBOS: %v", err)
+	}
+	_, err = service.Ingest(t.Context(), testDelivery())
+	assertCheckpointedFailureClass(t, err, want)
+	workflows, err := dbosgo.ListWorkflows(runtime)
+	if err != nil || len(workflows) != 1 {
+		t.Fatalf("list failed workflow: count=%d err=%v", len(workflows), err)
+	}
+	if err := dbosgo.Shutdown(runtime, 10*time.Second); err != nil {
+		t.Fatalf("stop embedded DBOS: %v", err)
+	}
+	restarted, err := dbosgo.NewContext(t.Context(), configuration)
+	if err != nil {
+		t.Fatalf("restart embedded DBOS: %v", err)
+	}
+	t.Cleanup(func() {
+		if err := dbosgo.Shutdown(restarted, 10*time.Second); err != nil {
+			t.Errorf("stop restarted DBOS: %v", err)
+		}
+	})
+	_ = adapter.NewService(restarted, ingest.NewService(store, resolver), impact.NewService(store, &analyzer{}), store)
+	if err := dbosgo.Launch(restarted); err != nil {
+		t.Fatalf("launch restarted DBOS: %v", err)
+	}
+	handle, err := dbosgo.RetrieveWorkflow[bool](restarted, workflows[0].ID)
+	if err != nil {
+		t.Fatalf("retrieve failed workflow: %v", err)
+	}
+	_, err = handle.GetResult()
+	assertPortableFailureClass(t, err, code)
+}
+
+func assertPortableFailureClass(t *testing.T, err error, code string) {
+	t.Helper()
+	if err == nil {
+		t.Fatal("retrieved failed workflow unexpectedly succeeded")
+	}
+	var portable *dbosgo.PortableWorkflowError
+	if code == "" {
+		if errors.As(err, &portable) || errors.Is(err, change.ErrNotFound) {
+			t.Fatalf("unclassified error gained a category from its message: %v", err)
+		}
+		return
+	}
+	if !errors.As(err, &portable) || portable.Name != "argus-change-failure-v1" || portable.Code != code {
+		t.Fatalf("checkpointed failure = %v, want portable category %q", err, code)
+	}
+}
+
+func assertCheckpointedFailureClass(t *testing.T, err, want error) {
+	t.Helper()
+	if err == nil {
+		t.Fatal("failed workflow unexpectedly succeeded")
+	}
+	if want == nil {
+		if errors.Is(err, change.ErrNotFound) {
+			t.Fatalf("unclassified error gained a category from its message: %v", err)
+		}
+		return
+	}
+	if !errors.Is(err, want) {
+		t.Fatalf("workflow failure = %v, want %v", err, want)
+	}
+}
+
 type memoryStore struct {
 	mu       sync.Mutex
 	delivery *ingest.StoredDelivery
@@ -193,10 +291,15 @@ func (store *memoryStore) SaveCapabilityImpact(_ context.Context, assessment cha
 type resolver struct {
 	set   change.Set
 	calls int
+	fail  error
 }
 
 func (r *resolver) Resolve(context.Context, ingest.Delivery) (change.Set, error) {
 	r.calls++
+	if r.fail != nil {
+		return change.Set{}, r.fail
+	}
+
 	return r.set, nil
 }
 
