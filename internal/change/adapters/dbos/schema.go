@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -16,12 +17,21 @@ const evaluationSchemaVersion int64 = 121
 // VerifyEvaluationSchema fails closed unless the explicitly migrated DBOS
 // checkpoint schema exactly matches the version tested with this Argus build.
 // It does not create or alter schema, and its errors omit connection details.
-func VerifyEvaluationSchema(ctx context.Context, databaseURL string) error {
+func VerifyEvaluationSchema(ctx context.Context, databaseURL string) (resultErr error) {
 	connection, err := pgx.Connect(ctx, databaseURL)
 	if err != nil {
 		return errors.New("DBOS evaluation schema verification could not connect")
 	}
-	defer func() { _ = connection.Close(context.Background()) }()
+	// Cleanup has its own bound because verification may fail through a
+	// canceled startup context. Preserve the verification failure and keep
+	// connection details out of any cleanup error returned to the caller.
+	defer func() {
+		closeContext, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := connection.Close(closeContext); err != nil {
+			resultErr = errors.Join(resultErr, errors.New("DBOS evaluation schema verification cleanup failed"))
+		}
+	}()
 
 	var rows, version int64
 	err = connection.QueryRow(ctx, `

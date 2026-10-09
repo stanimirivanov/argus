@@ -110,8 +110,11 @@ func TestDBOSApplicationVersionRolloutAndRollback(t *testing.T) {
 	if got := harness.provider.pullRequests.Load(); got != beforeRecoveryPulls {
 		t.Fatalf("old-version recovery repeated provider resolution: reads %d -> %d", beforeRecoveryPulls, got)
 	}
+	// Impact persistence precedes the workflow's final status checkpoint.
+	// Observe completion instead of assuming that both commits are visible
+	// at the instant the independent impact read succeeds.
+	awaitDBOSVersionStatus(t, harness, oldVersion, "SUCCESS", 2)
 	assertDBOSVersionStatus(t, harness, oldVersion, "PENDING", 0)
-	assertDBOSVersionStatus(t, harness, oldVersion, "SUCCESS", 2)
 	rollback.kill(t)
 }
 
@@ -121,22 +124,49 @@ func versionedWorkerConfig(configuration map[string]string, version string) map[
 		result[name] = value
 	}
 	result["DBOS__APPVERSION"] = version
+
 	return result
 }
 
 func assertDBOSVersionStatus(t *testing.T, harness *dbosWebhookHarness, version, status string, want int) {
 	t.Helper()
+	count := dbosVersionStatusCount(t.Context(), t, harness, version, status)
+	if count != want {
+		t.Fatalf("DBOS workflows at version %q status %q = %d, want %d", version, status, count, want)
+	}
+}
+
+func awaitDBOSVersionStatus(t *testing.T, harness *dbosWebhookHarness, version, status string, want int) {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+	ticker := time.NewTicker(20 * time.Millisecond)
+	defer ticker.Stop()
+	for {
+		count := dbosVersionStatusCount(ctx, t, harness, version, status)
+		if count == want {
+			return
+		}
+		select {
+		case <-ctx.Done():
+			t.Fatalf("DBOS workflows at version %q status %q = %d, want %d: %v", version, status, count, want, ctx.Err())
+		case <-ticker.C:
+		}
+	}
+}
+
+func dbosVersionStatusCount(ctx context.Context, t *testing.T, harness *dbosWebhookHarness, version, status string) int {
+	t.Helper()
 	var count int
-	err := harness.reader.QueryRow(t.Context(), `
+	err := harness.reader.QueryRow(ctx, `
 		SELECT count(*) FROM argus_dbos_eval.workflow_status
 		WHERE application_version = $1 AND status = $2
 	`, version, status).Scan(&count)
 	if err != nil {
 		t.Fatalf("read DBOS workflow status for version %q: %v", version, err)
 	}
-	if count != want {
-		t.Fatalf("DBOS workflows at version %q status %q = %d, want %d", version, status, count, want)
-	}
+
+	return count
 }
 
 func testDBOSCrashBoundary(t *testing.T, boundary crashBoundary) {

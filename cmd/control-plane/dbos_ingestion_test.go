@@ -214,9 +214,7 @@ func TestDBOSSchemaRolloutFailsClosed(t *testing.T) {
 		return harness.configuration[name]
 	}, false)
 	if err == nil || !strings.Contains(err.Error(), "schema is missing or unreadable") {
-		if application != nil {
-			_ = application.Close()
-		}
+		closeUnexpectedApplication(t, application)
 		t.Fatalf("DBOS evaluation missing-schema startup error = %v, want fail-closed schema error", err)
 	}
 	assertDBOSSchemaPresent(t, harness, false)
@@ -248,9 +246,7 @@ func TestDBOSSchemaRolloutFailsClosed(t *testing.T) {
 		return harness.configuration[name]
 	}, false)
 	if err == nil || !strings.Contains(err.Error(), "schema version is unsupported") {
-		if application != nil {
-			_ = application.Close()
-		}
+		closeUnexpectedApplication(t, application)
 		t.Fatalf("DBOS evaluation newer-schema startup error = %v, want unsupported-schema error", err)
 	}
 	if _, err := harness.reader.Exec(t.Context(), `UPDATE argus_dbos_eval.dbos_migrations SET version = version - 1`); err != nil {
@@ -261,6 +257,16 @@ func TestDBOSSchemaRolloutFailsClosed(t *testing.T) {
 	response = harness.postWebhook("dbos-schema-restored", webhookPayload(t, "synchronize"))
 	assertWebhookStatus(t, response, http.StatusCreated)
 	harness.assertRows(t, "dbos-schema-restored", 1, 1)
+}
+
+func closeUnexpectedApplication(t *testing.T, application *application) {
+	t.Helper()
+	if application == nil {
+		return
+	}
+	if err := application.Close(); err != nil {
+		t.Errorf("close application after unexpected startup result: %v", err)
+	}
 }
 
 func assertDBOSSchemaPresent(t *testing.T, harness *dbosWebhookHarness, want bool) {
@@ -360,6 +366,15 @@ func newDBOSWebhookHarness(t *testing.T) *dbosWebhookHarness {
 	harness := &dbosWebhookHarness{
 		ctx: t.Context(), configuration: configuration, provider: provider, secret: secret,
 	}
+	// Evidence assertions outlive the application under test, including when
+	// it is replaced by a child process. Own this read pool at harness scope
+	// so stopping or restarting the application cannot invalidate the store.
+	evidence, err := postgres.OpenRuntime(t.Context(), databaseURL)
+	if err != nil {
+		t.Fatalf("open independent capability-impact reader: %v", err)
+	}
+	t.Cleanup(evidence.Close)
+	harness.store = evidence.Change()
 	harness.start(t)
 	t.Cleanup(func() {
 		if err := harness.stop(); err != nil {
@@ -397,7 +412,6 @@ func (harness *dbosWebhookHarness) start(t *testing.T) {
 		t.Fatal("DBOS evaluation was not enabled by injected configuration")
 	}
 	harness.application = application
-	harness.store = application.runtime.Change()
 	harness.listener = httptest.NewServer(application.server.Handler)
 }
 
@@ -411,7 +425,6 @@ func (harness *dbosWebhookHarness) stop() error {
 	}
 	err := harness.application.Close()
 	harness.application = nil
-	harness.store = nil
 
 	return err
 }
