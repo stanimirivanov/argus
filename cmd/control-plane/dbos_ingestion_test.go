@@ -15,6 +15,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -195,6 +196,84 @@ func TestDBOSWebhookIngestion(t *testing.T) {
 	t.Run("client disconnect does not cancel accepted assessment", func(t *testing.T) {
 		testDBOSClientDisconnect(t, harness, successBody)
 	})
+}
+
+// TestDBOSSchemaRolloutFailsClosed proves runtime never repairs an absent
+// checkpoint schema and that disabling the evaluation preserves the default
+// webhook path. The schema is dropped only in this disposable test database.
+func TestDBOSSchemaRolloutFailsClosed(t *testing.T) {
+	harness := newDBOSWebhookHarness(t)
+	if err := harness.stop(); err != nil {
+		t.Fatalf("stop evaluation before removing its test schema: %v", err)
+	}
+	harness.provider.releaseFirstDocument()
+	if _, err := harness.reader.Exec(t.Context(), `DROP SCHEMA argus_dbos_eval CASCADE`); err != nil {
+		t.Fatalf("remove disposable DBOS schema: %v", err)
+	}
+	application, err := newApplication(t.Context(), func(name string) string {
+		return harness.configuration[name]
+	}, false)
+	if err == nil || !strings.Contains(err.Error(), "schema is missing or unreadable") {
+		if application != nil {
+			_ = application.Close()
+		}
+		t.Fatalf("DBOS evaluation missing-schema startup error = %v, want fail-closed schema error", err)
+	}
+	assertDBOSSchemaPresent(t, harness, false)
+
+	harness.configuration["ARGUS_DBOS_EVALUATION"] = "false"
+	defaultApplication, err := newApplication(t.Context(), func(name string) string {
+		return harness.configuration[name]
+	}, false)
+	if err != nil {
+		t.Fatalf("start established path after disabling DBOS: %v", err)
+	}
+	defaultListener := httptest.NewServer(defaultApplication.server.Handler)
+	response := harness.postWebhookAt(t.Context(), defaultListener.URL, "dbos-schema-default", webhookPayload(t, "synchronize"))
+	defaultListener.Close()
+	if err := defaultApplication.Close(); err != nil {
+		t.Fatalf("close established path: %v", err)
+	}
+	assertWebhookStatus(t, response, http.StatusCreated)
+	harness.assertRows(t, "dbos-schema-default", 1, 1)
+	assertDBOSSchemaPresent(t, harness, false)
+
+	prepareDBOSEvaluationSchemas(t, harness.configuration["ARGUS_DATABASE_URL"])
+	assertDBOSSchemaPresent(t, harness, true)
+	if _, err := harness.reader.Exec(t.Context(), `UPDATE argus_dbos_eval.dbos_migrations SET version = version + 1`); err != nil {
+		t.Fatalf("simulate a newer DBOS schema in disposable database: %v", err)
+	}
+	harness.configuration["ARGUS_DBOS_EVALUATION"] = "true"
+	application, err = newApplication(t.Context(), func(name string) string {
+		return harness.configuration[name]
+	}, false)
+	if err == nil || !strings.Contains(err.Error(), "schema version is unsupported") {
+		if application != nil {
+			_ = application.Close()
+		}
+		t.Fatalf("DBOS evaluation newer-schema startup error = %v, want unsupported-schema error", err)
+	}
+	if _, err := harness.reader.Exec(t.Context(), `UPDATE argus_dbos_eval.dbos_migrations SET version = version - 1`); err != nil {
+		t.Fatalf("restore pinned DBOS schema version in disposable database: %v", err)
+	}
+	harness.configuration["ARGUS_DBOS_EVALUATION"] = "true"
+	harness.start(t)
+	response = harness.postWebhook("dbos-schema-restored", webhookPayload(t, "synchronize"))
+	assertWebhookStatus(t, response, http.StatusCreated)
+	harness.assertRows(t, "dbos-schema-restored", 1, 1)
+}
+
+func assertDBOSSchemaPresent(t *testing.T, harness *dbosWebhookHarness, want bool) {
+	t.Helper()
+	var present bool
+	if err := harness.reader.QueryRow(t.Context(), `
+		SELECT to_regclass('argus_dbos_eval.dbos_migrations') IS NOT NULL
+	`).Scan(&present); err != nil {
+		t.Fatalf("inspect DBOS migration ledger: %v", err)
+	}
+	if present != want {
+		t.Fatalf("DBOS migration ledger present = %t, want %t", present, want)
+	}
 }
 
 func testDBOSClientDisconnect(t *testing.T, harness *dbosWebhookHarness, body []byte) {

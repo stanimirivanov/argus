@@ -377,8 +377,13 @@ change storage, after change storage but before impact, and after impact but
 before the HTTP response. It restarts the process against the same isolated
 database and redelivers the signed webhook, checking the single immutable
 change and impact records. The process-kill test exercises the same binary and
-schema version; workflow-version upgrades, retention, and operating cost still
-need separate evidence before production promotion.
+schema version. The rollout test separately proves that a new DBOS application
+version does not recover an older version's pending work and that restoring the
+old version does. Another isolated case checks that runtime rejects missing
+and newer DBOS schemas while the default webhook path remains available. These
+cases still use one pinned DBOS SDK; a real two-release/two-SDK compatibility
+matrix, retention, and operating cost need separate evidence before production
+promotion. See the [DBOS rollout guide](dbos-rollout-evaluation.md).
 
 Known change failures are checkpointed with a small stable code in DBOS's
 portable error envelope at the DBOS adapter. The tagged webhook test checks

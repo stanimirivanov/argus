@@ -135,6 +135,10 @@ func newApplication(ctx context.Context, getenv func(string) string, local bool)
 	var service httpapi.IngestService = workflow.NewService(ingestionService, impactService)
 	var durable dbosgo.Context
 	if config.dbosEvaluation {
+		if err := dbosadapter.VerifyEvaluationSchema(ctx, config.databaseURL); err != nil {
+			runtime.Close()
+			return nil, fmt.Errorf("initialize DBOS evaluation: %w", err)
+		}
 		durable, err = dbosgo.NewContext(ctx, dbosgo.Config{
 			AppName:        "argus-change-evaluation",
 			DatabaseURL:    config.databaseURL,
