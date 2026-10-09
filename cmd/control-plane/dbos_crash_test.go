@@ -48,6 +48,97 @@ func TestDBOSHardCrashRecovery(t *testing.T) {
 	}
 }
 
+// TestDBOSApplicationVersionRolloutAndRollback exercises the deployment hazard
+// that a new DBOS application version does not recover a predecessor's pending
+// workflows. The old version must remain available (or be rolled back) until
+// its work has drained; a new delivery can proceed on the new version meanwhile.
+func TestDBOSApplicationVersionRolloutAndRollback(t *testing.T) {
+	harness := newDBOSWebhookHarness(t)
+	if err := harness.stop(); err != nil {
+		t.Fatalf("stop setup control plane before versioned workers: %v", err)
+	}
+	harness.provider.releaseFirstDocument()
+	const oldVersion = "argus-evaluation-release-a"
+	const newVersion = "argus-evaluation-release-b"
+	const interruptedDelivery = "dbos-rollout-interrupted"
+	const newDelivery = "dbos-rollout-new"
+	body := webhookPayload(t, "synchronize")
+	gate := harness.provider.gateNextDocument(t)
+	defer gate.release()
+
+	oldWorker := startDBOSCrashWorker(t, versionedWorkerConfig(harness.configuration, oldVersion), false)
+	requestContext, cancel := context.WithTimeout(t.Context(), 35*time.Second)
+	defer cancel()
+	result := make(chan webhookResponse, 1)
+	go func() {
+		result <- harness.postWebhookAt(requestContext, oldWorker.baseURL, interruptedDelivery, body)
+	}()
+	select {
+	case <-gate.reached:
+	case <-time.After(20 * time.Second):
+		t.Fatal("old-version assessment did not reach the provider gate")
+	}
+	harness.assertRows(t, interruptedDelivery, 1, 0)
+	oldWorker.kill(t)
+	gate.release()
+	if response := awaitWebhook(t, result); response.err == nil {
+		t.Fatalf("killed old worker unexpectedly acknowledged delivery: %+v", response)
+	}
+	assertDBOSVersionStatus(t, harness, oldVersion, "PENDING", 1)
+
+	// The explicit migration operation is repeatable against existing history.
+	// Startup of the new version still runs with SkipMigrations=true.
+	prepareDBOSEvaluationSchemas(t, harness.configuration["ARGUS_DATABASE_URL"])
+	assertDBOSVersionStatus(t, harness, oldVersion, "PENDING", 1)
+	newWorker := startDBOSCrashWorker(t, versionedWorkerConfig(harness.configuration, newVersion), false)
+	assertDBOSVersionStatus(t, harness, oldVersion, "PENDING", 1)
+	response := harness.postWebhookAt(t.Context(), newWorker.baseURL, newDelivery, body)
+	assertWebhookStatus(t, response, http.StatusCreated)
+	harness.assertRows(t, newDelivery, 1, 1)
+	assertDBOSVersionStatus(t, harness, newVersion, "SUCCESS", 1)
+	// A new-version process cannot safely replace every old-version process
+	// while old work remains pending, even though new deliveries succeed.
+	assertDBOSVersionStatus(t, harness, oldVersion, "PENDING", 1)
+	newWorker.kill(t)
+
+	beforeRecoveryPulls := harness.provider.pullRequests.Load()
+	rollback := startDBOSCrashWorker(t, versionedWorkerConfig(harness.configuration, oldVersion), false)
+	harness.awaitRows(t, interruptedDelivery, 1, 1)
+	harness.assertCompleteImpact(t, interruptedDelivery)
+	response = harness.postWebhookAt(t.Context(), rollback.baseURL, interruptedDelivery, body)
+	assertWebhookStatus(t, response, http.StatusOK)
+	if got := harness.provider.pullRequests.Load(); got != beforeRecoveryPulls {
+		t.Fatalf("old-version recovery repeated provider resolution: reads %d -> %d", beforeRecoveryPulls, got)
+	}
+	assertDBOSVersionStatus(t, harness, oldVersion, "PENDING", 0)
+	assertDBOSVersionStatus(t, harness, oldVersion, "SUCCESS", 2)
+	rollback.kill(t)
+}
+
+func versionedWorkerConfig(configuration map[string]string, version string) map[string]string {
+	result := make(map[string]string, len(configuration)+1)
+	for name, value := range configuration {
+		result[name] = value
+	}
+	result["DBOS__APPVERSION"] = version
+	return result
+}
+
+func assertDBOSVersionStatus(t *testing.T, harness *dbosWebhookHarness, version, status string, want int) {
+	t.Helper()
+	var count int
+	err := harness.reader.QueryRow(t.Context(), `
+		SELECT count(*) FROM argus_dbos_eval.workflow_status
+		WHERE application_version = $1 AND status = $2
+	`, version, status).Scan(&count)
+	if err != nil {
+		t.Fatalf("read DBOS workflow status for version %q: %v", version, err)
+	}
+	if count != want {
+		t.Fatalf("DBOS workflows at version %q status %q = %d, want %d", version, status, count, want)
+	}
+}
+
 func testDBOSCrashBoundary(t *testing.T, boundary crashBoundary) {
 	t.Helper()
 	harness := newDBOSWebhookHarness(t)

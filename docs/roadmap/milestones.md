@@ -425,7 +425,9 @@ An opt-in M10 evaluation now coordinates webhook ingestion and impact with
 embedded DBOS Go checkpoints. It leaves the established synchronous path as
 the default. Automated process-kill tests cover the three webhook evidence
 boundaries, and known change-failure classifications survive new DBOS
-checkpoints. Production promotion still requires version-upgrade, retention,
+checkpoints. The rollout evaluation tests application-version isolation,
+old-version recovery, and fail-closed schema startup. Production promotion
+still requires a real two-release/two-SDK upgrade matrix, retention,
 and operating-cost evidence; the evaluation does not select a shared
 Argus–Perfeng workflow service.
 
