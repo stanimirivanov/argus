@@ -34,7 +34,7 @@ TOOL_LICENSE_EXCEPTIONS := \
 	--ignore github.com/leonklingele/grouper \
 	--ignore github.com/xen0n/gosmopolitan
 
-.PHONY: help bootstrap doctor build binaries generate-contracts fmt fmt-check docs-check architecture-check check test verify race fuzz-smoke db-validate vuln license supply-chain validate
+.PHONY: help bootstrap doctor build binaries generate-contracts fmt fmt-check docs-check architecture-check check test verify race fuzz-smoke db-validate dbos-evaluate vuln license supply-chain validate
 
 help:
 	@echo Argus engineering-foundation command surface
@@ -53,6 +53,7 @@ help:
 	@echo   make race   Run all tests with the race detector
 	@echo   make fuzz-smoke  Run bounded native fuzzing of untrusted Go inputs
 	@echo   make db-validate  Run PostgreSQL integration tests against a disposable local server
+	@echo   make dbos-evaluate  Run self-provisioned DBOS safety, compatibility, and cost evaluation
 	@echo   make vuln   Scan reachable dependencies for known vulnerabilities
 	@echo   make license  Enforce runtime and development-tool license policy
 	@echo   make supply-chain  Run vulnerability and license checks
@@ -130,6 +131,11 @@ fuzz-smoke:
 
 db-validate:
 	go test -vet=off -tags=integration -race -count=1 -timeout=5m ./internal/postgres
+
+# No database URL or credentials: tests own containers, migrations, mock
+# GitHub, child workers, and teardown. Raw reports stay under .local/.
+dbos-evaluate:
+	go test -tags=dbose2e -race -count=1 -timeout=15m ./cmd/control-plane
 
 # Include the isolated DBOS end-to-end test dependency graph in supply-chain
 # scans without requiring a container runtime to execute that test.

@@ -84,6 +84,7 @@ handoff.
 | `make supply-chain` | Vulnerability and license sensors pass together | T2; same dependencies as `vuln` and `license` | Security and dependency policy |
 | `make validate` | The complete non-database acceptance aggregate passes, including verification, race, and supply-chain sensors | T2; bootstrapped workspaces and vulnerability data | Repository maintainers |
 | `make db-validate` | Migrations and PostgreSQL integration behavior pass against an isolated test database | T3; explicitly configured loopback PostgreSQL 17 | Persistence and affected capabilities |
+| `make dbos-evaluate` | Durable webhook safety, real two-SDK compatibility hazards, measured overhead and guarded test-only retention | T3; Docker and pinned Go/tool dependencies; self-provisioned database and synthetic GitHub | Change workflow and ADR-0028; [verdict](dbos-evaluation-verdict.md) |
 | CI platform jobs | The checked-in command surface behaves on supported Linux and Windows environments | T2/T3; hosted runners and network | Repository maintainers |
 
 `make build` proves commands compile without writing repository artifacts.

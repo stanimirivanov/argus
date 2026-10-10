@@ -18,6 +18,7 @@ import (
 	"testing"
 	"time"
 
+	dbosgo "github.com/dbos-inc/dbos-transact-golang/dbos"
 	"github.com/stanimirivanov/argus/internal/catalog"
 	"github.com/stanimirivanov/argus/internal/postgres"
 )
@@ -280,6 +281,10 @@ func TestDBOSCrashWorker(t *testing.T) {
 	if os.Getenv(crashWorkerFlag) != "true" {
 		return
 	}
+	if os.Getenv("ARGUS_DBOS_MATRIX_MIGRATE") == "true" {
+		prepareDBOSEvaluationSchemas(t, os.Getenv("ARGUS_DATABASE_URL"))
+		return
+	}
 	application, err := newApplication(t.Context(), os.Getenv, false)
 	if err != nil {
 		t.Fatalf("start crash worker: %v", err)
@@ -289,6 +294,18 @@ func TestDBOSCrashWorker(t *testing.T) {
 			t.Errorf("close crash worker: %v", err)
 		}
 	})
+	if workflowID := os.Getenv("ARGUS_DBOS_MATRIX_VERIFY_WORKFLOW"); workflowID != "" {
+		handle, err := dbosgo.RetrieveWorkflow[bool](application.durable, workflowID)
+		if err != nil {
+			t.Fatalf("retrieve old SDK workflow: %v", err)
+		}
+		created, err := handle.GetResult(dbosgo.WithHandleTimeout(10 * time.Second))
+		if err != nil || !created {
+			t.Fatalf("read old SDK workflow result: created=%t err=%v", created, err)
+		}
+
+		return
+	}
 	if os.Getenv(crashResponseGate) == "true" {
 		original := application.server.Handler
 		application.server.Handler = http.HandlerFunc(func(_ http.ResponseWriter, request *http.Request) {
@@ -325,14 +342,18 @@ type dbosCrashWorker struct {
 
 func startDBOSCrashWorker(t *testing.T, configuration map[string]string, gateResponse bool) *dbosCrashWorker {
 	t.Helper()
+	return startDBOSWorkerExecutable(t, os.Args[0], configuration, gateResponse)
+}
+
+// startDBOSWorkerExecutable also accepts independently compiled SDK candidates.
+// It never relabels a binary: only the same-SDK routing test supplies APPVERSION.
+func startDBOSWorkerExecutable(t *testing.T, executable string, configuration map[string]string, gateResponse bool) *dbosCrashWorker {
+	t.Helper()
 	worker := &dbosCrashWorker{events: make(chan string, 2), scanned: make(chan struct{})}
 	// Only the explicit Kill models a hard crash. Test context cancellation
 	// must not quietly terminate the child before the boundary is observed.
-	worker.cmd = exec.CommandContext(context.WithoutCancel(t.Context()), os.Args[0], "-test.run=^TestDBOSCrashWorker$")
-	worker.cmd.Env = append(os.Environ(), crashWorkerFlag+"=true")
-	for name, value := range configuration {
-		worker.cmd.Env = append(worker.cmd.Env, name+"="+value)
-	}
+	worker.cmd = exec.CommandContext(context.WithoutCancel(t.Context()), executable, "-test.run=^TestDBOSCrashWorker$")
+	worker.cmd.Env = dbosWorkerEnvironment(configuration)
 	if gateResponse {
 		worker.cmd.Env = append(worker.cmd.Env, crashResponseGate+"=true")
 	} else {
@@ -362,6 +383,46 @@ func startDBOSCrashWorker(t *testing.T, configuration map[string]string, gateRes
 	worker.baseURL = strings.TrimPrefix(worker.await(t, crashReadyMarker), crashReadyMarker)
 
 	return worker
+}
+
+func dbosWorkerEnvironment(configuration map[string]string) []string {
+	// Ignore ambient application labels and helper modes. A developer's shell
+	// must not invalidate the actual-binary compatibility test or run migrations.
+	result := make([]string, 0, len(os.Environ())+len(configuration)+1)
+	for _, entry := range os.Environ() {
+		name, _, _ := strings.Cut(entry, "=")
+		if strings.HasPrefix(strings.ToUpper(name), "DBOS_") || strings.HasPrefix(strings.ToUpper(name), "ARGUS_") {
+			continue
+		}
+		result = append(result, entry)
+	}
+	result = append(result, crashWorkerFlag+"=true")
+	for name, value := range configuration {
+		result = append(result, name+"="+value)
+	}
+
+	return result
+}
+
+// TestDBOSWorkerEnvironment protects the isolated worker from ambient cloud
+// routing, credentials and version labels while preserving explicit test input.
+func TestDBOSWorkerEnvironment(t *testing.T) {
+	t.Setenv("DBOS__APPVERSION", "unreviewed-label")
+	t.Setenv("DBOS__CLOUD", "true")
+	t.Setenv("DBOS__CONDUCTOR_KEY", "not-a-real-credential")
+	t.Setenv("ARGUS_DBOS_MATRIX_MIGRATE", "true")
+	configuration := map[string]string{"ARGUS_DATABASE_URL": "synthetic-database", "DBOS__APPVERSION": "explicit-test-label"}
+	values := make(map[string]string)
+	for _, entry := range dbosWorkerEnvironment(configuration) {
+		name, value, _ := strings.Cut(entry, "=")
+		values[name] = value
+	}
+	if values["DBOS__CLOUD"] != "" || values["DBOS__CONDUCTOR_KEY"] != "" || values["ARGUS_DBOS_MATRIX_MIGRATE"] != "" {
+		t.Fatal("ambient cloud routing or migration mode entered isolated worker")
+	}
+	if values["ARGUS_DATABASE_URL"] != "synthetic-database" || values["DBOS__APPVERSION"] != "explicit-test-label" {
+		t.Fatal("explicit worker configuration was lost")
+	}
 }
 
 func (worker *dbosCrashWorker) await(t *testing.T, prefix string) string {

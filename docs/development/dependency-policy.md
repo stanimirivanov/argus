@@ -220,6 +220,15 @@ current policy prevents incompatible dependencies from entering unnoticed.
 
 ## Vulnerability policy
 
+The opt-in [DBOS compatibility evaluation](dbos-evaluation-verdict.md) admits
+SDK v1.6.0 only into a temporary, checksum-pinned worker build; production stays
+on the root module's v1.5.0 pin. The matrix rejects any compiled transitive graph
+change other than DBOS and gates the candidate with the pinned binary
+vulnerability scanner. Its upstream MIT license remains compatible with the
+runtime allowlist. Candidate binaries are disposable test tools, not release
+artifacts or an implicitly approved runtime upgrade. Review both evaluation
+pins when the baseline or candidate changes; do not change them to `latest`.
+
 `make vuln` uses the pinned `govulncheck` tool for vulnerabilities reachable
 from Argus packages, the quality-tool graph, and the isolated actionlint graph,
 and `pnpm audit --prod` for high-severity or critical advisories in the

@@ -5,7 +5,7 @@
 - Two reviewable M10 slices close the opt-in evaluation without silently promoting it to production.
 - The first proves application-version rollout/rollback behavior and documents the migration ownership and drain rule.
 - The second runs a real two-release/two-SDK compatibility matrix, measures DBOS latency, storage, retry amplification, retention, and cleanup against the established path, then records an evidence-backed adoption decision.
-- A production implementation is a separate task only if the evaluation supports it.
+- The combined compatibility/cost slice now provides reproducible automation and a [defer verdict](../dbos-evaluation-verdict.md). A production implementation is a separate task, not an automatic flag change.
 
 ## Outcome and invariants
 
@@ -17,6 +17,12 @@ The evaluation determines whether embedded DBOS Go is a suitable durable coordin
 2. **Compatibility, operational cost, and verdict.** With a selected candidate SDK release, run a real two-build/two-SDK upgrade and rollback matrix against one isolated database. Add a reproducible workload that reports first-delivery and retry latency, workflow counts, checkpoint bytes, and deletion/retention effects, including immutable Argus evidence survival. Run it on a documented host/container configuration, retain results, and compare with the default path. Update ADR-0028 with an adopt/reject/defer verdict, supported rollout and retention policy, unresolved risks, and next action. If a second SDK or representative measurements are unavailable, record a defer/no-go verdict rather than claiming production compatibility. No threshold may be invented from a workstation result alone; production thresholds require representative baselines.
 
 Each slice includes its tests, documentation, and check evidence. No docs-only or single-file issue is planned. The second slice depends on the first because cost is not a sufficient reason to adopt an unsafe rollout.
+
+## Evaluation conclusion
+
+The second slice pins SDK v1.5.0/schema 121 and v1.6.0/schema 123. It compiles two real workers, uses executable-derived versions, recovers and drains the old binary before the candidate migration, verifies preserved Argus evidence and candidate admission, then asserts that an old-binary rollback fails closed. Its serial comparison measures the actual synchronous and DBOS compositions; terminal checkpoint deletion retains a pending assessment and every catalog row. `make dbos-evaluate` and CI retain raw reports with provenance.
+
+The evaluation verdict is **defer production adoption**: the upgrade guard makes in-place rollback unsupported, retention requires an explicitly owned policy, and workstation timings are not representative production baselines. The bounded evaluation has a conclusion; promotion prerequisites are not a queue of more evaluation micro-PRs. Continue product work with the established path. Any chosen production rollout is one separately reviewed M10 vertical slice with the recovery, privilege, retention and load evidence described in the verdict.
 
 ## Promotion boundary
 

@@ -1,0 +1,46 @@
+{
+  "host": {
+    "recorded_at_utc": "2026-10-10T07:47:48Z",
+    "go": "go1.26.9",
+    "os": "windows",
+    "architecture": "amd64",
+    "logical_cpus": 4,
+    "postgres_image": "postgres:17.11",
+    "postgres_image_id": "sha256:7296f210ae81031ec955dbad9a67a84fe958572a2153b8d0826a647522904dc1",
+    "postgres_server": "17.11 (Debian 17.11-1.pgdg13+2)",
+    "go_source_sha256": "5aeeb9fbd7573aeac3a6edcc5b86f961be1e682091b1ffbf7eed6266d1714a62",
+    "module_manifest_sha256": "ec62aaf444728e9a5a2a941d7d3af2b4398b77993d609a5db4d2e05780028df2",
+    "race_enabled": true,
+    "workload": "serial loopback HTTP; synthetic GitHub and mapped OpenAPI change; not a production capacity baseline"
+  },
+  "builds": [
+    {
+      "sdk": "v1.5.0",
+      "schema_version": 121,
+      "binary_sha256": "02e46056f0dae3b7c03ff9466d618a9a2482298aee5371ae97a0c76b5efdf020",
+      "application_version": "f662858f55c29b9045d6010826de084772965982569d0532cd56cd15b4e3b4aa",
+      "race_instrumented": true,
+      "sdk_module_checksum": "h1:5XIqlsmcvtopX5WecoNGTkeTlL34ZK8+KCWaMth7W18="
+    },
+    {
+      "sdk": "v1.6.0",
+      "schema_version": 123,
+      "binary_sha256": "7ed1447c8c9455556e21e19434fc2141c64292b6d68a78f9857490e27ebc6dde",
+      "application_version": "f7e44eee40eebd88281236a7cb4767d077568a5275ecb3e970e97cb51a201d58",
+      "race_instrumented": true,
+      "sdk_module_checksum": "h1:lhn03aRlLj8Npx1LUOvx++pYsXzu/Dnbtbty7Wy7YCk="
+    }
+  ],
+  "observations": [
+    "exact old binary recovered interrupted assessment without resolving change again",
+    "candidate refused old schema before explicit SDK migration",
+    "SDK 1.6.0 migrated 121 to 123 without altering Argus evidence",
+    "candidate SDK retrieved the completed old SDK workflow result",
+    "candidate read and deduplicated old evidence and admitted new work",
+    "old binary refused migrated schema; in-place binary rollback is unsupported"
+  ],
+  "old_evidence_unchanged": true,
+  "mixed_version_rollback_safe": false,
+  "production_adoption_verdict": "defer",
+  "candidate_vulnerability_scan": "passed; pinned govulncheck binary scan"
+}

@@ -1,0 +1,205 @@
+{
+  "sample_count_per_mode": 20,
+  "percentile_method": "nearest rank; raw nanosecond samples retained; warmup excluded",
+  "results": [
+    {
+      "mode": "synchronous",
+      "host": {
+        "recorded_at_utc": "2026-10-10T07:45:26Z",
+        "go": "go1.26.9",
+        "os": "windows",
+        "architecture": "amd64",
+        "logical_cpus": 4,
+        "postgres_image": "postgres:17.11",
+        "postgres_image_id": "sha256:7296f210ae81031ec955dbad9a67a84fe958572a2153b8d0826a647522904dc1",
+        "postgres_server": "17.11 (Debian 17.11-1.pgdg13+2)",
+        "go_source_sha256": "5aeeb9fbd7573aeac3a6edcc5b86f961be1e682091b1ffbf7eed6266d1714a62",
+        "module_manifest_sha256": "ec62aaf444728e9a5a2a941d7d3af2b4398b77993d609a5db4d2e05780028df2",
+        "race_enabled": true,
+        "workload": "serial loopback HTTP; synthetic GitHub and mapped OpenAPI change; not a production capacity baseline"
+      },
+      "first_delivery": {
+        "samples_ns": [
+          102941700,
+          132458700,
+          53869000,
+          52146200,
+          99875600,
+          105673300,
+          58683500,
+          97435300,
+          42029000,
+          33286700,
+          43211200,
+          52805900,
+          39346600,
+          35712200,
+          72109900,
+          33623200,
+          32884100,
+          53345200,
+          52906200,
+          114369200
+        ],
+        "median_ns": 52906200,
+        "p95_ns": 114369200
+      },
+      "exact_redelivery": {
+        "samples_ns": [
+          15321400,
+          16783600,
+          15114400,
+          23268700,
+          16141700,
+          16309500,
+          12035800,
+          19378200,
+          13618300,
+          17473100,
+          11806800,
+          13521900,
+          11411300,
+          14224400,
+          10518400,
+          9889600,
+          10245800,
+          16513100,
+          10018900,
+          12802000
+        ],
+        "median_ns": 13618300,
+        "p95_ns": 19378200
+      },
+      "failed_assessment_ns": 21924600,
+      "recovery_redelivery_ns": 29590900,
+      "resolution_reads_measured_batch": 40,
+      "document_reads_measured_batch": 40,
+      "recovery_extra_resolution_reads": 0,
+      "before_retention": {
+        "workflows": 0,
+        "steps": 0,
+        "workflow_row_bytes": 0,
+        "step_row_bytes": 0,
+        "schema_relation_bytes_including_indexes": 0
+      },
+      "after_retention": {
+        "workflows": 0,
+        "steps": 0,
+        "workflow_row_bytes": 0,
+        "step_row_bytes": 0,
+        "schema_relation_bytes_including_indexes": 0
+      },
+      "after_cleanup_redelivery": {
+        "workflows": 0,
+        "steps": 0,
+        "workflow_row_bytes": 0,
+        "step_row_bytes": 0,
+        "schema_relation_bytes_including_indexes": 0
+      },
+      "deleted_terminal_workflows": 0,
+      "cleanup_preserved_all_argus_evidence": false,
+      "pending_workflow_retained": false,
+      "retention_tested": false
+    },
+    {
+      "mode": "dbos-1.5.0",
+      "host": {
+        "recorded_at_utc": "2026-10-10T07:45:44Z",
+        "go": "go1.26.9",
+        "os": "windows",
+        "architecture": "amd64",
+        "logical_cpus": 4,
+        "postgres_image": "postgres:17.11",
+        "postgres_image_id": "sha256:7296f210ae81031ec955dbad9a67a84fe958572a2153b8d0826a647522904dc1",
+        "postgres_server": "17.11 (Debian 17.11-1.pgdg13+2)",
+        "go_source_sha256": "5aeeb9fbd7573aeac3a6edcc5b86f961be1e682091b1ffbf7eed6266d1714a62",
+        "module_manifest_sha256": "ec62aaf444728e9a5a2a941d7d3af2b4398b77993d609a5db4d2e05780028df2",
+        "race_enabled": true,
+        "workload": "serial loopback HTTP; synthetic GitHub and mapped OpenAPI change; not a production capacity baseline"
+      },
+      "first_delivery": {
+        "samples_ns": [
+          121708900,
+          91457500,
+          308460000,
+          135739400,
+          317125300,
+          142293200,
+          75378700,
+          144224500,
+          263743300,
+          179191900,
+          144682700,
+          132314300,
+          303683300,
+          163228100,
+          171200600,
+          272694100,
+          335804900,
+          199756700,
+          78754200,
+          194835600
+        ],
+        "median_ns": 163228100,
+        "p95_ns": 317125300
+      },
+      "exact_redelivery": {
+        "samples_ns": [
+          54720500,
+          104338700,
+          160756400,
+          102783200,
+          105626200,
+          54545600,
+          91065200,
+          82293600,
+          54417400,
+          74950700,
+          54695900,
+          96778300,
+          87705900,
+          46563500,
+          168247500,
+          363270000,
+          123118900,
+          69537400,
+          42894400,
+          55071400
+        ],
+        "median_ns": 82293600,
+        "p95_ns": 168247500
+      },
+      "failed_assessment_ns": 109981100,
+      "recovery_redelivery_ns": 264276800,
+      "resolution_reads_measured_batch": 40,
+      "document_reads_measured_batch": 40,
+      "recovery_extra_resolution_reads": 0,
+      "before_retention": {
+        "workflows": 45,
+        "steps": 89,
+        "workflow_row_bytes": 54895,
+        "step_row_bytes": 15200,
+        "schema_relation_bytes_including_indexes": 745472
+      },
+      "after_retention": {
+        "workflows": 1,
+        "steps": 1,
+        "workflow_row_bytes": 1134,
+        "step_row_bytes": 168,
+        "schema_relation_bytes_including_indexes": 745472
+      },
+      "after_cleanup_redelivery": {
+        "workflows": 2,
+        "steps": 4,
+        "workflow_row_bytes": 2439,
+        "step_row_bytes": 672,
+        "schema_relation_bytes_including_indexes": 745472
+      },
+      "deleted_terminal_workflows": 44,
+      "cleanup_preserved_all_argus_evidence": true,
+      "pending_workflow_retained": true,
+      "retention_tested": true
+    }
+  ],
+  "production_adoption_verdict": "defer"
+}

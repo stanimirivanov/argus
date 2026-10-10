@@ -57,6 +57,7 @@ make verify       # fast build, checks, and ordinary tests
 make fmt          # format before review
 make validate     # complete non-mutating acceptance checks
 make db-validate  # PostgreSQL integration; requires a disposable test server
+make dbos-evaluate # isolated DBOS evaluation; needs Docker, no credentials
 ~~~
 
 See the [Makefile](Makefile) for focused targets and the
@@ -64,4 +65,5 @@ See the [Makefile](Makefile) for focused targets and the
 versions and platform requirements. Every executable supports standalone
 `--help` and `--version` without credentials. Direct-database commands remain
 administrative or transitional boundaries, not the ordinary CI integration
-pattern.
+pattern. The [DBOS evaluation verdict](docs/development/dbos-evaluation-verdict.md)
+explains the self-provisioned evaluation and its production-adoption limits.
