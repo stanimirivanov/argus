@@ -426,10 +426,14 @@ embedded DBOS Go checkpoints. It leaves the established synchronous path as
 the default. Automated process-kill tests cover the three webhook evidence
 boundaries, and known change-failure classifications survive new DBOS
 checkpoints. The rollout evaluation tests application-version isolation,
-old-version recovery, and fail-closed schema startup. Production promotion
-still requires a real two-release/two-SDK upgrade matrix, retention,
-and operating-cost evidence; the evaluation does not select a shared
-Argus–Perfeng workflow service.
+old-version recovery, and fail-closed schema startup. The evaluation
+now includes a real v1.5.0/v1.6.0 two-build upgrade matrix, serial cost measurements,
+and isolated terminal-retention evidence through `make dbos-evaluate`.
+The [evaluation verdict](../development/dbos-evaluation-verdict.md) defers
+production adoption: in-place old-binary rollback after schema migration is
+unsupported and representative load, production retention, privileges and
+recovery remain unproven. The established path stays enabled; this does not
+select a shared Argus–Perfeng workflow service.
 
 Acceptance ingredients:
 

@@ -356,7 +356,7 @@ The DBOS webhook end-to-end test needs no Compose file, `.env`, database URL,
 GitHub credential, migration command, or separately started control plane:
 
 ~~~sh
-go test -tags=dbose2e -count=1 -timeout=10m ./cmd/control-plane
+make dbos-evaluate
 ~~~
 
 It uses Testcontainers to start and clean up an isolated PostgreSQL 17.11
@@ -381,9 +381,12 @@ schema version. The rollout test separately proves that a new DBOS application
 version does not recover an older version's pending work and that restoring the
 old version does. Another isolated case checks that runtime rejects missing
 and newer DBOS schemas while the default webhook path remains available. These
-cases still use one pinned DBOS SDK; a real two-release/two-SDK compatibility
-matrix, retention, and operating cost need separate evidence before production
-promotion. See the [DBOS rollout guide](dbos-rollout-evaluation.md).
+cases use one pinned DBOS SDK. The complete target also builds a real
+v1.5.0/v1.6.0 pair, exercises its actual schema upgrade and refused rollback,
+and records synchronous/DBOS cost plus isolated terminal-retention evidence.
+The [evaluation verdict](dbos-evaluation-verdict.md) defers production adoption;
+representative load, upgrade recovery and production retention remain gates.
+See also the [DBOS rollout guide](dbos-rollout-evaluation.md).
 
 Known change failures are checkpointed with a small stable code in DBOS's
 portable error envelope at the DBOS adapter. The tagged webhook test checks

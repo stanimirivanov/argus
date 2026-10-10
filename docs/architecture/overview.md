@@ -57,6 +57,8 @@
 - [ADR-0028](../decisions/0028-evaluate-embedded-dbos-workflows-for-change-processing.md)
   evaluates an opt-in embedded workflow without replacing the existing
   change-evidence stores or selecting a portfolio-wide runtime.
+  The [compatibility and cost verdict](../development/dbos-evaluation-verdict.md)
+  defers production adoption after a real SDK upgrade/rollback experiment.
 - Production queue and deployment topology remain deferred to evidence from
   vertical slices.
 

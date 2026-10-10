@@ -15,6 +15,8 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -329,10 +331,29 @@ type dbosWebhookHarness struct {
 	secret        string
 	reader        *pgx.Conn
 	store         *postgres.ChangeStore
+	imageID       string
 }
 
 func newDBOSWebhookHarness(t *testing.T) *dbosWebhookHarness {
 	t.Helper()
+	return newWebhookEvaluationHarness(t, true)
+}
+
+func newWebhookEvaluationHarness(t *testing.T, durable bool) *dbosWebhookHarness {
+	t.Helper()
+	// The SDK reads these independently of Argus's injected getter. Host cloud
+	// credentials and application labels must not redirect this experiment.
+	for _, name := range []string{"DBOS__APPVERSION", "DBOS__VMID", "DBOS__APPID", "DBOS__CLOUD"} {
+		t.Setenv(name, "")
+	}
+	// The Linux Ryuk container needs the daemon's Unix socket, not the
+	// Windows named pipe used by the host client. Respect explicit overrides
+	// and remote daemon configuration; never disable the cleanup reaper.
+	if runtime.GOOS == "windows" && os.Getenv("TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE") == "" &&
+		(os.Getenv("DOCKER_HOST") == "" || strings.HasPrefix(os.Getenv("DOCKER_HOST"), "npipe:")) &&
+		(os.Getenv("DOCKER_CONTEXT") == "" || os.Getenv("DOCKER_CONTEXT") == "desktop-linux") {
+		t.Setenv("TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE", "/var/run/docker.sock")
+	}
 	password := randomHex(t, 24)
 	container, err := postgrescontainer.Run(t.Context(), "postgres:17.11",
 		postgrescontainer.WithDatabase("argus_dbos_e2e"),
@@ -348,7 +369,15 @@ func newDBOSWebhookHarness(t *testing.T) *dbosWebhookHarness {
 	if err != nil {
 		t.Fatalf("get isolated PostgreSQL connection: %v", err)
 	}
-	prepareDBOSEvaluationSchemas(t, databaseURL)
+	if durable {
+		prepareDBOSEvaluationSchemas(t, databaseURL)
+	} else {
+		prepareArgusEvaluationSchema(t, databaseURL)
+	}
+	inspection, err := container.Inspect(t.Context())
+	if err != nil {
+		t.Fatalf("inspect isolated PostgreSQL image provenance: %v", err)
+	}
 
 	provider := newGitHubProviderStub()
 	t.Cleanup(provider.releaseFirstDocument)
@@ -365,6 +394,7 @@ func newDBOSWebhookHarness(t *testing.T) *dbosWebhookHarness {
 	provider.token = configuration["ARGUS_GITHUB_TOKEN"]
 	harness := &dbosWebhookHarness{
 		ctx: t.Context(), configuration: configuration, provider: provider, secret: secret,
+		imageID: inspection.Image,
 	}
 	// Evidence assertions outlive the application under test, including when
 	// it is replaced by a child process. Own this read pool at harness scope
@@ -375,7 +405,11 @@ func newDBOSWebhookHarness(t *testing.T) *dbosWebhookHarness {
 	}
 	t.Cleanup(evidence.Close)
 	harness.store = evidence.Change()
-	harness.start(t)
+	if durable {
+		harness.start(t)
+	} else {
+		startSynchronousEvaluation(t, harness)
+	}
 	t.Cleanup(func() {
 		if err := harness.stop(); err != nil {
 			t.Errorf("close DBOS control plane: %v", err)
@@ -439,6 +473,12 @@ func (harness *dbosWebhookHarness) restart(t *testing.T) {
 
 func prepareDBOSEvaluationSchemas(t *testing.T, databaseURL string) {
 	t.Helper()
+	prepareArgusEvaluationSchema(t, databaseURL)
+	prepareDBOSEvaluationSchema(t, databaseURL)
+}
+
+func prepareArgusEvaluationSchema(t *testing.T, databaseURL string) {
+	t.Helper()
 	migrator, err := postgres.OpenMigrator(t.Context(), databaseURL)
 	if err != nil {
 		t.Fatalf("open catalog migrator: %v", err)
@@ -447,6 +487,10 @@ func prepareDBOSEvaluationSchemas(t *testing.T, databaseURL string) {
 	if err := migrator.Migrate(t.Context()); err != nil {
 		t.Fatalf("apply catalog migrations: %v", err)
 	}
+}
+
+func prepareDBOSEvaluationSchema(t *testing.T, databaseURL string) {
+	t.Helper()
 	// This is the in-process equivalent of migrate --dbos-evaluation. The
 	// ordinary server below starts with SkipMigrations and cannot mutate schema.
 	runtime, err := dbosgo.NewContext(t.Context(), dbosgo.Config{

@@ -207,7 +207,7 @@ jobs:
   dbos-webhook:
     name: DBOS webhook integration
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 25
 
     env:
       GOTOOLCHAIN: local
@@ -227,6 +227,18 @@ jobs:
           cache-dependency-path: |
             go.mod
             go.sum
+            tools/quality/go.mod
+            tools/quality/go.sum
 
       - name: Run self-provisioned DBOS webhook suite
-        run: go test -tags=dbose2e -race -count=1 -timeout=10m ./cmd/control-plane
+        run: make dbos-evaluate
+
+      - name: Retain DBOS compatibility and cost evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: dbos-evaluation-evidence
+          path: .local/dbos-evaluation/*.json
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 30
