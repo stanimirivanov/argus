@@ -1,6 +1,6 @@
 module github.com/stanimirivanov/argus
 
-go 1.26.6
+go 1.26.9
 
 require (
 	github.com/dbos-inc/dbos-transact-golang v1.5.0
