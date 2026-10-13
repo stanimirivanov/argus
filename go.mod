@@ -3,10 +3,10 @@ module github.com/stanimirivanov/argus
 go 1.26.9
 
 require (
-	github.com/dbos-inc/dbos-transact-golang v1.5.0
+	github.com/dbos-inc/dbos-transact-golang v1.6.0
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.11.0
-	github.com/pb33f/libopenapi v0.41.2
+	github.com/pb33f/libopenapi v0.41.5
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3
 	github.com/testcontainers/testcontainers-go v0.44.0
 	github.com/testcontainers/testcontainers-go/modules/postgres v0.44.0
