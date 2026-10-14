@@ -1,0 +1,36 @@
+{
+  "jobs": {
+    "validate": {
+      "name": "Validate (${{ matrix.os }})",
+      "runs_on": "${{ matrix.os }}",
+      "matrix_os": ["ubuntu-24.04", "windows-2025"],
+      "make_target": "verify"
+    },
+    "race": {
+      "name": "Race (${{ matrix.os }})",
+      "runs_on": "${{ matrix.os }}",
+      "matrix_os": ["ubuntu-24.04", "windows-2025"],
+      "make_target": "race"
+    },
+    "supply-chain": {
+      "name": "Supply chain",
+      "runs_on": "ubuntu-24.04",
+      "make_target": "supply-chain"
+    },
+    "postgres": {
+      "name": "PostgreSQL integration",
+      "runs_on": "ubuntu-24.04",
+      "make_target": "db-validate"
+    },
+    "dbos-webhook": {
+      "name": "DBOS webhook integration",
+      "runs_on": "ubuntu-24.04",
+      "make_target": "dbos-evaluate"
+    },
+    "ci-policy": {
+      "name": "CI policy",
+      "runs_on": "ubuntu-24.04",
+      "make_target": "ci-policy-check"
+    }
+  }
+}

@@ -15,8 +15,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Keep these status names stable for existing branch-protection rules while
-  # the expensive race and supply-chain sensors run as separate feedback jobs.
+  # Keep job names stable for the manual pre-merge check. Race and supply-chain
+  # sensors run separately so their failures remain visible to reviewers.
   validate:
     name: Validate (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
@@ -242,3 +242,26 @@ jobs:
           include-hidden-files: true
           if-no-files-found: warn
           retention-days: 30
+
+  ci-policy:
+    name: CI policy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+
+    env:
+      GOTOOLCHAIN: local
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          check-latest: false
+
+      - name: Check CI workflow policy
+        run: make ci-policy-check

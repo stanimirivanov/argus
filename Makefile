@@ -34,7 +34,7 @@ TOOL_LICENSE_EXCEPTIONS := \
 	--ignore github.com/leonklingele/grouper \
 	--ignore github.com/xen0n/gosmopolitan
 
-.PHONY: help bootstrap doctor build binaries generate-contracts fmt fmt-check docs-check architecture-check check test verify race fuzz-smoke db-validate dbos-evaluate vuln license supply-chain validate
+.PHONY: help bootstrap doctor build binaries generate-contracts fmt fmt-check docs-check architecture-check ci-policy-check check test verify race fuzz-smoke db-validate dbos-evaluate vuln license supply-chain validate
 
 help:
 	@echo Argus engineering-foundation command surface
@@ -47,6 +47,7 @@ help:
 	@echo   make fmt-check  Verify formatting without changes
 	@echo   make docs-check  Verify repository-local documentation policy and links
 	@echo   make architecture-check  Verify the complete production dependency matrix
+	@echo   make ci-policy-check  Verify CI job names, runners, and verification targets
 	@echo   make check  Run format, lint, static-analysis, and module checks
 	@echo   make test   Run ordinary tests without cached results
 	@echo   make verify  Run the fast network-independent development feedback loop
@@ -95,6 +96,11 @@ docs-check:
 
 architecture-check:
 	go test -vet=off -count=1 ./internal/architecture
+
+# Offline detection of accidental CI workflow drift. Merge decisions are made
+# by the reviewer under the current manual pre-merge workflow.
+ci-policy-check:
+	go test -vet=off -count=1 ./tools/ci-policy-check
 
 check: fmt-check docs-check architecture-check
 	pnpm contracts:check
@@ -155,4 +161,4 @@ license:
 
 supply-chain: vuln license
 
-validate: verify race supply-chain
+validate: verify race supply-chain ci-policy-check
