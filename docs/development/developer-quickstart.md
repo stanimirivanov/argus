@@ -26,7 +26,7 @@ editor, terminal, package manager, or host customization.
 
 | Tier | Environment | Contract |
 |:--|:--|:--|
-| Verified CI | Ubuntu 24.04 x86-64 with Bash; Windows Server 2025 x86-64 with PowerShell 7 | Every pull request MUST pass cross-platform `make verify` and `make race`, Linux `make supply-chain`, and `make db-validate` against PostgreSQL 17.11 on Ubuntu. A failure blocks merge unless the check itself is deliberately changed and reviewed. |
+| Verified CI | Ubuntu 24.04 x86-64 with Bash; Windows Server 2025 x86-64 with PowerShell 7 | Every pull request MUST pass cross-platform `make verify` and `make race`, Linux `make supply-chain`, `make db-validate` against PostgreSQL 17.11 on Ubuntu, DBOS webhook integration, and the offline CI policy check. The reviewer confirms all applicable jobs passed before merge. |
 | Supported local | Ubuntu 24.04 x86-64 with Bash; Windows 11 x86-64 with PowerShell 7 | Contributors SHOULD be able to run the complete workflow. Reproducible platform defects are project defects. |
 | Best-effort | Other maintained Linux distributions, macOS, WSL2, ARM64, Git Bash, and other shells | The project accepts fixes that preserve the verified lanes, but does not promise platform-specific diagnosis or make these environments release gates. |
 | Outside the contract | End-of-life operating systems or toolchains, 32-bit hosts, and environments that cannot execute the required checks | Contributors MAY use them for editing, but MUST verify through a supported environment or report checks as not run. |
@@ -36,6 +36,11 @@ The CI runner labels in
 authority for verified operating systems. Adding a release-gating environment
 requires a workflow change and corresponding update here. It does not require
 an ADR unless it also changes a foundational technology or deployment boundary.
+Run `make ci-policy-check` to compare job names, runner labels, and Make targets
+in the validation workflow with the
+[checked-in CI policy](../../tools/ci-policy-check/policy.json). The check is
+offline and detects accidental workflow drift. Reviewers still inspect the
+actual pull-request check results before merge.
 
 ## Required tools and version authority
 
@@ -45,7 +50,7 @@ an ADR unless it also changes a foundational technology or deployment boundary.
 | Go | The exact effective version in [`go.mod`](../../go.mod) | Build and test the control plane and run pinned Go-based quality tools. |
 | Node.js | 24.18.0 as declared by [`.node-version`](../../.node-version) | Author, generate, type-check, and test Effect Schema contracts. |
 | pnpm | 11.19.0 as declared by [`package.json`](../../package.json) | Reproduce the Node dependency graph from [`pnpm-lock.yaml`](../../pnpm-lock.yaml). |
-| GNU Make | 4.3 or newer; CI uses 4.4.1 on Windows | Provide the canonical command surface in the root [`Makefile`](../../Makefile). `nmake` is not a substitute. |
+| GNU Make | 4.3 or newer; Windows CI prefers Chocolatey 4.4.1 and falls back to MSYS2 | Provide the canonical command surface in the root [`Makefile`](../../Makefile). `nmake` is not a substitute. |
 | Shell | Bash on Linux or PowerShell 7 on Windows | Run setup and Git commands. Make recipes intentionally avoid shell-specific syntax. |
 | Network | Required for initial tool resolution and fresh vulnerability data | Download dependencies pinned by Go and pnpm lock files, and query vulnerability databases. |
 | PostgreSQL | Major version 17 for catalog persistence work | Run explicit migrations and the isolated `make db-validate` integration suite. |
@@ -141,6 +146,8 @@ choco install make --version=4.4.1 --yes
 Package installation can require an elevated terminal and organizational
 approval. Contributors MAY use another trusted installation source when
 `make --version` reports GNU Make 4.3 or newer.
+Windows CI falls back to the preinstalled MSYS2 distribution if the Chocolatey
+feed is unavailable, then verifies the effective GNU Make version before tests.
 
 Use PowerShell 7 for the documented shell workflow. Repository text is checked
 out with LF endings even when global Git configuration enables `autocrlf`.
@@ -188,7 +195,8 @@ git status --short
 cross-platform inner loop and remains network-independent after a successful
 bootstrap. Focused `make check` and `make test` targets remain available while
 editing. `make validate` is the required complete, non-mutating local
-acceptance suite; it additionally runs `make race` and `make supply-chain`.
+acceptance suite; it additionally runs `make race`, `make supply-chain`, and
+the offline `make ci-policy-check`.
 Database or persistence changes MUST also run `make db-validate` with
 `ARGUS_TEST_POSTGRES_URL` pointing to a disposable loopback PostgreSQL server.
 Run `make doctor` again after changing Go, Git, Make, the host OS, architecture,

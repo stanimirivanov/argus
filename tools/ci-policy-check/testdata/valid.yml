@@ -1,0 +1,40 @@
+name: Validate
+on:
+  pull_request:
+jobs:
+  validate:
+    name: Validate (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-24.04, windows-2025]
+    steps:
+      - run: make verify
+  race:
+    name: Race (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-24.04, windows-2025]
+    steps:
+      - run: make race
+  supply-chain:
+    name: Supply chain
+    runs-on: ubuntu-24.04
+    steps:
+      - run: make supply-chain
+  postgres:
+    name: PostgreSQL integration
+    runs-on: ubuntu-24.04
+    steps:
+      - run: make db-validate
+  dbos-webhook:
+    name: DBOS webhook integration
+    runs-on: ubuntu-24.04
+    steps:
+      - run: make dbos-evaluate
+  ci-policy:
+    name: CI policy
+    runs-on: ubuntu-24.04
+    steps:
+      - run: make ci-policy-check

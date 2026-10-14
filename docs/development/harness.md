@@ -74,6 +74,7 @@ handoff.
 | `make fmt` | Applies repository-owned Go and TypeScript formatting | T1; mutating, so inspect its diff | Language workspaces |
 | `make docs-check` | Documentation shape and repository-local links satisfy mechanical policy | T1; checked-out repository and Go toolchain | Documentation architecture |
 | `make architecture-check` | Production packages follow the declared capability and hexagonal dependency matrix | T1; Go source tree | Architecture and relevant ADRs |
+| `make ci-policy-check` | CI job names, runner labels, and Make targets match the checked-in workflow policy | T1; offline Go tests | Repository governance and CI owners |
 | `make check` | Generated contracts, formatting, type checking, static analysis, workflows, and module state are coherent | T1; bootstrapped Go and Node workspaces | Language, contract, and CI owners |
 | `make test` | Deterministic ordinary Go and TypeScript behavior passes without cached Go results | T1; bootstrapped workspaces | Changed capabilities |
 | `make verify` | Build, repository checks, and ordinary tests pass as the closed inner loop | T1; network-independent after bootstrap | Repository maintainers |
@@ -82,10 +83,18 @@ handoff.
 | `make vuln` | Go and production Node dependencies have no unaccepted known vulnerability | T2; network or current vulnerability caches | Security and dependency policy |
 | `make license` | Runtime dependencies satisfy the license allowlist | T2; bootstrapped dependency graphs | Dependency policy |
 | `make supply-chain` | Vulnerability and license sensors pass together | T2; same dependencies as `vuln` and `license` | Security and dependency policy |
-| `make validate` | The complete non-database acceptance aggregate passes, including verification, race, and supply-chain sensors | T2; bootstrapped workspaces and vulnerability data | Repository maintainers |
+| `make validate` | The complete non-database acceptance aggregate passes, including verification, race, supply-chain, and offline CI policy sensors | T2; bootstrapped workspaces and vulnerability data | Repository maintainers |
 | `make db-validate` | Migrations and PostgreSQL integration behavior pass against an isolated test database | T3; explicitly configured loopback PostgreSQL 17 | Persistence and affected capabilities |
 | `make dbos-evaluate` | Durable webhook safety, real two-SDK compatibility hazards, measured overhead and guarded test-only retention | T3; Docker and pinned Go/tool dependencies; self-provisioned database and synthetic GitHub | Change workflow and ADR-0028; [verdict](dbos-evaluation-verdict.md) |
 | CI platform jobs | The checked-in command surface behaves on supported Linux and Windows environments | T2/T3; hosted runners and network | Repository maintainers |
+
+The `CI policy` job runs `make ci-policy-check` offline. Its expected job
+shapes are versioned in
+[`tools/ci-policy-check/policy.json`](../../tools/ci-policy-check/policy.json).
+This detects accidental changes to status names, runners, and verification
+targets. Under the current manual merge workflow, the reviewer inspects the
+pull request's check results before merge. The repository check does not make
+GitHub reject a merge when a job fails or is absent.
 
 `make build` proves commands compile without writing repository artifacts.
 `make binaries` is the explicit artifact-producing target and writes ignored
@@ -145,6 +154,9 @@ buildable. Update the plan in the pull request that changes the technical
 sequence. The plan MUST NOT become a second issue tracker: GitHub issues and
 milestones remain authoritative for assignment and delivery status, while ADRs
 remain authoritative for durable decisions.
+
+The current [harness hardening plan](plans/harness-hardening.md) records the
+ordered CI policy, workflow regression, and agent runner slices.
 
 ## Extending the harness
 
