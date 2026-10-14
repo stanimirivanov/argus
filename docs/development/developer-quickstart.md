@@ -50,7 +50,7 @@ actual pull-request check results before merge.
 | Go | The exact effective version in [`go.mod`](../../go.mod) | Build and test the control plane and run pinned Go-based quality tools. |
 | Node.js | 24.18.0 as declared by [`.node-version`](../../.node-version) | Author, generate, type-check, and test Effect Schema contracts. |
 | pnpm | 11.19.0 as declared by [`package.json`](../../package.json) | Reproduce the Node dependency graph from [`pnpm-lock.yaml`](../../pnpm-lock.yaml). |
-| GNU Make | 4.3 or newer; CI uses 4.4.1 on Windows | Provide the canonical command surface in the root [`Makefile`](../../Makefile). `nmake` is not a substitute. |
+| GNU Make | 4.3 or newer; Windows CI prefers Chocolatey 4.4.1 and falls back to MSYS2 | Provide the canonical command surface in the root [`Makefile`](../../Makefile). `nmake` is not a substitute. |
 | Shell | Bash on Linux or PowerShell 7 on Windows | Run setup and Git commands. Make recipes intentionally avoid shell-specific syntax. |
 | Network | Required for initial tool resolution and fresh vulnerability data | Download dependencies pinned by Go and pnpm lock files, and query vulnerability databases. |
 | PostgreSQL | Major version 17 for catalog persistence work | Run explicit migrations and the isolated `make db-validate` integration suite. |
@@ -146,6 +146,8 @@ choco install make --version=4.4.1 --yes
 Package installation can require an elevated terminal and organizational
 approval. Contributors MAY use another trusted installation source when
 `make --version` reports GNU Make 4.3 or newer.
+Windows CI falls back to the preinstalled MSYS2 distribution if the Chocolatey
+feed is unavailable, then verifies the effective GNU Make version before tests.
 
 Use PowerShell 7 for the documented shell workflow. Repository text is checked
 out with LF endings even when global Git configuration enables `autocrlf`.
