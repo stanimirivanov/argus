@@ -14,8 +14,8 @@ test("Effect Schema accepts a draft adaptation review", async () => {
       "utf8",
     ),
   );
-  const decode = Schema.decodeUnknownEither(AdaptationReviewV1, { onExcessProperty: "error" });
-  assert.equal(decode(input)._tag, "Right");
+  const decode = Schema.decodeUnknownResult(AdaptationReviewV1, { onExcessProperty: "error" });
+  assert.equal(decode(input)._tag, "Success");
 });
 
 test("Effect Schema rejects a non-draft adaptation review", async () => {
@@ -25,6 +25,6 @@ test("Effect Schema rejects a non-draft adaptation review", async () => {
       "utf8",
     ),
   );
-  const decode = Schema.decodeUnknownEither(AdaptationReviewV1, { onExcessProperty: "error" });
-  assert.equal(decode(input)._tag, "Left");
+  const decode = Schema.decodeUnknownResult(AdaptationReviewV1, { onExcessProperty: "error" });
+  assert.equal(decode(input)._tag, "Failure");
 });

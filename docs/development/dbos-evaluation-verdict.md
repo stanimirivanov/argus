@@ -10,6 +10,13 @@
 
 ## Reproduce and retain evidence
 
+Current toolchain note (2026-10-13): the root runtime now pins SDK v1.6.0/schema
+123. The matrix builds the historical v1.5.0/schema 121 worker with a temporary
+module/guard overlay; its upgrade and refused-rollback assertions remain.
+New cost reports measure v1.6.0. The retained October 10 reports below measure
+the original v1.5.0 workload and are not rewritten or relabeled. Dependency
+migration does not change the defer-production verdict.
+
 Run `make dbos-evaluate` from the repository root. This is the complete race-enabled tagged suite, including the existing signature, durable acknowledgment, conflict, error-classification, disconnect and process-kill coverage. For non-instrumented timing only, use:
 
 ~~~sh
@@ -24,7 +31,7 @@ The compatibility test checks that the two executable dependency graphs differ o
 
 ## Actual upgrade and rollback matrix
 
-The candidate worker is the same Argus source compiled against SDK v1.6.0, with a **temporary Go overlay** changing only its exact schema guard from 121 to 123. This models a reviewed candidate-release guard transition. The checked-in production guard remains 121. Both test executables use their actual executable-derived application versions; the matrix does not supply `DBOS__APPVERSION`. This is not a test of arbitrary future Argus source changes or historical released binaries.
+The October 10 experiment compiled the candidate with a temporary guard overlay from 121 to 123. After the October 13 dependency migration, the current worker uses the root SDK v1.6.0 and exact guard 123 without an overlay; the historical v1.5.0 worker receives the temporary guard 121 and module override. Both use their actual executable-derived application versions, never a supplied `DBOS__APPVERSION`. This models this release pair, not arbitrary future source changes or historically released Argus binaries.
 
 | Transition | Required observation | Meaning |
 |:--|:--|:--|

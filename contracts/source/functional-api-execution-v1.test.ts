@@ -40,9 +40,9 @@ const cases = [
 for (const fixture of cases) {
   test(`Effect Schema ${fixture.valid ? "accepts" : "rejects"} ${fixture.name}`, async () => {
     const input: unknown = JSON.parse(await readFile(new URL(fixture.path, contractsRoot), "utf8"));
-    const decode = Schema.decodeUnknownEither(fixture.schema as Schema.Schema.AnyNoContext, {
+    const decode = Schema.decodeUnknownResult(fixture.schema, {
       onExcessProperty: "error",
     });
-    assert.equal(decode(input)._tag === "Right", fixture.valid);
+    assert.equal(decode(input)._tag === "Success", fixture.valid);
   });
 }

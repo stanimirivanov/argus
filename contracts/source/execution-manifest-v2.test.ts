@@ -13,13 +13,13 @@ const fixture: unknown = JSON.parse(
     "utf8",
   ),
 );
-const decodeV2 = Schema.decodeUnknownEither(ExecutionManifestV2, { onExcessProperty: "error" });
-const decodeV1 = Schema.decodeUnknownEither(ExecutionManifestV1, { onExcessProperty: "error" });
-const decodeV3 = Schema.decodeUnknownEither(ExecutionManifestV3, { onExcessProperty: "error" });
+const decodeV2 = Schema.decodeUnknownResult(ExecutionManifestV2, { onExcessProperty: "error" });
+const decodeV1 = Schema.decodeUnknownResult(ExecutionManifestV1, { onExcessProperty: "error" });
+const decodeV3 = Schema.decodeUnknownResult(ExecutionManifestV3, { onExcessProperty: "error" });
 
 test("browser manifest v2 accepts capability-selected UI tests", () => {
-  assert.equal(decodeV2(fixture)._tag, "Right");
-  assert.equal(decodeV1(fixture)._tag, "Left");
+  assert.equal(decodeV2(fixture)._tag, "Success");
+  assert.equal(decodeV1(fixture)._tag, "Failure");
 });
 
 test("browser manifest v2 rejects functional API suite substitution", () => {
@@ -27,7 +27,7 @@ test("browser manifest v2 rejects functional API suite substitution", () => {
   const decision = document.decisions[0];
   assert.ok(decision);
   decision.suite.family = "functional-api";
-  assert.equal(decodeV2(document)._tag, "Left");
+  assert.equal(decodeV2(document)._tag, "Failure");
 });
 
 test("component-root browser manifest v3 is not interchangeable with v2", () => {
@@ -42,7 +42,7 @@ test("component-root browser manifest v3 is not interchangeable with v2", () => 
     apiVersion: "argus.dev/component-root-impact/v1",
     analyzerVersion: "argus-component-roots/v1",
   };
-  assert.equal(decodeV3(document)._tag, "Right");
-  assert.equal(decodeV2(document)._tag, "Left");
-  assert.equal(decodeV3(fixture)._tag, "Left");
+  assert.equal(decodeV3(document)._tag, "Success");
+  assert.equal(decodeV2(document)._tag, "Failure");
+  assert.equal(decodeV3(fixture)._tag, "Failure");
 });

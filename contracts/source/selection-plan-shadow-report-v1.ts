@@ -5,31 +5,31 @@ import { FunctionalAPIExecutionPlanV1APIVersion } from "./functional-api-executi
 import { LocalKey, RepositoryReference } from "./repository-descriptor-v1.js";
 import { Revision } from "./test-catalog-page-v1.js";
 
-const AttemptId = Schema.String.pipe(
-  Schema.minLength(1),
-  Schema.maxLength(127),
-  Schema.pattern(/^[A-Za-z0-9][A-Za-z0-9._:-]*$/),
+const AttemptId = Schema.String.check(
+  Schema.isMinLength(1),
+  Schema.isMaxLength(127),
+  Schema.isPattern(/^[A-Za-z0-9][A-Za-z0-9._:-]*$/u),
 );
-const SHA256 = Schema.String.pipe(Schema.pattern(/^[0-9a-f]{64}$/));
-const Count = Schema.Int.pipe(Schema.greaterThanOrEqualTo(0), Schema.lessThanOrEqualTo(10000));
-const DurationMs = Schema.Int.pipe(
-  Schema.greaterThanOrEqualTo(0),
-  Schema.lessThanOrEqualTo(864_000_000_000),
+const SHA256 = Schema.String.check(Schema.isPattern(/^[0-9a-f]{64}$/u));
+const Count = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0), Schema.isLessThanOrEqualTo(10000));
+const DurationMs = Schema.Int.check(
+  Schema.isGreaterThanOrEqualTo(0),
+  Schema.isLessThanOrEqualTo(864_000_000_000),
 );
-const DurationDeltaMs = Schema.Int.pipe(
-  Schema.greaterThanOrEqualTo(-864_000_000_000),
-  Schema.lessThanOrEqualTo(864_000_000_000),
+const DurationDeltaMs = Schema.Int.check(
+  Schema.isGreaterThanOrEqualTo(-864_000_000_000),
+  Schema.isLessThanOrEqualTo(864_000_000_000),
 );
 const BasisPoints = Schema.NullOr(
-  Schema.Int.pipe(Schema.greaterThanOrEqualTo(0), Schema.lessThanOrEqualTo(10000)),
+  Schema.Int.check(Schema.isGreaterThanOrEqualTo(0), Schema.isLessThanOrEqualTo(10000)),
 );
 
 const FailureMiss = Schema.Struct({
   suiteKey: LocalKey,
   testKey: LocalKey,
-  fullSuiteOutcome: Schema.Literal("failed", "error"),
-  selectedOutcome: Schema.NullOr(Schema.Literal("passed", "failed", "skipped", "error")),
-  reason: Schema.Literal("not-selected", "not-reproduced"),
+  fullSuiteOutcome: Schema.Literals(["failed", "error"]),
+  selectedOutcome: Schema.NullOr(Schema.Literals(["passed", "failed", "skipped", "error"])),
+  reason: Schema.Literals(["not-selected", "not-reproduced"]),
 });
 
 const GroupAttemptBinding = Schema.Struct({
@@ -44,7 +44,7 @@ const GroupReport = Schema.Struct({
   testRevision: Revision,
   adapter: Schema.Struct({
     id: LocalKey,
-    version: Schema.String.pipe(Schema.minLength(1), Schema.maxLength(127)),
+    version: Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(127)),
   }),
   selectedAttemptId: Schema.NullOr(AttemptId),
   fullSuiteAttemptId: AttemptId,
@@ -57,13 +57,13 @@ const GroupReport = Schema.Struct({
   fullSuiteFailureCount: Count,
   caughtFullSuiteFailureCount: Count,
   failureRecallBasisPoints: BasisPoints,
-  missedFailures: Schema.Array(FailureMiss).pipe(Schema.maxItems(10000)),
+  missedFailures: Schema.Array(FailureMiss).check(Schema.isMaxLength(10000)),
 });
 
 export const ExecutionPlanAttemptBindingsV1 = Schema.Struct({
-  apiVersion: Schema.Literal("argus.dev/execution-plan-attempt-bindings/v1"),
-  groups: Schema.Array(GroupAttemptBinding).pipe(Schema.maxItems(10000)),
-}).annotations({
+  apiVersion: Schema.Literals(["argus.dev/execution-plan-attempt-bindings/v1"]),
+  groups: Schema.Array(GroupAttemptBinding).check(Schema.isMaxLength(10000)),
+}).annotate({
   identifier: "ExecutionPlanAttemptBindingsV1",
   title: "Argus execution plan attempt bindings v1",
   description:
@@ -71,7 +71,7 @@ export const ExecutionPlanAttemptBindingsV1 = Schema.Struct({
 });
 
 export const SelectionPlanShadowReportV1 = Schema.Struct({
-  apiVersion: Schema.Literal("argus.dev/selection-plan-shadow-report/v1"),
+  apiVersion: Schema.Literals(["argus.dev/selection-plan-shadow-report/v1"]),
   plan: Schema.Struct({
     apiVersion: FunctionalAPIExecutionPlanV1APIVersion,
     sha256: SHA256,
@@ -92,8 +92,8 @@ export const SelectionPlanShadowReportV1 = Schema.Struct({
   fullSuiteFailureCount: Count,
   caughtFullSuiteFailureCount: Count,
   failureRecallBasisPoints: BasisPoints,
-  groups: Schema.Array(GroupReport).pipe(Schema.maxItems(10000)),
-}).annotations({
+  groups: Schema.Array(GroupReport).check(Schema.isMaxLength(10000)),
+}).annotate({
   identifier: "SelectionPlanShadowReportV1",
   title: "Argus selection plan shadow report v1",
   description:

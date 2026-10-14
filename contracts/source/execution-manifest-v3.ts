@@ -6,13 +6,13 @@ import { ExecutionManifestV2 } from "./execution-manifest-v2.js";
 // and policy. A v2 consumer must reject it rather than reinterpret its impact.
 export const ExecutionManifestV3 = Schema.Struct({
   ...ExecutionManifestV2.fields,
-  apiVersion: Schema.Literal("argus.dev/execution-manifest/v3"),
-  policyVersion: Schema.Literal("argus.dev/selection-policy/functional-ui-component/v1"),
+  apiVersion: Schema.Literals(["argus.dev/execution-manifest/v3"]),
+  policyVersion: Schema.Literals(["argus.dev/selection-policy/functional-ui-component/v1"]),
   impact: Schema.Struct({
-    apiVersion: Schema.Literal("argus.dev/component-root-impact/v1"),
-    analyzerVersion: Schema.Literal("argus-component-roots/v1"),
+    apiVersion: Schema.Literals(["argus.dev/component-root-impact/v1"]),
+    analyzerVersion: Schema.Literals(["argus-component-roots/v1"]),
   }),
-}).annotations({
+}).annotate({
   identifier: "ExecutionManifestV3",
   title: "Argus browser component selection manifest v3",
   description:

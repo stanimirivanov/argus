@@ -180,6 +180,10 @@ and major-only GitHub Action tags follow the repository dependency policy.
 
 ## Validation
 
+Subsequent version migration: [ADR-0029](0029-migrate-stable-contract-toolchain-without-wire-changes.md)
+records the requested stable Effect 4 toolchain. The v3 selection above remains
+the historical decision; the source/generated/domain boundary is preserved.
+
 The decision is verified by:
 
 - deterministic Effect Schema to JSON Schema generation and drift detection;

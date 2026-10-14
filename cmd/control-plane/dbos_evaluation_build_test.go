@@ -22,6 +22,7 @@ const (
 	evaluationOldSDK    = "v1.5.0"
 	evaluationNewSDK    = "v1.6.0"
 	evaluationNewSum    = "h1:lhn03aRlLj8Npx1LUOvx++pYsXzu/Dnbtbty7Wy7YCk="
+	evaluationOldSum    = "h1:5XIqlsmcvtopX5WecoNGTkeTlL34ZK8+KCWaMth7W18="
 	evaluationNewModSum = "h1:Eg3T6HFZ5Z38rpu3qNryuuLa2ysB933aVL4e7dpqzo0="
 )
 
@@ -35,20 +36,20 @@ type evaluationBuild struct {
 	executable         string
 }
 
-// buildDBOSEvaluation compiles the same Argus sources twice. The candidate
-// uses a temporary module graph and a Go source overlay for its exact schema
-// guard (123). Neither the root SDK pin nor the production guard (121) changes.
-// This is candidate-release evaluation, not permission to bypass schema checks.
+// buildDBOSEvaluation compiles the same Argus sources twice. The historical
+// worker uses a temporary module graph and exact schema guard (121).
+// The current worker uses the root SDK v1.6.0 and guard (123) without an overlay.
+// This retains the real upgrade/rollback matrix after the dependency migration.
 func buildDBOSEvaluation(t *testing.T, candidate bool) evaluationBuild {
 	t.Helper()
 	root := dbosEvaluationRoot(t)
 	mod := readEvaluationFile(t, filepath.Join(root, "go.mod"))
 	sum := readEvaluationFile(t, filepath.Join(root, "go.sum"))
-	oldPin := evaluationSDKModule + " " + evaluationOldSDK
-	if strings.Count(string(mod), oldPin) != 1 {
-		t.Fatal("DBOS evaluation baseline changed; review the pinned matrix before running it")
+	currentPin := evaluationSDKModule + " " + evaluationNewSDK
+	if strings.Count(string(mod), currentPin) != 1 {
+		t.Fatal("DBOS evaluation current SDK changed; review the pinned matrix before running it")
 	}
-	build := evaluationBuild{SDK: evaluationOldSDK, SchemaVersion: 121, RaceInstrumented: evaluationRaceEnabled()}
+	build := evaluationBuild{SDK: evaluationNewSDK, SchemaVersion: 123, RaceInstrumented: evaluationRaceEnabled()}
 	directory := t.TempDir()
 	build.executable = filepath.Join(directory, "control-plane.test")
 	if runtime.GOOS == "windows" {
@@ -58,25 +59,25 @@ func buildDBOSEvaluation(t *testing.T, candidate bool) evaluationBuild {
 	if build.RaceInstrumented {
 		args = append(args, "-race")
 	}
-	if candidate {
-		build.SDK, build.SchemaVersion = evaluationNewSDK, 123
-		mod = []byte(strings.Replace(string(mod), oldPin, evaluationSDKModule+" "+evaluationNewSDK, 1))
+	if !candidate {
+		build.SDK, build.SchemaVersion = evaluationOldSDK, 121
+		mod = []byte(strings.Replace(string(mod), currentPin, evaluationSDKModule+" "+evaluationOldSDK, 1))
 		sum = append(sum, []byte(fmt.Sprintf("\n%s %s %s\n%s %s/go.mod %s\n",
-			evaluationSDKModule, evaluationNewSDK, evaluationNewSum, evaluationSDKModule, evaluationNewSDK, evaluationNewModSum))...)
+			evaluationSDKModule, evaluationOldSDK, evaluationOldSum, evaluationSDKModule, evaluationOldSDK, evaluationNewModSum))...)
 		modFile := filepath.Join(directory, "evaluation.mod")
 		writeEvaluationFile(t, modFile, mod)
 		writeEvaluationFile(t, filepath.Join(directory, "evaluation.sum"), sum)
 		schemaFile := filepath.Join(root, "internal", "change", "adapters", "dbos", "schema.go")
 		schema := string(readEvaluationFile(t, schemaFile))
-		const oldGuard = "const evaluationSchemaVersion int64 = 121"
-		if strings.Count(schema, oldGuard) != 1 {
-			t.Fatal("DBOS schema guard changed; review the candidate overlay")
+		const currentGuard = "const evaluationSchemaVersion int64 = 123"
+		if strings.Count(schema, currentGuard) != 1 {
+			t.Fatal("DBOS schema guard changed; review the historical overlay")
 		}
 		overlaySource := filepath.Join(directory, "schema.go")
-		writeEvaluationFile(t, overlaySource, []byte(strings.Replace(schema, oldGuard, "const evaluationSchemaVersion int64 = 123", 1)))
+		writeEvaluationFile(t, overlaySource, []byte(strings.Replace(schema, currentGuard, "const evaluationSchemaVersion int64 = 121", 1)))
 		overlay, err := json.Marshal(map[string]any{"Replace": map[string]string{schemaFile: overlaySource}})
 		if err != nil {
-			t.Fatalf("encode candidate build overlay: %v", err)
+			t.Fatalf("encode historical build overlay: %v", err)
 		}
 		overlayFile := filepath.Join(directory, "overlay.json")
 		writeEvaluationFile(t, overlayFile, overlay)

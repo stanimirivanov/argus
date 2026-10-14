@@ -16,10 +16,10 @@ for (const [path, valid] of [
 ] as const) {
   test(`attempt bindings ${valid ? "accept" : "reject"} ${path}`, async () => {
     const input = await readFixture(path);
-    const decode = Schema.decodeUnknownEither(ExecutionPlanAttemptBindingsV1, {
+    const decode = Schema.decodeUnknownResult(ExecutionPlanAttemptBindingsV1, {
       onExcessProperty: "error",
     });
-    assert.equal(decode(input)._tag === "Right", valid);
+    assert.equal(decode(input)._tag === "Success", valid);
   });
 }
 
@@ -29,10 +29,10 @@ for (const [path, valid] of [
 ] as const) {
   test(`plan shadow schema ${valid ? "accepts" : "rejects"} ${path}`, async () => {
     const input = await readFixture(path);
-    const decode = Schema.decodeUnknownEither(SelectionPlanShadowReportV1, {
+    const decode = Schema.decodeUnknownResult(SelectionPlanShadowReportV1, {
       onExcessProperty: "error",
     });
-    assert.equal(decode(input)._tag === "Right", valid);
+    assert.equal(decode(input)._tag === "Success", valid);
   });
 }
 

@@ -1,17 +1,17 @@
 import { Schema } from "effect";
-
 import { ExecutionManifestV1APIVersion } from "./execution-manifest-v1.js";
 import { DisplayName, LocalKey, RepositoryReference } from "./repository-descriptor-v1.js";
 import { Revision } from "./test-catalog-page-v1.js";
+import { Timestamp } from "./timestamp.js";
 
-const NonNegativeInteger = Schema.Int.pipe(Schema.greaterThanOrEqualTo(0));
-const AttemptId = Schema.String.pipe(
-  Schema.minLength(1),
-  Schema.maxLength(127),
-  Schema.pattern(/^[A-Za-z0-9][A-Za-z0-9._:-]*$/),
+const NonNegativeInteger = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0));
+const AttemptId = Schema.String.check(
+  Schema.isMinLength(1),
+  Schema.isMaxLength(127),
+  Schema.isPattern(/^[A-Za-z0-9][A-Za-z0-9._:-]*$/u),
 );
-const SHA256 = Schema.String.pipe(Schema.pattern(/^[0-9a-f]{64}$/));
-const Version = Schema.String.pipe(Schema.minLength(1), Schema.maxLength(127));
+const SHA256 = Schema.String.check(Schema.isPattern(/^[0-9a-f]{64}$/u));
+const Version = Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(127));
 
 const ManifestReference = Schema.Struct({
   apiVersion: ExecutionManifestV1APIVersion,
@@ -26,34 +26,34 @@ const RequestedTest = Schema.Struct({
 
 const Failure = Schema.Struct({
   code: LocalKey,
-  message: Schema.String.pipe(Schema.minLength(1), Schema.maxLength(2000)),
+  message: Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(2000)),
 });
 
 const NormalizedTestResult = Schema.Struct({
   suiteKey: LocalKey,
   testKey: LocalKey,
-  outcome: Schema.Literal("passed", "failed", "skipped", "error"),
-  durationMs: NonNegativeInteger.pipe(Schema.lessThanOrEqualTo(86_400_000)),
+  outcome: Schema.Literals(["passed", "failed", "skipped", "error"]),
+  durationMs: NonNegativeInteger.check(Schema.isLessThanOrEqualTo(86_400_000)),
   failure: Schema.NullOr(Failure),
 });
 
 const ArtifactReference = Schema.Struct({
   key: LocalKey,
   kind: LocalKey,
-  uri: Schema.String.pipe(Schema.minLength(1), Schema.maxLength(2048)),
+  uri: Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(2048)),
   sha256: SHA256,
 });
 
 export const FunctionalAPIAdapterRequestV1 = Schema.Struct({
-  apiVersion: Schema.Literal("argus.dev/functional-api-adapter-request/v1"),
+  apiVersion: Schema.Literals(["argus.dev/functional-api-adapter-request/v1"]),
   attemptId: AttemptId,
   manifest: ManifestReference,
-  stage: Schema.Literal("selected", "full-suite"),
+  stage: Schema.Literals(["selected", "full-suite"]),
   testRepository: RepositoryReference,
   testRevision: Revision,
   adapter: LocalKey,
-  tests: Schema.Array(RequestedTest).pipe(Schema.minItems(1), Schema.maxItems(10000)),
-}).annotations({
+  tests: Schema.Array(RequestedTest).check(Schema.isMinLength(1), Schema.isMaxLength(10000)),
+}).annotate({
   identifier: "FunctionalAPIAdapterRequestV1",
   title: "Argus functional API adapter request v1",
   description:
@@ -61,14 +61,17 @@ export const FunctionalAPIAdapterRequestV1 = Schema.Struct({
 });
 
 export const FunctionalAPIAdapterResultV1 = Schema.Struct({
-  apiVersion: Schema.Literal("argus.dev/functional-api-adapter-result/v1"),
+  apiVersion: Schema.Literals(["argus.dev/functional-api-adapter-result/v1"]),
   attemptId: AttemptId,
   adapter: Schema.Struct({ id: LocalKey, version: Version }),
-  startedAt: Schema.DateTimeUtc,
-  completedAt: Schema.DateTimeUtc,
-  results: Schema.Array(NormalizedTestResult).pipe(Schema.minItems(1), Schema.maxItems(10000)),
-  artifacts: Schema.Array(ArtifactReference).pipe(Schema.maxItems(100)),
-}).annotations({
+  startedAt: Timestamp,
+  completedAt: Timestamp,
+  results: Schema.Array(NormalizedTestResult).check(
+    Schema.isMinLength(1),
+    Schema.isMaxLength(10000),
+  ),
+  artifacts: Schema.Array(ArtifactReference).check(Schema.isMaxLength(100)),
+}).annotate({
   identifier: "FunctionalAPIAdapterResultV1",
   title: "Argus functional API adapter result v1",
   description:
@@ -76,19 +79,22 @@ export const FunctionalAPIAdapterResultV1 = Schema.Struct({
 });
 
 export const ExecutionAttemptV1 = Schema.Struct({
-  apiVersion: Schema.Literal("argus.dev/execution-attempt/v1"),
+  apiVersion: Schema.Literals(["argus.dev/execution-attempt/v1"]),
   attemptId: AttemptId,
   manifest: ManifestReference,
-  stage: Schema.Literal("selected", "full-suite"),
+  stage: Schema.Literals(["selected", "full-suite"]),
   testRepository: RepositoryReference,
   testRevision: Revision,
   adapter: Schema.Struct({ id: LocalKey, version: Version }),
-  startedAt: Schema.DateTimeUtc,
-  completedAt: Schema.DateTimeUtc,
-  outcome: Schema.Literal("passed", "failed", "incomplete", "error"),
-  results: Schema.Array(NormalizedTestResult).pipe(Schema.minItems(1), Schema.maxItems(10000)),
-  artifacts: Schema.Array(ArtifactReference).pipe(Schema.maxItems(100)),
-}).annotations({
+  startedAt: Timestamp,
+  completedAt: Timestamp,
+  outcome: Schema.Literals(["passed", "failed", "incomplete", "error"]),
+  results: Schema.Array(NormalizedTestResult).check(
+    Schema.isMinLength(1),
+    Schema.isMaxLength(10000),
+  ),
+  artifacts: Schema.Array(ArtifactReference).check(Schema.isMaxLength(100)),
+}).annotate({
   identifier: "ExecutionAttemptV1",
   title: "Argus execution attempt v1",
   description:

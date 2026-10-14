@@ -1,33 +1,33 @@
 import { Schema } from "effect";
-
 import { LocalKey, RepositoryReference } from "./repository-descriptor-v1.js";
 import { Revision } from "./test-catalog-page-v1.js";
+import { Timestamp } from "./timestamp.js";
 
-const SHA256 = Schema.String.pipe(Schema.pattern(/^[0-9a-f]{64}$/));
-const SourcePath = Schema.String.pipe(
-  Schema.minLength(1),
-  Schema.maxLength(4096),
-  Schema.pattern(/^[^/\\][^\\]*$/),
+const SHA256 = Schema.String.check(Schema.isPattern(/^[0-9a-f]{64}$/u));
+const SourcePath = Schema.String.check(
+  Schema.isMinLength(1),
+  Schema.isMaxLength(4096),
+  Schema.isPattern(/^[^/\\][^\\]*$/u),
 );
-const OperationPath = Schema.String.pipe(
-  Schema.minLength(1),
-  Schema.maxLength(2048),
-  Schema.pattern(/^\//),
+const OperationPath = Schema.String.check(
+  Schema.isMinLength(1),
+  Schema.isMaxLength(2048),
+  Schema.isPattern(/^\//u),
 );
-const ByteOffset = Schema.Int.pipe(Schema.greaterThanOrEqualTo(0));
-const Version = Schema.String.pipe(Schema.minLength(1), Schema.maxLength(127));
+const ByteOffset = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0));
+const Version = Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(127));
 
 const ChangeReference = Schema.Struct({
   sourceRepository: RepositoryReference,
-  pullRequest: Schema.Struct({ number: Schema.Int.pipe(Schema.greaterThanOrEqualTo(1)) }),
+  pullRequest: Schema.Struct({ number: Schema.Int.check(Schema.isGreaterThanOrEqualTo(1)) }),
   baseRevision: Revision,
   headRevision: Revision,
-  observedAt: Schema.DateTimeUtc,
+  observedAt: Timestamp,
   trigger: Schema.Struct({
-    provider: Schema.Literal("github"),
-    deliveryId: Schema.String.pipe(Schema.minLength(1), Schema.maxLength(255)),
-    event: Schema.Literal("pull_request"),
-    action: Schema.Literal("opened", "reopened", "synchronize", "ready_for_review"),
+    provider: Schema.Literals(["github"]),
+    deliveryId: Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(255)),
+    event: Schema.Literals(["pull_request"]),
+    action: Schema.Literals(["opened", "reopened", "synchronize", "ready_for_review"]),
   }),
 });
 
@@ -36,13 +36,13 @@ export const AdaptationTestReference = Schema.Struct({
   revision: Revision,
   suiteKey: LocalKey,
   testKey: LocalKey,
-  name: Schema.String.pipe(Schema.minLength(1), Schema.maxLength(255)),
+  name: Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(255)),
   adapter: LocalKey,
-  capabilities: Schema.Array(LocalKey).pipe(Schema.minItems(1), Schema.maxItems(5000)),
+  capabilities: Schema.Array(LocalKey).check(Schema.isMinLength(1), Schema.isMaxLength(5000)),
 });
 
 const EndpointRename = Schema.Struct({
-  method: Schema.Literal(
+  method: Schema.Literals([
     "GET",
     "PUT",
     "POST",
@@ -52,11 +52,11 @@ const EndpointRename = Schema.Struct({
     "PATCH",
     "TRACE",
     "QUERY",
-  ),
-  operationId: Schema.String.pipe(Schema.minLength(1), Schema.maxLength(255)),
+  ]),
+  operationId: Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(255)),
   previousPath: OperationPath,
   path: OperationPath,
-  capabilities: Schema.Array(LocalKey).pipe(Schema.minItems(1), Schema.maxItems(50)),
+  capabilities: Schema.Array(LocalKey).check(Schema.isMinLength(1), Schema.isMaxLength(50)),
 });
 
 export const AdaptationTextEdit = Schema.Struct({
@@ -66,16 +66,16 @@ export const AdaptationTextEdit = Schema.Struct({
   endByte: ByteOffset,
   original: OperationPath,
   replacement: OperationPath,
-  semanticRole: Schema.Literal("request-target"),
+  semanticRole: Schema.Literals(["request-target"]),
 });
 
 export const FunctionalAPIAdaptationRequestV1 = Schema.Struct({
-  apiVersion: Schema.Literal("argus.dev/functional-api-adaptation-request/v1"),
+  apiVersion: Schema.Literals(["argus.dev/functional-api-adaptation-request/v1"]),
   proposalId: SHA256,
   change: ChangeReference,
   test: AdaptationTestReference,
   endpointRename: EndpointRename,
-}).annotations({
+}).annotate({
   identifier: "FunctionalAPIAdaptationRequestV1",
   title: "Argus functional API adaptation request v1",
   description:
@@ -83,14 +83,14 @@ export const FunctionalAPIAdaptationRequestV1 = Schema.Struct({
 });
 
 export const FunctionalAPIAdaptationResultV1 = Schema.Struct({
-  apiVersion: Schema.Literal("argus.dev/functional-api-adaptation-result/v1"),
+  apiVersion: Schema.Literals(["argus.dev/functional-api-adaptation-result/v1"]),
   proposalId: SHA256,
   adapter: Schema.Struct({ id: LocalKey, version: Version }),
-  outcome: Schema.Literal("candidate", "abstained"),
+  outcome: Schema.Literals(["candidate", "abstained"]),
   reasonCode: Schema.NullOr(LocalKey),
-  reason: Schema.NullOr(Schema.String.pipe(Schema.minLength(1), Schema.maxLength(1000))),
+  reason: Schema.NullOr(Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(1000))),
   edit: Schema.NullOr(AdaptationTextEdit),
-}).annotations({
+}).annotate({
   identifier: "FunctionalAPIAdaptationResultV1",
   title: "Argus functional API adaptation result v1",
   description:
@@ -98,21 +98,21 @@ export const FunctionalAPIAdaptationResultV1 = Schema.Struct({
 });
 
 export const AdaptationProposalV1 = Schema.Struct({
-  apiVersion: Schema.Literal("argus.dev/adaptation-proposal/v1"),
-  policyVersion: Schema.Literal("argus.dev/adaptation-policy/functional-api-endpoint-rename/v1"),
+  apiVersion: Schema.Literals(["argus.dev/adaptation-proposal/v1"]),
+  policyVersion: Schema.Literals(["argus.dev/adaptation-policy/functional-api-endpoint-rename/v1"]),
   proposalId: SHA256,
   sourceImpact: Schema.Struct({
-    apiVersion: Schema.Literal("argus.dev/capability-impact/v1"),
-    analyzerVersion: Schema.Literal("argus-openapi/v1+libopenapi/v0.38.7"),
+    apiVersion: Schema.Literals(["argus.dev/capability-impact/v1"]),
+    analyzerVersion: Schema.Literals(["argus-openapi/v1+libopenapi/v0.38.7"]),
   }),
   change: ChangeReference,
   test: AdaptationTestReference,
-  classification: Schema.Literal("INVALIDATED"),
-  decision: Schema.Literal("PATCH_AND_VALIDATE"),
+  classification: Schema.Literals(["INVALIDATED"]),
+  decision: Schema.Literals(["PATCH_AND_VALIDATE"]),
   endpointRename: EndpointRename,
   adapter: Schema.Struct({ id: LocalKey, version: Version }),
   edit: AdaptationTextEdit,
-}).annotations({
+}).annotate({
   identifier: "AdaptationProposalV1",
   title: "Argus adaptation proposal v1",
   description:

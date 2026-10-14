@@ -77,7 +77,7 @@ runtime allowlist. Removal means replacing this adapter and its connection,
 transaction, copy, and error-classification behavior behind the catalog domain
 boundary.
 
-The OpenAPI impact adapter admits `github.com/pb33f/libopenapi` v0.38.7 as a
+The OpenAPI impact adapter admits `github.com/pb33f/libopenapi` v0.41.5 as a
 runtime dependency. It supplies OpenAPI 3.0/3.1/3.2 parsing and semantic
 document comparison; reproducing that standards surface locally would create a
 larger and less reviewable parser. The selected release is active and MIT
@@ -89,7 +89,7 @@ to the library. The import is isolated under
 preserving analyzer conformance and persisted analyzer-version semantics.
 
 The opt-in M10 workflow evaluation admits
-`github.com/dbos-inc/dbos-transact-golang` v1.5.0 as an MIT-licensed runtime
+`github.com/dbos-inc/dbos-transact-golang` v1.6.0 as an MIT-licensed runtime
 dependency. It embeds PostgreSQL-backed workflow checkpoints in the Go control
 plane without a separate coordinator service. The dependency is confined to
 the change workflow adapter and the control-plane and migration composition
@@ -207,9 +207,11 @@ commands; lock-changing pull requests MUST still review their direct and
 material transitive licenses. Release SBOM and notice generation remain M10
 packaging work.
 
-Effect, TypeScript, Node.js, pnpm, Biome, and tsx versions are exact. Effect v4
-release candidates are not admitted while the contract source targets stable
-Effect v3. Updates MUST regenerate JSON Schema, run the shared fixture corpus,
+Effect, TypeScript, Node.js, pnpm, Biome, and tsx versions are exact. The contract
+toolchain uses stable Effect 4.0.2 and TypeScript 7.0.2, with Node 24.18.0 and
+`@types/node` 24.12.1; Node 26 is not required or admitted by this migration.
+See [ADR-0029](../decisions/0029-migrate-stable-contract-toolchain-without-wire-changes.md).
+Updates MUST regenerate JSON Schema, run the shared fixture corpus,
 and inspect generated diffs rather than assuming type-check success proves wire
 compatibility.
 
@@ -221,8 +223,10 @@ current policy prevents incompatible dependencies from entering unnoticed.
 ## Vulnerability policy
 
 The opt-in [DBOS compatibility evaluation](dbos-evaluation-verdict.md) admits
-SDK v1.6.0 only into a temporary, checksum-pinned worker build; production stays
-on the root module's v1.5.0 pin. The matrix rejects any compiled transitive graph
+SDK v1.6.0 into the root opt-in runtime graph. A temporary checksum-pinned
+v1.5.0 worker preserves historical upgrade/rollback coverage with schema 121;
+the current runtime requires schema 123. This is not production promotion.
+The matrix rejects any compiled transitive graph
 change other than DBOS and gates the candidate with the pinned binary
 vulnerability scanner. Its upstream MIT license remains compatible with the
 runtime allowlist. Candidate binaries are disposable test tools, not release
@@ -251,6 +255,35 @@ If a finding is novel, not yet public, exploitable, or contains sensitive
 reproduction details, use the private process in `SECURITY.md`. Routine updates
 for already-public advisories MAY use normal dependency pull requests as long
 as they do not disclose additional exploit information.
+
+### Development-tool advisory disposition: 2026-10-13
+
+The pinned quality-tool graph contains `golang.org/x/net` v0.58.0; the following
+public HTTP/2 advisories are fixed in v0.60.0:
+
+| Advisory | Affected behavior |
+| --- | --- |
+| [GO-2026-6617](https://pkg.go.dev/vuln/GO-2026-6617) | HPACK encoder race |
+| [GO-2026-6612](https://pkg.go.dev/vuln/GO-2026-6612) | Duplicate flow-control refund |
+| [GO-2026-6611](https://pkg.go.dev/vuln/GO-2026-6611) | Repeated window-change CPU exhaustion |
+| [GO-2026-6610](https://pkg.go.dev/vuln/GO-2026-6610) | Malformed framing headers accepted |
+| [GO-2026-6603](https://pkg.go.dev/vuln/GO-2026-6603) | Trailer-header memory exhaustion |
+
+Evidence: the verbose pinned `govulncheck` scan of golangci-lint, govulncheck
+and go-licenses on Windows/amd64 with Go 1.26.9 reports five module matches,
+zero affected imported packages and zero affected calls. Application and
+isolated actionlint scans report no vulnerabilities. Exploitation requires
+using the affected HTTP/2 implementation against malicious peers; that code is
+not imported by these scanned tools. This is platform-specific reachability
+evidence, not a declaration that every consumer of the module is safe.
+
+Disposition: non-blocking for the current development-only, non-distributed
+tool graph; retain all scanner gates and review a compatible transitive update
+in tool maintenance. No suppression or runtime exception is added. Owner:
+Argus maintainers. Created: 2026-10-13. Review by: 2026-11-13, or earlier when
+the tool graph, platform or Go version changes. Remove this disposition after
+the graph selects the fixed module and rescans cleanly; reassess immediately
+if affected imports or calls become reachable.
 
 ## Ownership and periodic review
 

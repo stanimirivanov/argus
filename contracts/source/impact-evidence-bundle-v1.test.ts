@@ -21,11 +21,11 @@ const manifest = JSON.parse(
     "utf8",
   ),
 ) as FixtureManifest;
-const decode = Schema.decodeUnknownEither(ImpactEvidenceBundleV1, { onExcessProperty: "error" });
+const decode = Schema.decodeUnknownResult(ImpactEvidenceBundleV1, { onExcessProperty: "error" });
 
 for (const fixture of manifest.fixtures) {
   test(`Effect Schema ${fixture.schemaValid ? "accepts" : "rejects"} ${fixture.path}`, async () => {
     const input: unknown = JSON.parse(await readFile(new URL(fixture.path, contractsRoot), "utf8"));
-    assert.equal(decode(input)._tag === "Right", fixture.schemaValid);
+    assert.equal(decode(input)._tag === "Success", fixture.schemaValid);
   });
 }

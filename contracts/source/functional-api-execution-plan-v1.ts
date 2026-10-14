@@ -4,10 +4,10 @@ import { ExecutionManifestV1APIVersion } from "./execution-manifest-v1.js";
 import { LocalKey, RepositoryReference } from "./repository-descriptor-v1.js";
 import { Revision } from "./test-catalog-page-v1.js";
 
-const SHA256 = Schema.String.pipe(Schema.pattern(/^[0-9a-f]{64}$/));
-const PositiveTestCount = Schema.Int.pipe(
-  Schema.greaterThanOrEqualTo(1),
-  Schema.lessThanOrEqualTo(10000),
+const SHA256 = Schema.String.check(Schema.isPattern(/^[0-9a-f]{64}$/u));
+const PositiveTestCount = Schema.Int.check(
+  Schema.isGreaterThanOrEqualTo(1),
+  Schema.isLessThanOrEqualTo(10000),
 );
 const ManifestReference = Schema.Struct({
   apiVersion: ExecutionManifestV1APIVersion,
@@ -23,21 +23,21 @@ const ExecutionGroupBinding = Schema.Struct({
 
 const ExecutionJob = Schema.Struct({
   groupKey: LocalKey,
-  stage: Schema.Literal("selected", "full-suite"),
+  stage: Schema.Literals(["selected", "full-suite"]),
   testRepository: RepositoryReference,
   testRevision: Revision,
   adapter: LocalKey,
   testCount: PositiveTestCount,
 });
 
-export const FunctionalAPIExecutionPlanV1APIVersion = Schema.Literal(
+export const FunctionalAPIExecutionPlanV1APIVersion = Schema.Literals([
   "argus.dev/functional-api-execution-plan/v1",
-);
+]);
 
 export const FunctionalAPIExecutionBindingsV1 = Schema.Struct({
-  apiVersion: Schema.Literal("argus.dev/functional-api-execution-bindings/v1"),
-  groups: Schema.Array(ExecutionGroupBinding).pipe(Schema.maxItems(10000)),
-}).annotations({
+  apiVersion: Schema.Literals(["argus.dev/functional-api-execution-bindings/v1"]),
+  groups: Schema.Array(ExecutionGroupBinding).check(Schema.isMaxLength(10000)),
+}).annotate({
   identifier: "FunctionalAPIExecutionBindingsV1",
   title: "Argus functional API execution bindings v1",
   description:
@@ -47,8 +47,8 @@ export const FunctionalAPIExecutionBindingsV1 = Schema.Struct({
 export const FunctionalAPIExecutionPlanV1 = Schema.Struct({
   apiVersion: FunctionalAPIExecutionPlanV1APIVersion,
   manifest: ManifestReference,
-  jobs: Schema.Array(ExecutionJob).pipe(Schema.maxItems(20000)),
-}).annotations({
+  jobs: Schema.Array(ExecutionJob).check(Schema.isMaxLength(20000)),
+}).annotate({
   identifier: "FunctionalAPIExecutionPlanV1",
   title: "Argus functional API execution plan v1",
   description:

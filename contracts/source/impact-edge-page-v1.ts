@@ -18,7 +18,7 @@ import {
   ContinuationCursor,
 } from "./test-catalog-page-v1.js";
 
-export const ImpactEvidenceState = Schema.Literal("active", "expired").annotations({
+export const ImpactEvidenceState = Schema.Literals(["active", "expired"]).annotate({
   identifier: "ImpactEvidenceState",
 });
 
@@ -28,27 +28,27 @@ export const ImpactEvidenceReference = Schema.Struct({
   assertion: ImpactAssertion,
   evidenceType: ImpactEvidenceType,
   confidenceBasisPoints: ConfidenceBasisPoints,
-  rationale: Schema.String.pipe(Schema.minLength(1), Schema.maxLength(1024)),
+  rationale: Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(1024)),
   observedAt: UtcTimestamp,
   expiresAt: Schema.NullOr(UtcTimestamp),
   state: ImpactEvidenceState,
-}).annotations({
+}).annotate({
   identifier: "ImpactEvidenceReference",
   description: "One visible evidence observation and its state at the requested evaluation time.",
 });
 
-export const ImpactEdgeStatus = Schema.Literal(
+export const ImpactEdgeStatus = Schema.Literals([
   "supported",
   "refuted",
   "stale",
   "conflicting",
-).annotations({ identifier: "ImpactEdgeStatus" });
+]).annotate({ identifier: "ImpactEdgeStatus" });
 
 export const MappingConflict = Schema.Struct({
-  kind: Schema.Literal("contradictory-active-assertions"),
-  supportingEvidenceCount: Schema.Number.pipe(Schema.int(), Schema.greaterThanOrEqualTo(1)),
-  refutingEvidenceCount: Schema.Number.pipe(Schema.int(), Schema.greaterThanOrEqualTo(1)),
-}).annotations({
+  kind: Schema.Literals(["contradictory-active-assertions"]),
+  supportingEvidenceCount: Schema.Number.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(1)),
+  refutingEvidenceCount: Schema.Number.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(1)),
+}).annotate({
   identifier: "MappingConflict",
   description:
     "A reviewable conflict produced when active evidence both supports and refutes the same edge.",
@@ -60,21 +60,21 @@ export const ImpactEdge = Schema.Struct({
   suite: Schema.Struct({
     key: LocalKey,
     family: TestFamily,
-    adapter: Schema.String.pipe(Schema.minLength(1), Schema.maxLength(127)),
+    adapter: Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(127)),
   }),
   test: Schema.Struct({
     key: LocalKey,
     name: DisplayName,
   }),
   status: ImpactEdgeStatus,
-  evidence: Schema.Array(ImpactEvidenceReference).pipe(Schema.minItems(1)),
+  evidence: Schema.Array(ImpactEvidenceReference).check(Schema.isMinLength(1)),
   conflict: Schema.NullOr(MappingConflict),
-}).annotations({
+}).annotate({
   identifier: "ImpactEdge",
   description: "A capability-to-test relationship with all visible evidence and its derived state.",
 });
 
-export const ImpactEdgePageV1APIVersion = Schema.Literal("argus.dev/impact-edge-page/v1");
+export const ImpactEdgePageV1APIVersion = Schema.Literals(["argus.dev/impact-edge-page/v1"]);
 
 export const ImpactEdgePageV1 = Schema.Struct({
   apiVersion: ImpactEdgePageV1APIVersion,
@@ -82,7 +82,7 @@ export const ImpactEdgePageV1 = Schema.Struct({
   evaluatedAt: UtcTimestamp,
   items: Schema.Array(ImpactEdge),
   nextCursor: Schema.NullOr(ContinuationCursor),
-}).annotations({
+}).annotate({
   identifier: "ImpactEdgePageV1",
   title: "Argus impact edge page v1",
   description:

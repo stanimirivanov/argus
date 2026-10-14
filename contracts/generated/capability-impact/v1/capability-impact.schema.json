@@ -1,145 +1,10 @@
 {
   "$id": "https://argus.dev/contracts/capability-impact/v1/schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$ref": "#/$defs/CapabilityImpactV1",
   "$defs": {
-    "CapabilityImpactV1": {
-      "type": "object",
-      "required": [
-        "apiVersion",
-        "analyzerVersion",
-        "sourceRepository",
-        "pullRequest",
-        "baseRevision",
-        "headRevision",
-        "observedAt",
-        "trigger",
-        "status",
-        "documents",
-        "warnings"
-      ],
-      "properties": {
-        "apiVersion": {
-          "type": "string",
-          "enum": [
-            "argus.dev/capability-impact/v1"
-          ]
-        },
-        "analyzerVersion": {
-          "type": "string",
-          "enum": [
-            "argus-openapi/v1+libopenapi/v0.38.7"
-          ]
-        },
-        "sourceRepository": {
-          "$ref": "#/$defs/RepositoryReference"
-        },
-        "pullRequest": {
-          "type": "object",
-          "required": [
-            "number"
-          ],
-          "properties": {
-            "number": {
-              "$ref": "#/$defs/Int",
-              "description": "a number greater than or equal to 1",
-              "title": "greaterThanOrEqualTo(1)",
-              "minimum": 1
-            }
-          },
-          "additionalProperties": false
-        },
-        "baseRevision": {
-          "$ref": "#/$defs/Revision"
-        },
-        "headRevision": {
-          "$ref": "#/$defs/Revision"
-        },
-        "observedAt": {
-          "$ref": "#/$defs/DateTimeUtc"
-        },
-        "trigger": {
-          "type": "object",
-          "required": [
-            "provider",
-            "deliveryId",
-            "event",
-            "action"
-          ],
-          "properties": {
-            "provider": {
-              "type": "string",
-              "enum": [
-                "github"
-              ]
-            },
-            "deliveryId": {
-              "type": "string",
-              "description": "a string at most 255 character(s) long",
-              "title": "maxLength(255)",
-              "minLength": 1,
-              "maxLength": 255
-            },
-            "event": {
-              "type": "string",
-              "enum": [
-                "pull_request"
-              ]
-            },
-            "action": {
-              "type": "string",
-              "enum": [
-                "opened",
-                "reopened",
-                "synchronize",
-                "ready_for_review"
-              ]
-            }
-          },
-          "additionalProperties": false
-        },
-        "status": {
-          "type": "string",
-          "enum": [
-            "complete",
-            "partial"
-          ]
-        },
-        "documents": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/OpenAPIDocumentImpact"
-          },
-          "description": "an array of at most 50 item(s)",
-          "title": "maxItems(50)",
-          "maxItems": 50
-        },
-        "warnings": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "description": "a string at most 512 character(s) long",
-            "title": "maxLength(512)",
-            "minLength": 1,
-            "maxLength": 512
-          },
-          "description": "an array of at most 100 item(s)",
-          "title": "maxItems(100)",
-          "maxItems": 100
-        }
-      },
-      "additionalProperties": false,
-      "description": "Explainable capability impact derived from semantic OpenAPI changes at immutable revisions.",
-      "title": "Argus capability impact v1"
-    },
     "RepositoryReference": {
       "type": "object",
-      "required": [
-        "provider",
-        "host",
-        "providerRepositoryId",
-        "owner",
-        "name"
-      ],
       "properties": {
         "provider": {
           "type": "string",
@@ -152,168 +17,98 @@
         },
         "host": {
           "type": "string",
-          "description": "a string matching the pattern ^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$",
-          "title": "maxLength(255)",
           "minLength": 1,
           "maxLength": 255,
           "pattern": "^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$"
         },
         "providerRepositoryId": {
           "type": "string",
-          "description": "a string at most 255 character(s) long",
-          "title": "maxLength(255)",
           "minLength": 1,
           "maxLength": 255
         },
         "owner": {
           "type": "string",
-          "description": "a string at most 255 character(s) long",
-          "title": "maxLength(255)",
           "minLength": 1,
           "maxLength": 255
         },
         "name": {
           "type": "string",
-          "description": "a string at most 255 character(s) long",
-          "title": "maxLength(255)",
           "minLength": 1,
           "maxLength": 255
         }
       },
+      "required": [
+        "provider",
+        "host",
+        "providerRepositoryId",
+        "owner",
+        "name"
+      ],
       "additionalProperties": false,
       "description": "A repository reference anchored by the provider-assigned identity; owner and name are mutable display coordinates."
-    },
-    "Int": {
-      "type": "integer",
-      "description": "an integer",
-      "title": "int"
     },
     "Revision": {
       "anyOf": [
         {
           "type": "object",
-          "required": [
-            "algorithm",
-            "digest"
-          ],
           "properties": {
             "algorithm": {
-              "type": "string",
-              "enum": [
-                "git-sha1"
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "git-sha1"
+                  ]
+                }
               ]
             },
             "digest": {
               "type": "string",
-              "description": "a string matching the pattern ^[0-9a-f]{40}$",
               "pattern": "^[0-9a-f]{40}$"
             }
           },
+          "required": [
+            "algorithm",
+            "digest"
+          ],
           "additionalProperties": false
         },
         {
           "type": "object",
-          "required": [
-            "algorithm",
-            "digest"
-          ],
           "properties": {
             "algorithm": {
-              "type": "string",
-              "enum": [
-                "git-sha256"
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "git-sha256"
+                  ]
+                }
               ]
             },
             "digest": {
               "type": "string",
-              "description": "a string matching the pattern ^[0-9a-f]{64}$",
               "pattern": "^[0-9a-f]{64}$"
             }
           },
+          "required": [
+            "algorithm",
+            "digest"
+          ],
           "additionalProperties": false
         }
       ],
       "description": "An immutable, normalized Git object revision."
     },
-    "DateTimeUtc": {
+    "LocalKey": {
       "type": "string",
-      "description": "a string to be decoded into a DateTime.Utc"
-    },
-    "OpenAPIDocumentImpact": {
-      "type": "object",
-      "required": [
-        "path",
-        "previousPath",
-        "kind",
-        "totalChanges",
-        "breakingChanges",
-        "operations"
-      ],
-      "properties": {
-        "path": {
-          "type": "string",
-          "description": "a string at most 4096 character(s) long",
-          "title": "maxLength(4096)",
-          "minLength": 1,
-          "maxLength": 4096
-        },
-        "previousPath": {
-          "anyOf": [
-            {
-              "type": "string",
-              "description": "a string at most 4096 character(s) long",
-              "title": "maxLength(4096)",
-              "minLength": 1,
-              "maxLength": 4096
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "kind": {
-          "type": "string",
-          "enum": [
-            "added",
-            "modified",
-            "removed"
-          ]
-        },
-        "totalChanges": {
-          "$ref": "#/$defs/Int",
-          "description": "a number greater than or equal to 1",
-          "title": "greaterThanOrEqualTo(1)",
-          "minimum": 1
-        },
-        "breakingChanges": {
-          "$ref": "#/$defs/Int",
-          "description": "a non-negative number",
-          "title": "greaterThanOrEqualTo(0)",
-          "minimum": 0
-        },
-        "operations": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/OperationImpact"
-          },
-          "description": "an array of at most 5000 item(s)",
-          "title": "maxItems(5000)",
-          "maxItems": 5000
-        }
-      },
-      "additionalProperties": false,
-      "description": "Semantic summary and operation evidence for one changed OpenAPI document."
+      "minLength": 1,
+      "maxLength": 63,
+      "pattern": "^[a-z][a-z0-9._-]*$",
+      "description": "A stable, repository-declared key. It is scoped by its containing repository or parent declaration."
     },
     "OperationImpact": {
       "type": "object",
-      "required": [
-        "method",
-        "path",
-        "operationId",
-        "kind",
-        "capabilities",
-        "potentiallyBreaking"
-      ],
       "properties": {
         "method": {
           "type": "string",
@@ -331,8 +126,6 @@
         },
         "path": {
           "type": "string",
-          "description": "a string matching the pattern ^\\/",
-          "title": "maxLength(2048)",
           "minLength": 1,
           "maxLength": 2048,
           "pattern": "^\\/"
@@ -341,8 +134,6 @@
           "anyOf": [
             {
               "type": "string",
-              "description": "a string at most 255 character(s) long",
-              "title": "maxLength(255)",
               "minLength": 1,
               "maxLength": 255
             },
@@ -364,25 +155,212 @@
           "items": {
             "$ref": "#/$defs/LocalKey"
           },
-          "description": "an array of at most 50 item(s)",
-          "title": "maxItems(50)",
           "maxItems": 50
         },
         "potentiallyBreaking": {
           "type": "boolean"
         }
       },
+      "required": [
+        "method",
+        "path",
+        "operationId",
+        "kind",
+        "capabilities",
+        "potentiallyBreaking"
+      ],
       "additionalProperties": false,
       "description": "A semantically changed HTTP operation and its explicit repository-scoped capability mappings."
     },
-    "LocalKey": {
-      "type": "string",
-      "description": "A stable, repository-declared key. It is scoped by its containing repository or parent declaration.",
-      "title": "maxLength(63)",
-      "minLength": 1,
-      "maxLength": 63,
-      "pattern": "^[a-z][a-z0-9._-]*$"
+    "OpenAPIDocumentImpact": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "previousPath": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "added",
+            "modified",
+            "removed"
+          ]
+        },
+        "totalChanges": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "breakingChanges": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "operations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/OperationImpact"
+          },
+          "maxItems": 5000
+        }
+      },
+      "required": [
+        "path",
+        "previousPath",
+        "kind",
+        "totalChanges",
+        "breakingChanges",
+        "operations"
+      ],
+      "additionalProperties": false,
+      "description": "Semantic summary and operation evidence for one changed OpenAPI document."
+    },
+    "CapabilityImpactV1": {
+      "type": "object",
+      "properties": {
+        "apiVersion": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "argus.dev/capability-impact/v1"
+              ]
+            }
+          ]
+        },
+        "analyzerVersion": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "argus-openapi/v1+libopenapi/v0.38.7"
+              ]
+            }
+          ]
+        },
+        "sourceRepository": {
+          "$ref": "#/$defs/RepositoryReference"
+        },
+        "pullRequest": {
+          "type": "object",
+          "properties": {
+            "number": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "number"
+          ],
+          "additionalProperties": false
+        },
+        "baseRevision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "headRevision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "observedAt": {
+          "type": "string"
+        },
+        "trigger": {
+          "type": "object",
+          "properties": {
+            "provider": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "github"
+                  ]
+                }
+              ]
+            },
+            "deliveryId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255
+            },
+            "event": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "pull_request"
+                  ]
+                }
+              ]
+            },
+            "action": {
+              "type": "string",
+              "enum": [
+                "opened",
+                "reopened",
+                "synchronize",
+                "ready_for_review"
+              ]
+            }
+          },
+          "required": [
+            "provider",
+            "deliveryId",
+            "event",
+            "action"
+          ],
+          "additionalProperties": false
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "complete",
+            "partial"
+          ]
+        },
+        "documents": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/OpenAPIDocumentImpact"
+          },
+          "maxItems": 50
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "maxItems": 100
+        }
+      },
+      "required": [
+        "apiVersion",
+        "analyzerVersion",
+        "sourceRepository",
+        "pullRequest",
+        "baseRevision",
+        "headRevision",
+        "observedAt",
+        "trigger",
+        "status",
+        "documents",
+        "warnings"
+      ],
+      "additionalProperties": false,
+      "title": "Argus capability impact v1",
+      "description": "Explainable capability impact derived from semantic OpenAPI changes at immutable revisions."
     }
-  },
-  "$ref": "#/$defs/CapabilityImpactV1"
+  }
 }
