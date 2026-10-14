@@ -2,7 +2,7 @@
 
 ## TL;DR
 
-- Effect Schema v3 is the authoritative contract source.
+- Effect Schema v4 is the authoritative contract source; Node remains on v24.
 - Generated JSON Schema Draft 2020-12 is the portable validation and generator
   input; do not edit it by hand.
 - Go wire DTOs and validators are product-internal, not a public Go SDK;
@@ -68,6 +68,7 @@ actually fetched.
 | Path | Responsibility |
 |:--|:--|
 | `source/repository-descriptor-v1.ts` | Authoritative Effect Schema and inferred TypeScript type. |
+| `source/timestamp.ts` | Native UTC timestamp codec retaining the published JSON string representation. |
 | `source/test-catalog-page-v1.ts` | Authoritative versioned test-catalog result contract. |
 | `source/impact-evidence-bundle-v1.ts` | Authoritative impact-evidence ingestion contract. |
 | `source/impact-edge-page-v1.ts` | Authoritative evaluated impact-edge result contract. |
@@ -86,6 +87,7 @@ actually fetched.
 | `source/repository-descriptor-v1.test.ts` | Structural fixture tests through Effect Schema. |
 | `source/test-catalog-page-v1.test.ts` | Test-catalog result compatibility tests through Effect Schema. |
 | `scripts/generate.ts` | Deterministic JSON Schema compiler and drift check. |
+| `scripts/json-schema.ts` | Strict Effect 4 Draft 2020-12 export with local definitions. |
 | `generated/` | Checked-in JSON Schema Draft 2020-12 artifacts. |
 | `fixtures/repository-descriptor/v1/manifest.json` | Shared structural and domain expectations. |
 | `fixtures/repository-descriptor/v1/` | Positive and negative compatibility documents. |
@@ -327,3 +329,5 @@ not a replacement for the future control-plane API.
 
 The representation decision and compatibility rules are recorded in
 [ADR-0003](../docs/decisions/0003-use-effect-schema-at-contract-boundaries.md).
+The stable version migration, regex-export constraints and Node 24 retention
+are recorded in [ADR-0029](../docs/decisions/0029-migrate-stable-contract-toolchain-without-wire-changes.md).

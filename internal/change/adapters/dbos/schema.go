@@ -10,9 +10,9 @@ import (
 )
 
 // evaluationSchemaVersion is the final PostgreSQL migration in the pinned
-// DBOS Go v1.5.0 runtime. Unlike DBOS's own SkipMigrations verification, Argus
+// DBOS Go v1.6.0 runtime. Unlike DBOS's own SkipMigrations verification, Argus
 // rejects newer schemas too: old code must not run against an untested upgrade.
-const evaluationSchemaVersion int64 = 121
+const evaluationSchemaVersion int64 = 123
 
 // VerifyEvaluationSchema fails closed unless the explicitly migrated DBOS
 // checkpoint schema exactly matches the version tested with this Argus build.

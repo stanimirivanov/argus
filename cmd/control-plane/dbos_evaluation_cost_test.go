@@ -51,7 +51,7 @@ func TestDBOSEvaluationCost(t *testing.T) {
 	for _, durable := range []bool{false, true} {
 		name := "synchronous"
 		if durable {
-			name = "dbos-1.5.0"
+			name = "dbos-1.6.0"
 		}
 		t.Run(name, func(t *testing.T) {
 			reports = append(reports, measureDBOSEvaluationCost(t, durable, name))

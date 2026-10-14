@@ -1,5 +1,4 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { JSONSchema } from "effect";
 import { AdaptationReviewV1 } from "../source/adaptation-review-v1.js";
 import {
   AdaptationProposalV1,
@@ -36,6 +35,7 @@ import {
 } from "../source/selection-plan-shadow-report-v1.js";
 import { SelectionShadowReportV1 } from "../source/selection-shadow-report-v1.js";
 import { TestCatalogPageV1 } from "../source/test-catalog-page-v1.js";
+import { compileJsonSchema } from "./json-schema.js";
 
 const artifacts = [
   {
@@ -46,7 +46,7 @@ const artifacts = [
     ),
     document: {
       $id: "https://argus.dev/contracts/validation-rejection/v1/schema.json",
-      ...JSONSchema.make(ValidationRejectionV1, { target: "jsonSchema2020-12" }),
+      ...compileJsonSchema(ValidationRejectionV1),
     },
   },
   {
@@ -57,7 +57,7 @@ const artifacts = [
     ),
     document: {
       $id: "https://argus.dev/contracts/review-outcome/v1/schema.json",
-      ...JSONSchema.make(ReviewOutcomeV1, { target: "jsonSchema2020-12" }),
+      ...compileJsonSchema(ReviewOutcomeV1),
     },
   },
   {
@@ -68,7 +68,7 @@ const artifacts = [
     ),
     document: {
       $id: "https://argus.dev/contracts/adaptation-review/v1/schema.json",
-      ...JSONSchema.make(AdaptationReviewV1, { target: "jsonSchema2020-12" }),
+      ...compileJsonSchema(AdaptationReviewV1),
     },
   },
   {
@@ -79,7 +79,7 @@ const artifacts = [
     ),
     document: {
       $id: "https://argus.dev/contracts/functional-api-repair-validation-request/v1/schema.json",
-      ...JSONSchema.make(FunctionalAPIRepairValidationRequestV1, { target: "jsonSchema2020-12" }),
+      ...compileJsonSchema(FunctionalAPIRepairValidationRequestV1),
     },
   },
   {
@@ -90,7 +90,7 @@ const artifacts = [
     ),
     document: {
       $id: "https://argus.dev/contracts/functional-api-repair-validation-result/v1/schema.json",
-      ...JSONSchema.make(FunctionalAPIRepairValidationResultV1, { target: "jsonSchema2020-12" }),
+      ...compileJsonSchema(FunctionalAPIRepairValidationResultV1),
     },
   },
   {
@@ -101,7 +101,7 @@ const artifacts = [
     ),
     document: {
       $id: "https://argus.dev/contracts/validation-evidence/v1/schema.json",
-      ...JSONSchema.make(ValidationEvidenceV1, { target: "jsonSchema2020-12" }),
+      ...compileJsonSchema(ValidationEvidenceV1),
     },
   },
   {
@@ -112,7 +112,7 @@ const artifacts = [
     ),
     document: {
       $id: "https://argus.dev/contracts/functional-api-adaptation-request/v1/schema.json",
-      ...JSONSchema.make(FunctionalAPIAdaptationRequestV1, { target: "jsonSchema2020-12" }),
+      ...compileJsonSchema(FunctionalAPIAdaptationRequestV1),
     },
   },
   {
@@ -123,7 +123,7 @@ const artifacts = [
     ),
     document: {
       $id: "https://argus.dev/contracts/functional-api-adaptation-result/v1/schema.json",
-      ...JSONSchema.make(FunctionalAPIAdaptationResultV1, { target: "jsonSchema2020-12" }),
+      ...compileJsonSchema(FunctionalAPIAdaptationResultV1),
     },
   },
   {
@@ -134,7 +134,7 @@ const artifacts = [
     ),
     document: {
       $id: "https://argus.dev/contracts/adaptation-proposal/v1/schema.json",
-      ...JSONSchema.make(AdaptationProposalV1, { target: "jsonSchema2020-12" }),
+      ...compileJsonSchema(AdaptationProposalV1),
     },
   },
   {
@@ -145,7 +145,7 @@ const artifacts = [
     ),
     document: {
       $id: "https://argus.dev/contracts/execution-plan-attempt-bindings/v1/schema.json",
-      ...JSONSchema.make(ExecutionPlanAttemptBindingsV1, { target: "jsonSchema2020-12" }),
+      ...compileJsonSchema(ExecutionPlanAttemptBindingsV1),
     },
   },
   {
@@ -156,7 +156,7 @@ const artifacts = [
     ),
     document: {
       $id: "https://argus.dev/contracts/selection-plan-shadow-report/v1/schema.json",
-      ...JSONSchema.make(SelectionPlanShadowReportV1, { target: "jsonSchema2020-12" }),
+      ...compileJsonSchema(SelectionPlanShadowReportV1),
     },
   },
   {
@@ -167,7 +167,7 @@ const artifacts = [
     ),
     document: {
       $id: "https://argus.dev/contracts/functional-api-execution-bindings/v1/schema.json",
-      ...JSONSchema.make(FunctionalAPIExecutionBindingsV1, { target: "jsonSchema2020-12" }),
+      ...compileJsonSchema(FunctionalAPIExecutionBindingsV1),
     },
   },
   {
@@ -178,7 +178,7 @@ const artifacts = [
     ),
     document: {
       $id: "https://argus.dev/contracts/functional-api-execution-plan/v1/schema.json",
-      ...JSONSchema.make(FunctionalAPIExecutionPlanV1, { target: "jsonSchema2020-12" }),
+      ...compileJsonSchema(FunctionalAPIExecutionPlanV1),
     },
   },
   {
@@ -189,7 +189,7 @@ const artifacts = [
     ),
     document: {
       $id: "https://argus.dev/contracts/selection-shadow-report/v1/schema.json",
-      ...JSONSchema.make(SelectionShadowReportV1, { target: "jsonSchema2020-12" }),
+      ...compileJsonSchema(SelectionShadowReportV1),
     },
   },
   {
@@ -200,7 +200,7 @@ const artifacts = [
     ),
     document: {
       $id: "https://argus.dev/contracts/functional-api-adapter-request/v1/schema.json",
-      ...JSONSchema.make(FunctionalAPIAdapterRequestV1, { target: "jsonSchema2020-12" }),
+      ...compileJsonSchema(FunctionalAPIAdapterRequestV1),
     },
   },
   {
@@ -211,7 +211,7 @@ const artifacts = [
     ),
     document: {
       $id: "https://argus.dev/contracts/functional-api-adapter-result/v1/schema.json",
-      ...JSONSchema.make(FunctionalAPIAdapterResultV1, { target: "jsonSchema2020-12" }),
+      ...compileJsonSchema(FunctionalAPIAdapterResultV1),
     },
   },
   {
@@ -222,7 +222,7 @@ const artifacts = [
     ),
     document: {
       $id: "https://argus.dev/contracts/execution-attempt/v1/schema.json",
-      ...JSONSchema.make(ExecutionAttemptV1, { target: "jsonSchema2020-12" }),
+      ...compileJsonSchema(ExecutionAttemptV1),
     },
   },
   {
@@ -233,7 +233,7 @@ const artifacts = [
     ),
     document: {
       $id: "https://argus.dev/contracts/execution-manifest/v1/schema.json",
-      ...JSONSchema.make(ExecutionManifestV1, { target: "jsonSchema2020-12" }),
+      ...compileJsonSchema(ExecutionManifestV1),
     },
   },
   {
@@ -244,7 +244,7 @@ const artifacts = [
     ),
     document: {
       $id: "https://argus.dev/contracts/execution-manifest/v2/schema.json",
-      ...JSONSchema.make(ExecutionManifestV2, { target: "jsonSchema2020-12" }),
+      ...compileJsonSchema(ExecutionManifestV2),
     },
   },
   {
@@ -255,7 +255,7 @@ const artifacts = [
     ),
     document: {
       $id: "https://argus.dev/contracts/execution-manifest/v3/schema.json",
-      ...JSONSchema.make(ExecutionManifestV3, { target: "jsonSchema2020-12" }),
+      ...compileJsonSchema(ExecutionManifestV3),
     },
   },
   {
@@ -266,7 +266,7 @@ const artifacts = [
     ),
     document: {
       $id: "https://argus.dev/contracts/capability-impact/v1/schema.json",
-      ...JSONSchema.make(CapabilityImpactV1, { target: "jsonSchema2020-12" }),
+      ...compileJsonSchema(CapabilityImpactV1),
     },
   },
   {
@@ -274,7 +274,7 @@ const artifacts = [
     outputPath: new URL("../generated/change-set/v1/change-set.schema.json", import.meta.url),
     document: {
       $id: "https://argus.dev/contracts/change-set/v1/schema.json",
-      ...JSONSchema.make(ChangeSetV1, { target: "jsonSchema2020-12" }),
+      ...compileJsonSchema(ChangeSetV1),
     },
   },
   {
@@ -285,7 +285,7 @@ const artifacts = [
     ),
     document: {
       $id: "https://argus.dev/contracts/repository-descriptor/v1/schema.json",
-      ...JSONSchema.make(RepositoryDescriptorV1, { target: "jsonSchema2020-12" }),
+      ...compileJsonSchema(RepositoryDescriptorV1),
     },
   },
   {
@@ -296,7 +296,7 @@ const artifacts = [
     ),
     document: {
       $id: "https://argus.dev/contracts/test-catalog-page/v1/schema.json",
-      ...JSONSchema.make(TestCatalogPageV1, { target: "jsonSchema2020-12" }),
+      ...compileJsonSchema(TestCatalogPageV1),
     },
   },
   {
@@ -307,7 +307,7 @@ const artifacts = [
     ),
     document: {
       $id: "https://argus.dev/contracts/impact-evidence-bundle/v1/schema.json",
-      ...JSONSchema.make(ImpactEvidenceBundleV1, { target: "jsonSchema2020-12" }),
+      ...compileJsonSchema(ImpactEvidenceBundleV1),
     },
   },
   {
@@ -318,7 +318,7 @@ const artifacts = [
     ),
     document: {
       $id: "https://argus.dev/contracts/impact-edge-page/v1/schema.json",
-      ...JSONSchema.make(ImpactEdgePageV1, { target: "jsonSchema2020-12" }),
+      ...compileJsonSchema(ImpactEdgePageV1),
     },
   },
 ] as const;

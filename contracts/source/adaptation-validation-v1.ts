@@ -1,29 +1,29 @@
 import { Schema } from "effect";
-
 import { AdaptationTestReference, AdaptationTextEdit } from "./adaptation-v1.js";
 import { LocalKey } from "./repository-descriptor-v1.js";
+import { Timestamp } from "./timestamp.js";
 
-const SHA256 = Schema.String.pipe(Schema.pattern(/^[0-9a-f]{64}$/));
-const Version = Schema.String.pipe(Schema.minLength(1), Schema.maxLength(127));
-const SourcePath = Schema.String.pipe(
-  Schema.minLength(1),
-  Schema.maxLength(4096),
-  Schema.pattern(/^[^/\\][^\\]*$/),
+const SHA256 = Schema.String.check(Schema.isPattern(/^[0-9a-f]{64}$/u));
+const Version = Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(127));
+const SourcePath = Schema.String.check(
+  Schema.isMinLength(1),
+  Schema.isMaxLength(4096),
+  Schema.isPattern(/^[^/\\][^\\]*$/u),
 );
-const Phase = Schema.Literal("original", "candidate", "negative-control");
+const Phase = Schema.Literals(["original", "candidate", "negative-control"]);
 const Failure = Schema.Struct({
   code: LocalKey,
-  message: Schema.String.pipe(Schema.minLength(1), Schema.maxLength(2000)),
+  message: Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(2000)),
 });
 
 export const FunctionalAPIRepairValidationRequestV1 = Schema.Struct({
-  apiVersion: Schema.Literal("argus.dev/functional-api-repair-validation-request/v1"),
+  apiVersion: Schema.Literals(["argus.dev/functional-api-repair-validation-request/v1"]),
   validationId: SHA256,
   proposalId: SHA256,
   phase: Phase,
   test: AdaptationTestReference,
   sourceSha256: SHA256,
-}).annotations({
+}).annotate({
   identifier: "FunctionalAPIRepairValidationRequestV1",
   title: "Argus functional API repair validation request v1",
   description:
@@ -31,7 +31,7 @@ export const FunctionalAPIRepairValidationRequestV1 = Schema.Struct({
 });
 
 export const FunctionalAPIRepairValidationResultV1 = Schema.Struct({
-  apiVersion: Schema.Literal("argus.dev/functional-api-repair-validation-result/v1"),
+  apiVersion: Schema.Literals(["argus.dev/functional-api-repair-validation-result/v1"]),
   validationId: SHA256,
   proposalId: SHA256,
   phase: Phase,
@@ -39,11 +39,11 @@ export const FunctionalAPIRepairValidationResultV1 = Schema.Struct({
   testKey: LocalKey,
   adapter: Schema.Struct({ id: LocalKey, version: Version }),
   sourceSha256: SHA256,
-  startedAt: Schema.DateTimeUtc,
-  completedAt: Schema.DateTimeUtc,
-  outcome: Schema.Literal("passed", "failed", "error"),
+  startedAt: Timestamp,
+  completedAt: Timestamp,
+  outcome: Schema.Literals(["passed", "failed", "error"]),
   failure: Schema.NullOr(Failure),
-}).annotations({
+}).annotate({
   identifier: "FunctionalAPIRepairValidationResultV1",
   title: "Argus functional API repair validation result v1",
   description: "Normalized result for one exact adaptation validation phase.",
@@ -52,20 +52,20 @@ export const FunctionalAPIRepairValidationResultV1 = Schema.Struct({
 const ValidationRun = Schema.Struct({
   phase: Phase,
   sourceSha256: SHA256,
-  startedAt: Schema.DateTimeUtc,
-  completedAt: Schema.DateTimeUtc,
-  outcome: Schema.Literal("passed", "failed"),
+  startedAt: Timestamp,
+  completedAt: Timestamp,
+  outcome: Schema.Literals(["passed", "failed"]),
   failure: Schema.NullOr(Failure),
 });
 
 export const ValidationEvidenceV1 = Schema.Struct({
-  apiVersion: Schema.Literal("argus.dev/validation-evidence/v1"),
-  policyVersion: Schema.Literal("argus.dev/validation-policy/functional-api-endpoint-rename/v1"),
+  apiVersion: Schema.Literals(["argus.dev/validation-evidence/v1"]),
+  policyVersion: Schema.Literals(["argus.dev/validation-policy/functional-api-endpoint-rename/v1"]),
   validationId: SHA256,
   proposalId: SHA256,
-  proposalPolicyVersion: Schema.Literal(
+  proposalPolicyVersion: Schema.Literals([
     "argus.dev/adaptation-policy/functional-api-endpoint-rename/v1",
-  ),
+  ]),
   test: AdaptationTestReference,
   adapter: Schema.Struct({ id: LocalKey, version: Version }),
   edit: AdaptationTextEdit,
@@ -75,14 +75,14 @@ export const ValidationEvidenceV1 = Schema.Struct({
     candidateSha256: SHA256,
     negativeSha256: SHA256,
     restoredSha256: SHA256,
-    negativeControlPath: Schema.String.pipe(
-      Schema.minLength(1),
-      Schema.maxLength(2048),
-      Schema.pattern(/^\/__argus_negative_control__\//),
+    negativeControlPath: Schema.String.check(
+      Schema.isMinLength(1),
+      Schema.isMaxLength(2048),
+      Schema.isPattern(/^\/__argus_negative_control__\//u),
     ),
   }),
-  runs: Schema.Array(ValidationRun).pipe(Schema.minItems(3), Schema.maxItems(3)),
-}).annotations({
+  runs: Schema.Array(ValidationRun).check(Schema.isMinLength(3), Schema.isMaxLength(3)),
+}).annotate({
   identifier: "ValidationEvidenceV1",
   title: "Argus validation evidence v1",
   description:
@@ -90,13 +90,13 @@ export const ValidationEvidenceV1 = Schema.Struct({
 });
 
 export const ValidationRejectionV1 = Schema.Struct({
-  apiVersion: Schema.Literal("argus.dev/validation-rejection/v1"),
-  policyVersion: Schema.Literal("argus.dev/validation-policy/functional-api-endpoint-rename/v1"),
+  apiVersion: Schema.Literals(["argus.dev/validation-rejection/v1"]),
+  policyVersion: Schema.Literals(["argus.dev/validation-policy/functional-api-endpoint-rename/v1"]),
   validationId: SHA256,
   proposalId: SHA256,
-  proposalPolicyVersion: Schema.Literal(
+  proposalPolicyVersion: Schema.Literals([
     "argus.dev/adaptation-policy/functional-api-endpoint-rename/v1",
-  ),
+  ]),
   test: AdaptationTestReference,
   adapter: Schema.Struct({ id: LocalKey, version: Version }),
   edit: AdaptationTextEdit,
@@ -106,20 +106,20 @@ export const ValidationRejectionV1 = Schema.Struct({
     candidateSha256: SHA256,
     negativeSha256: SHA256,
     restoredSha256: SHA256,
-    negativeControlPath: Schema.String.pipe(
-      Schema.minLength(1),
-      Schema.maxLength(2048),
-      Schema.pattern(/^\/__argus_negative_control__\//),
+    negativeControlPath: Schema.String.check(
+      Schema.isMinLength(1),
+      Schema.isMaxLength(2048),
+      Schema.isPattern(/^\/__argus_negative_control__\//u),
     ),
   }),
   rejection: Schema.Struct({
     phase: Phase,
-    reason: Schema.Literal("original-passed", "candidate-failed", "negative-control-passed"),
-    expectedOutcome: Schema.Literal("passed", "failed"),
-    actualOutcome: Schema.Literal("passed", "failed"),
+    reason: Schema.Literals(["original-passed", "candidate-failed", "negative-control-passed"]),
+    expectedOutcome: Schema.Literals(["passed", "failed"]),
+    actualOutcome: Schema.Literals(["passed", "failed"]),
   }),
-  runs: Schema.Array(ValidationRun).pipe(Schema.minItems(1), Schema.maxItems(3)),
-}).annotations({
+  runs: Schema.Array(ValidationRun).check(Schema.isMinLength(1), Schema.isMaxLength(3)),
+}).annotate({
   identifier: "ValidationRejectionV1",
   title: "Argus validation rejection v1",
   description:

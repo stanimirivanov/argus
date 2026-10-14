@@ -13,10 +13,10 @@ test("bindings schema accepts a heterogeneous binding document", async () => {
   const input = await readFixture(
     "fixtures/functional-api-execution-bindings/v1/valid/heterogeneous.json",
   );
-  const decode = Schema.decodeUnknownEither(FunctionalAPIExecutionBindingsV1, {
+  const decode = Schema.decodeUnknownResult(FunctionalAPIExecutionBindingsV1, {
     onExcessProperty: "error",
   });
-  assert.equal(decode(input)._tag, "Right");
+  assert.equal(decode(input)._tag, "Success");
 });
 
 for (const [path, valid] of [
@@ -25,10 +25,10 @@ for (const [path, valid] of [
 ] as const) {
   test(`plan schema ${valid ? "accepts" : "rejects"} ${path}`, async () => {
     const input = await readFixture(path);
-    const decode = Schema.decodeUnknownEither(FunctionalAPIExecutionPlanV1, {
+    const decode = Schema.decodeUnknownResult(FunctionalAPIExecutionPlanV1, {
       onExcessProperty: "error",
     });
-    assert.equal(decode(input)._tag === "Right", valid);
+    assert.equal(decode(input)._tag === "Success", valid);
   });
 }
 

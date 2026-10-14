@@ -1,20 +1,20 @@
 import { Schema } from "effect";
-
 import { LocalKey, RepositoryReference } from "./repository-descriptor-v1.js";
 import { Revision } from "./test-catalog-page-v1.js";
+import { Timestamp } from "./timestamp.js";
 
-const PositiveInteger = Schema.Int.pipe(Schema.greaterThanOrEqualTo(1));
-const NonNegativeInteger = Schema.Int.pipe(Schema.greaterThanOrEqualTo(0));
-const RepositoryPath = Schema.String.pipe(Schema.minLength(1), Schema.maxLength(4096));
-const OperationPath = Schema.String.pipe(
-  Schema.minLength(1),
-  Schema.maxLength(2048),
-  Schema.pattern(/^\//),
+const PositiveInteger = Schema.Int.check(Schema.isGreaterThanOrEqualTo(1));
+const NonNegativeInteger = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0));
+const RepositoryPath = Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(4096));
+const OperationPath = Schema.String.check(
+  Schema.isMinLength(1),
+  Schema.isMaxLength(2048),
+  Schema.isPattern(/^\//u),
 );
-const ChangeKind = Schema.Literal("added", "modified", "removed");
+const ChangeKind = Schema.Literals(["added", "modified", "removed"]);
 
 const OperationImpact = Schema.Struct({
-  method: Schema.Literal(
+  method: Schema.Literals([
     "GET",
     "PUT",
     "POST",
@@ -24,13 +24,13 @@ const OperationImpact = Schema.Struct({
     "PATCH",
     "TRACE",
     "QUERY",
-  ),
+  ]),
   path: OperationPath,
-  operationId: Schema.NullOr(Schema.String.pipe(Schema.minLength(1), Schema.maxLength(255))),
+  operationId: Schema.NullOr(Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(255))),
   kind: ChangeKind,
-  capabilities: Schema.Array(LocalKey).pipe(Schema.maxItems(50)),
+  capabilities: Schema.Array(LocalKey).check(Schema.isMaxLength(50)),
   potentiallyBreaking: Schema.Boolean,
-}).annotations({
+}).annotate({
   identifier: "OperationImpact",
   description:
     "A semantically changed HTTP operation and its explicit repository-scoped capability mappings.",
@@ -42,34 +42,34 @@ const DocumentImpact = Schema.Struct({
   kind: ChangeKind,
   totalChanges: PositiveInteger,
   breakingChanges: NonNegativeInteger,
-  operations: Schema.Array(OperationImpact).pipe(Schema.maxItems(5000)),
-}).annotations({
+  operations: Schema.Array(OperationImpact).check(Schema.isMaxLength(5000)),
+}).annotate({
   identifier: "OpenAPIDocumentImpact",
   description: "Semantic summary and operation evidence for one changed OpenAPI document.",
 });
 
-export const CapabilityImpactV1APIVersion = Schema.Literal("argus.dev/capability-impact/v1");
+export const CapabilityImpactV1APIVersion = Schema.Literals(["argus.dev/capability-impact/v1"]);
 
 export const CapabilityImpactV1 = Schema.Struct({
   apiVersion: CapabilityImpactV1APIVersion,
-  analyzerVersion: Schema.Literal("argus-openapi/v1+libopenapi/v0.38.7"),
+  analyzerVersion: Schema.Literals(["argus-openapi/v1+libopenapi/v0.38.7"]),
   sourceRepository: RepositoryReference,
   pullRequest: Schema.Struct({ number: PositiveInteger }),
   baseRevision: Revision,
   headRevision: Revision,
-  observedAt: Schema.DateTimeUtc,
+  observedAt: Timestamp,
   trigger: Schema.Struct({
-    provider: Schema.Literal("github"),
-    deliveryId: Schema.String.pipe(Schema.minLength(1), Schema.maxLength(255)),
-    event: Schema.Literal("pull_request"),
-    action: Schema.Literal("opened", "reopened", "synchronize", "ready_for_review"),
+    provider: Schema.Literals(["github"]),
+    deliveryId: Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(255)),
+    event: Schema.Literals(["pull_request"]),
+    action: Schema.Literals(["opened", "reopened", "synchronize", "ready_for_review"]),
   }),
-  status: Schema.Literal("complete", "partial"),
-  documents: Schema.Array(DocumentImpact).pipe(Schema.maxItems(50)),
-  warnings: Schema.Array(Schema.String.pipe(Schema.minLength(1), Schema.maxLength(512))).pipe(
-    Schema.maxItems(100),
+  status: Schema.Literals(["complete", "partial"]),
+  documents: Schema.Array(DocumentImpact).check(Schema.isMaxLength(50)),
+  warnings: Schema.Array(Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(512))).check(
+    Schema.isMaxLength(100),
   ),
-}).annotations({
+}).annotate({
   identifier: "CapabilityImpactV1",
   title: "Argus capability impact v1",
   description:

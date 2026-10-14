@@ -1,62 +1,155 @@
 {
   "$id": "https://argus.dev/contracts/validation-rejection/v1/schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$ref": "#/$defs/ValidationRejectionV1",
   "$defs": {
-    "ValidationRejectionV1": {
+    "RepositoryReference": {
       "type": "object",
-      "required": [
-        "apiVersion",
-        "policyVersion",
-        "validationId",
-        "proposalId",
-        "proposalPolicyVersion",
-        "test",
-        "adapter",
-        "edit",
-        "source",
-        "rejection",
-        "runs"
-      ],
       "properties": {
-        "apiVersion": {
+        "provider": {
           "type": "string",
           "enum": [
-            "argus.dev/validation-rejection/v1"
+            "github",
+            "gitlab",
+            "azure-devops",
+            "other"
+          ]
+        },
+        "host": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "pattern": "^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$"
+        },
+        "providerRepositoryId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "owner": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        }
+      },
+      "required": [
+        "provider",
+        "host",
+        "providerRepositoryId",
+        "owner",
+        "name"
+      ],
+      "additionalProperties": false,
+      "description": "A repository reference anchored by the provider-assigned identity; owner and name are mutable display coordinates."
+    },
+    "Revision": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "algorithm": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "git-sha1"
+                  ]
+                }
+              ]
+            },
+            "digest": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            }
+          },
+          "required": [
+            "algorithm",
+            "digest"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "algorithm": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "git-sha256"
+                  ]
+                }
+              ]
+            },
+            "digest": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          "required": [
+            "algorithm",
+            "digest"
+          ],
+          "additionalProperties": false
+        }
+      ],
+      "description": "An immutable, normalized Git object revision."
+    },
+    "LocalKey": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 63,
+      "pattern": "^[a-z][a-z0-9._-]*$",
+      "description": "A stable, repository-declared key. It is scoped by its containing repository or parent declaration."
+    },
+    "ValidationRejectionV1": {
+      "type": "object",
+      "properties": {
+        "apiVersion": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "argus.dev/validation-rejection/v1"
+              ]
+            }
           ]
         },
         "policyVersion": {
-          "type": "string",
-          "enum": [
-            "argus.dev/validation-policy/functional-api-endpoint-rename/v1"
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "argus.dev/validation-policy/functional-api-endpoint-rename/v1"
+              ]
+            }
           ]
         },
         "validationId": {
           "type": "string",
-          "description": "a string matching the pattern ^[0-9a-f]{64}$",
           "pattern": "^[0-9a-f]{64}$"
         },
         "proposalId": {
           "type": "string",
-          "description": "a string matching the pattern ^[0-9a-f]{64}$",
           "pattern": "^[0-9a-f]{64}$"
         },
         "proposalPolicyVersion": {
-          "type": "string",
-          "enum": [
-            "argus.dev/adaptation-policy/functional-api-endpoint-rename/v1"
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "argus.dev/adaptation-policy/functional-api-endpoint-rename/v1"
+              ]
+            }
           ]
         },
         "test": {
           "type": "object",
-          "required": [
-            "repository",
-            "revision",
-            "suiteKey",
-            "testKey",
-            "name",
-            "adapter",
-            "capabilities"
-          ],
           "properties": {
             "repository": {
               "$ref": "#/$defs/RepositoryReference"
@@ -72,8 +165,6 @@
             },
             "name": {
               "type": "string",
-              "description": "a string at most 255 character(s) long",
-              "title": "maxLength(255)",
               "minLength": 1,
               "maxLength": 255
             },
@@ -85,36 +176,83 @@
               "items": {
                 "$ref": "#/$defs/LocalKey"
               },
-              "description": "an array of at most 5000 item(s)",
-              "title": "maxItems(5000)",
               "minItems": 1,
               "maxItems": 5000
             }
           },
+          "required": [
+            "repository",
+            "revision",
+            "suiteKey",
+            "testKey",
+            "name",
+            "adapter",
+            "capabilities"
+          ],
           "additionalProperties": false
         },
         "adapter": {
           "type": "object",
-          "required": [
-            "id",
-            "version"
-          ],
           "properties": {
             "id": {
               "$ref": "#/$defs/LocalKey"
             },
             "version": {
               "type": "string",
-              "description": "a string at most 127 character(s) long",
-              "title": "maxLength(127)",
               "minLength": 1,
               "maxLength": 127
             }
           },
+          "required": [
+            "id",
+            "version"
+          ],
           "additionalProperties": false
         },
         "edit": {
           "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096,
+              "pattern": "^[^/\\\\][^\\\\]*$"
+            },
+            "beforeSha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "startByte": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "endByte": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "original": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2048,
+              "pattern": "^\\/"
+            },
+            "replacement": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2048,
+              "pattern": "^\\/"
+            },
+            "semanticRole": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "request-target"
+                  ]
+                }
+              ]
+            }
+          },
           "required": [
             "path",
             "beforeSha256",
@@ -124,59 +262,40 @@
             "replacement",
             "semanticRole"
           ],
-          "properties": {
-            "path": {
-              "type": "string",
-              "description": "a string matching the pattern ^[^/\\\\][^\\\\]*$",
-              "title": "maxLength(4096)",
-              "minLength": 1,
-              "maxLength": 4096,
-              "pattern": "^[^/\\\\][^\\\\]*$"
-            },
-            "beforeSha256": {
-              "type": "string",
-              "description": "a string matching the pattern ^[0-9a-f]{64}$",
-              "pattern": "^[0-9a-f]{64}$"
-            },
-            "startByte": {
-              "$ref": "#/$defs/Int",
-              "description": "a non-negative number",
-              "title": "greaterThanOrEqualTo(0)",
-              "minimum": 0
-            },
-            "endByte": {
-              "$ref": "#/$defs/Int",
-              "description": "a non-negative number",
-              "title": "greaterThanOrEqualTo(0)",
-              "minimum": 0
-            },
-            "original": {
-              "type": "string",
-              "description": "a string matching the pattern ^\\/",
-              "title": "maxLength(2048)",
-              "minLength": 1,
-              "maxLength": 2048,
-              "pattern": "^\\/"
-            },
-            "replacement": {
-              "type": "string",
-              "description": "a string matching the pattern ^\\/",
-              "title": "maxLength(2048)",
-              "minLength": 1,
-              "maxLength": 2048,
-              "pattern": "^\\/"
-            },
-            "semanticRole": {
-              "type": "string",
-              "enum": [
-                "request-target"
-              ]
-            }
-          },
           "additionalProperties": false
         },
         "source": {
           "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096,
+              "pattern": "^[^/\\\\][^\\\\]*$"
+            },
+            "originalSha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "candidateSha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "negativeSha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "restoredSha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "negativeControlPath": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2048,
+              "pattern": "^\\/__argus_negative_control__\\/"
+            }
+          },
           "required": [
             "path",
             "originalSha256",
@@ -185,54 +304,10 @@
             "restoredSha256",
             "negativeControlPath"
           ],
-          "properties": {
-            "path": {
-              "type": "string",
-              "description": "a string matching the pattern ^[^/\\\\][^\\\\]*$",
-              "title": "maxLength(4096)",
-              "minLength": 1,
-              "maxLength": 4096,
-              "pattern": "^[^/\\\\][^\\\\]*$"
-            },
-            "originalSha256": {
-              "type": "string",
-              "description": "a string matching the pattern ^[0-9a-f]{64}$",
-              "pattern": "^[0-9a-f]{64}$"
-            },
-            "candidateSha256": {
-              "type": "string",
-              "description": "a string matching the pattern ^[0-9a-f]{64}$",
-              "pattern": "^[0-9a-f]{64}$"
-            },
-            "negativeSha256": {
-              "type": "string",
-              "description": "a string matching the pattern ^[0-9a-f]{64}$",
-              "pattern": "^[0-9a-f]{64}$"
-            },
-            "restoredSha256": {
-              "type": "string",
-              "description": "a string matching the pattern ^[0-9a-f]{64}$",
-              "pattern": "^[0-9a-f]{64}$"
-            },
-            "negativeControlPath": {
-              "type": "string",
-              "description": "a string matching the pattern ^\\/__argus_negative_control__\\/",
-              "title": "maxLength(2048)",
-              "minLength": 1,
-              "maxLength": 2048,
-              "pattern": "^\\/__argus_negative_control__\\/"
-            }
-          },
           "additionalProperties": false
         },
         "rejection": {
           "type": "object",
-          "required": [
-            "phase",
-            "reason",
-            "expectedOutcome",
-            "actualOutcome"
-          ],
           "properties": {
             "phase": {
               "type": "string",
@@ -265,20 +340,18 @@
               ]
             }
           },
+          "required": [
+            "phase",
+            "reason",
+            "expectedOutcome",
+            "actualOutcome"
+          ],
           "additionalProperties": false
         },
         "runs": {
           "type": "array",
           "items": {
             "type": "object",
-            "required": [
-              "phase",
-              "sourceSha256",
-              "startedAt",
-              "completedAt",
-              "outcome",
-              "failure"
-            ],
             "properties": {
               "phase": {
                 "type": "string",
@@ -290,14 +363,13 @@
               },
               "sourceSha256": {
                 "type": "string",
-                "description": "a string matching the pattern ^[0-9a-f]{64}$",
                 "pattern": "^[0-9a-f]{64}$"
               },
               "startedAt": {
-                "$ref": "#/$defs/DateTimeUtc"
+                "type": "string"
               },
               "completedAt": {
-                "$ref": "#/$defs/DateTimeUtc"
+                "type": "string"
               },
               "outcome": {
                 "type": "string",
@@ -310,22 +382,20 @@
                 "anyOf": [
                   {
                     "type": "object",
-                    "required": [
-                      "code",
-                      "message"
-                    ],
                     "properties": {
                       "code": {
                         "$ref": "#/$defs/LocalKey"
                       },
                       "message": {
                         "type": "string",
-                        "description": "a string at most 2000 character(s) long",
-                        "title": "maxLength(2000)",
                         "minLength": 1,
                         "maxLength": 2000
                       }
                     },
+                    "required": [
+                      "code",
+                      "message"
+                    ],
                     "additionalProperties": false
                   },
                   {
@@ -334,134 +404,36 @@
                 ]
               }
             },
+            "required": [
+              "phase",
+              "sourceSha256",
+              "startedAt",
+              "completedAt",
+              "outcome",
+              "failure"
+            ],
             "additionalProperties": false
           },
-          "description": "an array of at most 3 item(s)",
-          "title": "maxItems(3)",
           "minItems": 1,
           "maxItems": 3
         }
       },
-      "additionalProperties": false,
-      "description": "A trustworthy completed validation prefix that disproves a repair candidate without treating infrastructure errors as policy evidence.",
-      "title": "Argus validation rejection v1"
-    },
-    "RepositoryReference": {
-      "type": "object",
       "required": [
-        "provider",
-        "host",
-        "providerRepositoryId",
-        "owner",
-        "name"
+        "apiVersion",
+        "policyVersion",
+        "validationId",
+        "proposalId",
+        "proposalPolicyVersion",
+        "test",
+        "adapter",
+        "edit",
+        "source",
+        "rejection",
+        "runs"
       ],
-      "properties": {
-        "provider": {
-          "type": "string",
-          "enum": [
-            "github",
-            "gitlab",
-            "azure-devops",
-            "other"
-          ]
-        },
-        "host": {
-          "type": "string",
-          "description": "a string matching the pattern ^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$",
-          "title": "maxLength(255)",
-          "minLength": 1,
-          "maxLength": 255,
-          "pattern": "^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$"
-        },
-        "providerRepositoryId": {
-          "type": "string",
-          "description": "a string at most 255 character(s) long",
-          "title": "maxLength(255)",
-          "minLength": 1,
-          "maxLength": 255
-        },
-        "owner": {
-          "type": "string",
-          "description": "a string at most 255 character(s) long",
-          "title": "maxLength(255)",
-          "minLength": 1,
-          "maxLength": 255
-        },
-        "name": {
-          "type": "string",
-          "description": "a string at most 255 character(s) long",
-          "title": "maxLength(255)",
-          "minLength": 1,
-          "maxLength": 255
-        }
-      },
       "additionalProperties": false,
-      "description": "A repository reference anchored by the provider-assigned identity; owner and name are mutable display coordinates."
-    },
-    "Revision": {
-      "anyOf": [
-        {
-          "type": "object",
-          "required": [
-            "algorithm",
-            "digest"
-          ],
-          "properties": {
-            "algorithm": {
-              "type": "string",
-              "enum": [
-                "git-sha1"
-              ]
-            },
-            "digest": {
-              "type": "string",
-              "description": "a string matching the pattern ^[0-9a-f]{40}$",
-              "pattern": "^[0-9a-f]{40}$"
-            }
-          },
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "required": [
-            "algorithm",
-            "digest"
-          ],
-          "properties": {
-            "algorithm": {
-              "type": "string",
-              "enum": [
-                "git-sha256"
-              ]
-            },
-            "digest": {
-              "type": "string",
-              "description": "a string matching the pattern ^[0-9a-f]{64}$",
-              "pattern": "^[0-9a-f]{64}$"
-            }
-          },
-          "additionalProperties": false
-        }
-      ],
-      "description": "An immutable, normalized Git object revision."
-    },
-    "LocalKey": {
-      "type": "string",
-      "description": "A stable, repository-declared key. It is scoped by its containing repository or parent declaration.",
-      "title": "maxLength(63)",
-      "minLength": 1,
-      "maxLength": 63,
-      "pattern": "^[a-z][a-z0-9._-]*$"
-    },
-    "Int": {
-      "type": "integer",
-      "description": "an integer",
-      "title": "int"
-    },
-    "DateTimeUtc": {
-      "type": "string",
-      "description": "a string to be decoded into a DateTime.Utc"
+      "title": "Argus validation rejection v1",
+      "description": "A trustworthy completed validation prefix that disproves a repair candidate without treating infrastructure errors as policy evidence."
     }
-  },
-  "$ref": "#/$defs/ValidationRejectionV1"
+  }
 }

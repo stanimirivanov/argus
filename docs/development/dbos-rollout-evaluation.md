@@ -10,6 +10,13 @@
 
 ## Version and evidence ownership
 
+The current dependency pin is SDK v1.6.0 and runtime startup requires schema
+123. Drain any SDK 1.5/schema 121 work with its exact old binary before running
+the explicit migration from this build. The default path remains synchronous;
+upgrading the dependency does not approve production adoption. The matrix now
+uses an isolated historical-worker overlay for 121, not a current-worker
+overlay for 123. See [ADR-0029](../decisions/0029-migrate-stable-contract-toolchain-without-wire-changes.md).
+
 The webhook response remains synchronous and is acknowledged only after Argus's immutable change and impact evidence is present. Those Argus tables remain the business source of truth. The `argus_dbos_eval` schema contains execution checkpoints, not replacement business evidence. Its migration history is owned by the pinned DBOS library and is deliberately separate from Argus's checksummed SQL ledger during the evaluation.
 
 By default DBOS computes its application version from the executable and application name. Its launch recovery selects pending workflows for the current application version. This is useful isolation during a mixed-version rollout, but it means replacing every old worker at once can strand unfinished old-version workflows. The `DBOS__APPVERSION` override is used only by the isolated test to emulate two releases; it is not an operator shortcut for relabeling a new executable as an old version. Doing so could replay old steps under incompatible code.

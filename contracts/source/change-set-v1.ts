@@ -1,25 +1,31 @@
 import { Schema } from "effect";
-
 import { RepositoryReference } from "./repository-descriptor-v1.js";
 import { Revision } from "./test-catalog-page-v1.js";
+import { Timestamp } from "./timestamp.js";
 
-const PositiveInteger = Schema.Int.pipe(Schema.greaterThanOrEqualTo(1));
-const NonNegativeInteger = Schema.Int.pipe(Schema.greaterThanOrEqualTo(0));
-const RepositoryPath = Schema.String.pipe(
-  Schema.minLength(1),
-  Schema.maxLength(4096),
-  Schema.pattern(/^[^/\\][^\\]*$/),
+const PositiveInteger = Schema.Int.check(Schema.isGreaterThanOrEqualTo(1));
+const NonNegativeInteger = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0));
+const RepositoryPath = Schema.String.check(
+  Schema.isMinLength(1),
+  Schema.isMaxLength(4096),
+  Schema.isPattern(/^[^/\\][^\\]*$/u),
 );
-const DeliveryID = Schema.String.pipe(Schema.minLength(1), Schema.maxLength(255));
-const Patch = Schema.String.pipe(Schema.maxLength(65536));
+const DeliveryID = Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(255));
+const Patch = Schema.String.check(Schema.isMaxLength(65536));
 
-export const FileChangeKind = Schema.Literal("added", "modified", "deleted", "renamed", "copied");
-export const PatchStatus = Schema.Literal(
+export const FileChangeKind = Schema.Literals([
+  "added",
+  "modified",
+  "deleted",
+  "renamed",
+  "copied",
+]);
+export const PatchStatus = Schema.Literals([
   "complete",
   "unavailable",
   "truncated",
   "budget-exhausted",
-);
+]);
 
 export const ChangeFile = Schema.Struct({
   path: RepositoryPath,
@@ -29,13 +35,13 @@ export const ChangeFile = Schema.Struct({
   deletions: NonNegativeInteger,
   patch: Schema.NullOr(Patch),
   patchStatus: PatchStatus,
-}).annotations({
+}).annotate({
   identifier: "ChangeFile",
   description:
     "One normalized repository-relative file change. Patch status distinguishes missing evidence from bounded evidence.",
 });
 
-export const ChangeSetV1APIVersion = Schema.Literal("argus.dev/change-set/v1");
+export const ChangeSetV1APIVersion = Schema.Literals(["argus.dev/change-set/v1"]);
 
 export const ChangeSetV1 = Schema.Struct({
   apiVersion: ChangeSetV1APIVersion,
@@ -45,16 +51,16 @@ export const ChangeSetV1 = Schema.Struct({
   }),
   baseRevision: Revision,
   headRevision: Revision,
-  observedAt: Schema.DateTimeUtc,
+  observedAt: Timestamp,
   trigger: Schema.Struct({
-    provider: Schema.Literal("github"),
+    provider: Schema.Literals(["github"]),
     deliveryId: DeliveryID,
-    event: Schema.Literal("pull_request"),
-    action: Schema.Literal("opened", "reopened", "synchronize", "ready_for_review"),
+    event: Schema.Literals(["pull_request"]),
+    action: Schema.Literals(["opened", "reopened", "synchronize", "ready_for_review"]),
   }),
-  files: Schema.Array(ChangeFile).pipe(Schema.maxItems(1000)),
+  files: Schema.Array(ChangeFile).check(Schema.isMaxLength(1000)),
   filesTruncated: Schema.Boolean,
-}).annotations({
+}).annotate({
   identifier: "ChangeSetV1",
   title: "Argus change set v1",
   description:

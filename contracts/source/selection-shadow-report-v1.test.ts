@@ -10,11 +10,11 @@ const cases = [
   ["accepts", "fixtures/selection-shadow-report/v1/valid/missed-failure.json", true],
   ["rejects", "fixtures/selection-shadow-report/v1/invalid/invalid-recall.json", false],
 ] as const;
-const decode = Schema.decodeUnknownEither(SelectionShadowReportV1, { onExcessProperty: "error" });
+const decode = Schema.decodeUnknownResult(SelectionShadowReportV1, { onExcessProperty: "error" });
 
 for (const [verb, path, valid] of cases) {
   test(`Effect Schema ${verb} ${path}`, async () => {
     const input: unknown = JSON.parse(await readFile(new URL(path, contractsRoot), "utf8"));
-    assert.equal(decode(input)._tag === "Right", valid);
+    assert.equal(decode(input)._tag === "Success", valid);
   });
 }

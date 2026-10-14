@@ -1,54 +1,147 @@
 {
   "$id": "https://argus.dev/contracts/selection-shadow-report/v1/schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$ref": "#/$defs/SelectionShadowReportV1",
   "$defs": {
-    "SelectionShadowReportV1": {
+    "RepositoryReference": {
       "type": "object",
-      "required": [
-        "apiVersion",
-        "manifest",
-        "testRepository",
-        "testRevision",
-        "adapter",
-        "selectedAttemptId",
-        "fullSuiteAttemptId",
-        "selectedTestCount",
-        "fullSuiteTestCount",
-        "selectedDurationMs",
-        "fullSuiteDurationMs",
-        "durationReductionMs",
-        "selectedFailureCount",
-        "fullSuiteFailureCount",
-        "caughtFullSuiteFailureCount",
-        "failureRecallBasisPoints",
-        "missedFailures"
-      ],
       "properties": {
-        "apiVersion": {
+        "provider": {
           "type": "string",
           "enum": [
-            "argus.dev/selection-shadow-report/v1"
+            "github",
+            "gitlab",
+            "azure-devops",
+            "other"
+          ]
+        },
+        "host": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "pattern": "^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$"
+        },
+        "providerRepositoryId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "owner": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        }
+      },
+      "required": [
+        "provider",
+        "host",
+        "providerRepositoryId",
+        "owner",
+        "name"
+      ],
+      "additionalProperties": false,
+      "description": "A repository reference anchored by the provider-assigned identity; owner and name are mutable display coordinates."
+    },
+    "Revision": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "algorithm": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "git-sha1"
+                  ]
+                }
+              ]
+            },
+            "digest": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            }
+          },
+          "required": [
+            "algorithm",
+            "digest"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "algorithm": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "git-sha256"
+                  ]
+                }
+              ]
+            },
+            "digest": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          "required": [
+            "algorithm",
+            "digest"
+          ],
+          "additionalProperties": false
+        }
+      ],
+      "description": "An immutable, normalized Git object revision."
+    },
+    "LocalKey": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 63,
+      "pattern": "^[a-z][a-z0-9._-]*$",
+      "description": "A stable, repository-declared key. It is scoped by its containing repository or parent declaration."
+    },
+    "SelectionShadowReportV1": {
+      "type": "object",
+      "properties": {
+        "apiVersion": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "argus.dev/selection-shadow-report/v1"
+              ]
+            }
           ]
         },
         "manifest": {
           "type": "object",
-          "required": [
-            "apiVersion",
-            "sha256"
-          ],
           "properties": {
             "apiVersion": {
-              "type": "string",
-              "enum": [
-                "argus.dev/execution-manifest/v1"
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "argus.dev/execution-manifest/v1"
+                  ]
+                }
               ]
             },
             "sha256": {
               "type": "string",
-              "description": "a string matching the pattern ^[0-9a-f]{64}$",
               "pattern": "^[0-9a-f]{64}$"
             }
           },
+          "required": [
+            "apiVersion",
+            "sha256"
+          ],
           "additionalProperties": false
         },
         "testRepository": {
@@ -59,102 +152,78 @@
         },
         "adapter": {
           "type": "object",
-          "required": [
-            "id",
-            "version"
-          ],
           "properties": {
             "id": {
               "$ref": "#/$defs/LocalKey"
             },
             "version": {
               "type": "string",
-              "description": "a string at most 127 character(s) long",
-              "title": "maxLength(127)",
               "minLength": 1,
               "maxLength": 127
             }
           },
+          "required": [
+            "id",
+            "version"
+          ],
           "additionalProperties": false
         },
         "selectedAttemptId": {
           "type": "string",
-          "description": "a string matching the pattern ^[A-Za-z0-9][A-Za-z0-9._:-]*$",
-          "title": "maxLength(127)",
           "minLength": 1,
           "maxLength": 127,
           "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
         },
         "fullSuiteAttemptId": {
           "type": "string",
-          "description": "a string matching the pattern ^[A-Za-z0-9][A-Za-z0-9._:-]*$",
-          "title": "maxLength(127)",
           "minLength": 1,
           "maxLength": 127,
           "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
         },
         "selectedTestCount": {
-          "$ref": "#/$defs/Int",
-          "description": "a number less than or equal to 10000",
-          "title": "lessThanOrEqualTo(10000)",
+          "type": "integer",
           "minimum": 0,
           "maximum": 10000
         },
         "fullSuiteTestCount": {
-          "$ref": "#/$defs/Int",
-          "description": "a number less than or equal to 10000",
-          "title": "lessThanOrEqualTo(10000)",
+          "type": "integer",
           "minimum": 0,
           "maximum": 10000
         },
         "selectedDurationMs": {
-          "$ref": "#/$defs/Int",
-          "description": "a number less than or equal to 864000000000",
-          "title": "lessThanOrEqualTo(864000000000)",
+          "type": "integer",
           "minimum": 0,
           "maximum": 864000000000
         },
         "fullSuiteDurationMs": {
-          "$ref": "#/$defs/Int",
-          "description": "a number less than or equal to 864000000000",
-          "title": "lessThanOrEqualTo(864000000000)",
+          "type": "integer",
           "minimum": 0,
           "maximum": 864000000000
         },
         "durationReductionMs": {
-          "$ref": "#/$defs/Int",
-          "description": "a number less than or equal to 864000000000",
-          "title": "lessThanOrEqualTo(864000000000)",
+          "type": "integer",
           "minimum": -864000000000,
           "maximum": 864000000000
         },
         "selectedFailureCount": {
-          "$ref": "#/$defs/Int",
-          "description": "a number less than or equal to 10000",
-          "title": "lessThanOrEqualTo(10000)",
+          "type": "integer",
           "minimum": 0,
           "maximum": 10000
         },
         "fullSuiteFailureCount": {
-          "$ref": "#/$defs/Int",
-          "description": "a number less than or equal to 10000",
-          "title": "lessThanOrEqualTo(10000)",
+          "type": "integer",
           "minimum": 0,
           "maximum": 10000
         },
         "caughtFullSuiteFailureCount": {
-          "$ref": "#/$defs/Int",
-          "description": "a number less than or equal to 10000",
-          "title": "lessThanOrEqualTo(10000)",
+          "type": "integer",
           "minimum": 0,
           "maximum": 10000
         },
         "failureRecallBasisPoints": {
           "anyOf": [
             {
-              "$ref": "#/$defs/Int",
-              "description": "a number less than or equal to 10000",
-              "title": "lessThanOrEqualTo(10000)",
+              "type": "integer",
               "minimum": 0,
               "maximum": 10000
             },
@@ -167,13 +236,6 @@
           "type": "array",
           "items": {
             "type": "object",
-            "required": [
-              "suiteKey",
-              "testKey",
-              "fullSuiteOutcome",
-              "selectedOutcome",
-              "reason"
-            ],
             "properties": {
               "suiteKey": {
                 "$ref": "#/$defs/LocalKey"
@@ -212,129 +274,40 @@
                 ]
               }
             },
+            "required": [
+              "suiteKey",
+              "testKey",
+              "fullSuiteOutcome",
+              "selectedOutcome",
+              "reason"
+            ],
             "additionalProperties": false
           },
-          "description": "an array of at most 10000 item(s)",
-          "title": "maxItems(10000)",
           "maxItems": 10000
         }
       },
-      "additionalProperties": false,
-      "description": "Deterministic selected-versus-full-suite duration and failure-recall evidence for two explicit attempts.",
-      "title": "Argus selection shadow report v1"
-    },
-    "RepositoryReference": {
-      "type": "object",
       "required": [
-        "provider",
-        "host",
-        "providerRepositoryId",
-        "owner",
-        "name"
+        "apiVersion",
+        "manifest",
+        "testRepository",
+        "testRevision",
+        "adapter",
+        "selectedAttemptId",
+        "fullSuiteAttemptId",
+        "selectedTestCount",
+        "fullSuiteTestCount",
+        "selectedDurationMs",
+        "fullSuiteDurationMs",
+        "durationReductionMs",
+        "selectedFailureCount",
+        "fullSuiteFailureCount",
+        "caughtFullSuiteFailureCount",
+        "failureRecallBasisPoints",
+        "missedFailures"
       ],
-      "properties": {
-        "provider": {
-          "type": "string",
-          "enum": [
-            "github",
-            "gitlab",
-            "azure-devops",
-            "other"
-          ]
-        },
-        "host": {
-          "type": "string",
-          "description": "a string matching the pattern ^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$",
-          "title": "maxLength(255)",
-          "minLength": 1,
-          "maxLength": 255,
-          "pattern": "^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$"
-        },
-        "providerRepositoryId": {
-          "type": "string",
-          "description": "a string at most 255 character(s) long",
-          "title": "maxLength(255)",
-          "minLength": 1,
-          "maxLength": 255
-        },
-        "owner": {
-          "type": "string",
-          "description": "a string at most 255 character(s) long",
-          "title": "maxLength(255)",
-          "minLength": 1,
-          "maxLength": 255
-        },
-        "name": {
-          "type": "string",
-          "description": "a string at most 255 character(s) long",
-          "title": "maxLength(255)",
-          "minLength": 1,
-          "maxLength": 255
-        }
-      },
       "additionalProperties": false,
-      "description": "A repository reference anchored by the provider-assigned identity; owner and name are mutable display coordinates."
-    },
-    "Revision": {
-      "anyOf": [
-        {
-          "type": "object",
-          "required": [
-            "algorithm",
-            "digest"
-          ],
-          "properties": {
-            "algorithm": {
-              "type": "string",
-              "enum": [
-                "git-sha1"
-              ]
-            },
-            "digest": {
-              "type": "string",
-              "description": "a string matching the pattern ^[0-9a-f]{40}$",
-              "pattern": "^[0-9a-f]{40}$"
-            }
-          },
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "required": [
-            "algorithm",
-            "digest"
-          ],
-          "properties": {
-            "algorithm": {
-              "type": "string",
-              "enum": [
-                "git-sha256"
-              ]
-            },
-            "digest": {
-              "type": "string",
-              "description": "a string matching the pattern ^[0-9a-f]{64}$",
-              "pattern": "^[0-9a-f]{64}$"
-            }
-          },
-          "additionalProperties": false
-        }
-      ],
-      "description": "An immutable, normalized Git object revision."
-    },
-    "LocalKey": {
-      "type": "string",
-      "description": "A stable, repository-declared key. It is scoped by its containing repository or parent declaration.",
-      "title": "maxLength(63)",
-      "minLength": 1,
-      "maxLength": 63,
-      "pattern": "^[a-z][a-z0-9._-]*$"
-    },
-    "Int": {
-      "type": "integer",
-      "description": "an integer",
-      "title": "int"
+      "title": "Argus selection shadow report v1",
+      "description": "Deterministic selected-versus-full-suite duration and failure-recall evidence for two explicit attempts."
     }
-  },
-  "$ref": "#/$defs/SelectionShadowReportV1"
+  }
 }

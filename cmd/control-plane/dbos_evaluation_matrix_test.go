@@ -32,10 +32,11 @@ func TestDBOSEvaluationCompatibility(t *testing.T) {
 	if oldBuild.BinarySHA256 == newBuild.BinarySHA256 {
 		t.Fatal("SDK matrix did not produce distinct executables")
 	}
-	harness := newDBOSWebhookHarness(t)
+	harness := newWebhookEvaluationHarness(t, false)
 	if err := harness.stop(); err != nil {
 		t.Fatalf("stop in-process setup runtime: %v", err)
 	}
+	prepareHistoricalEvaluationSchema(t, harness, oldBuild)
 	harness.provider.releaseFirstDocument()
 	body := webhookPayload(t, "synchronize")
 	const deliveryID = "dbos-sdk-old-interrupted"
@@ -135,6 +136,22 @@ func assertEvaluationWorkerRefused(t *testing.T, build evaluationBuild, configur
 	if err == nil || !strings.Contains(string(output), expected) {
 		t.Fatalf("SDK %s startup did not fail closed with %q: err=%v output=%s", build.SDK, expected, err, output)
 	}
+}
+
+// prepareHistoricalEvaluationSchema starts from Argus-only tables, never drops
+// current history, and lets the actual old SDK create its checkpoint schema.
+func prepareHistoricalEvaluationSchema(t *testing.T, harness *dbosWebhookHarness, oldBuild evaluationBuild) {
+	t.Helper()
+	harness.configuration["ARGUS_DBOS_EVALUATION"] = "true"
+	configuration := versionedWorkerConfig(harness.configuration, "")
+	delete(configuration, "DBOS__APPVERSION")
+	configuration["ARGUS_DBOS_MATRIX_MIGRATE"] = "true"
+	command := exec.CommandContext(t.Context(), oldBuild.executable, "-test.run=^TestDBOSCrashWorker$")
+	command.Env = dbosWorkerEnvironment(configuration)
+	if output, err := command.CombinedOutput(); err != nil {
+		t.Fatalf("prepare historical SDK schema: %v\n%s", err, output)
+	}
+	assertEvaluationLedger(t, harness, 121)
 }
 
 func assertEvaluationLedger(t *testing.T, harness *dbosWebhookHarness, want int) {

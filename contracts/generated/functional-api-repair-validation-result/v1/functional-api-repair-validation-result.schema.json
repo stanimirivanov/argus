@@ -1,38 +1,34 @@
 {
   "$id": "https://argus.dev/contracts/functional-api-repair-validation-result/v1/schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$ref": "#/$defs/FunctionalAPIRepairValidationResultV1",
   "$defs": {
+    "LocalKey": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 63,
+      "pattern": "^[a-z][a-z0-9._-]*$",
+      "description": "A stable, repository-declared key. It is scoped by its containing repository or parent declaration."
+    },
     "FunctionalAPIRepairValidationResultV1": {
       "type": "object",
-      "required": [
-        "apiVersion",
-        "validationId",
-        "proposalId",
-        "phase",
-        "suiteKey",
-        "testKey",
-        "adapter",
-        "sourceSha256",
-        "startedAt",
-        "completedAt",
-        "outcome",
-        "failure"
-      ],
       "properties": {
         "apiVersion": {
-          "type": "string",
-          "enum": [
-            "argus.dev/functional-api-repair-validation-result/v1"
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "argus.dev/functional-api-repair-validation-result/v1"
+              ]
+            }
           ]
         },
         "validationId": {
           "type": "string",
-          "description": "a string matching the pattern ^[0-9a-f]{64}$",
           "pattern": "^[0-9a-f]{64}$"
         },
         "proposalId": {
           "type": "string",
-          "description": "a string matching the pattern ^[0-9a-f]{64}$",
           "pattern": "^[0-9a-f]{64}$"
         },
         "phase": {
@@ -51,34 +47,31 @@
         },
         "adapter": {
           "type": "object",
-          "required": [
-            "id",
-            "version"
-          ],
           "properties": {
             "id": {
               "$ref": "#/$defs/LocalKey"
             },
             "version": {
               "type": "string",
-              "description": "a string at most 127 character(s) long",
-              "title": "maxLength(127)",
               "minLength": 1,
               "maxLength": 127
             }
           },
+          "required": [
+            "id",
+            "version"
+          ],
           "additionalProperties": false
         },
         "sourceSha256": {
           "type": "string",
-          "description": "a string matching the pattern ^[0-9a-f]{64}$",
           "pattern": "^[0-9a-f]{64}$"
         },
         "startedAt": {
-          "$ref": "#/$defs/DateTimeUtc"
+          "type": "string"
         },
         "completedAt": {
-          "$ref": "#/$defs/DateTimeUtc"
+          "type": "string"
         },
         "outcome": {
           "type": "string",
@@ -92,22 +85,20 @@
           "anyOf": [
             {
               "type": "object",
-              "required": [
-                "code",
-                "message"
-              ],
               "properties": {
                 "code": {
                   "$ref": "#/$defs/LocalKey"
                 },
                 "message": {
                   "type": "string",
-                  "description": "a string at most 2000 character(s) long",
-                  "title": "maxLength(2000)",
                   "minLength": 1,
                   "maxLength": 2000
                 }
               },
+              "required": [
+                "code",
+                "message"
+              ],
               "additionalProperties": false
             },
             {
@@ -116,22 +107,23 @@
           ]
         }
       },
+      "required": [
+        "apiVersion",
+        "validationId",
+        "proposalId",
+        "phase",
+        "suiteKey",
+        "testKey",
+        "adapter",
+        "sourceSha256",
+        "startedAt",
+        "completedAt",
+        "outcome",
+        "failure"
+      ],
       "additionalProperties": false,
-      "description": "Normalized result for one exact adaptation validation phase.",
-      "title": "Argus functional API repair validation result v1"
-    },
-    "LocalKey": {
-      "type": "string",
-      "description": "A stable, repository-declared key. It is scoped by its containing repository or parent declaration.",
-      "title": "maxLength(63)",
-      "minLength": 1,
-      "maxLength": 63,
-      "pattern": "^[a-z][a-z0-9._-]*$"
-    },
-    "DateTimeUtc": {
-      "type": "string",
-      "description": "a string to be decoded into a DateTime.Utc"
+      "title": "Argus functional API repair validation result v1",
+      "description": "Normalized result for one exact adaptation validation phase."
     }
-  },
-  "$ref": "#/$defs/FunctionalAPIRepairValidationResultV1"
+  }
 }
