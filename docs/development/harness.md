@@ -75,6 +75,7 @@ handoff.
 | `make docs-check` | Documentation shape and repository-local links satisfy mechanical policy | T1; checked-out repository and Go toolchain | Documentation architecture |
 | `make architecture-check` | Production packages follow the declared capability and hexagonal dependency matrix | T1; Go source tree | Architecture and relevant ADRs |
 | `make ci-policy-check` | CI job names, runner labels, and Make targets match the checked-in workflow policy | T1; offline Go tests | Repository governance and CI owners |
+| `go test ./tools/agent-harness` | Task policy validation, command selection, output recording, and failure diagnostics behave as specified | T1; offline Go tests | Agent harness and host integration owners |
 | `make check` | Generated contracts, formatting, type checking, static analysis, workflows, and module state are coherent | T1; bootstrapped Go and Node workspaces | Language, contract, and CI owners |
 | `make test` | Deterministic ordinary Go and TypeScript behavior passes without cached Go results | T1; bootstrapped workspaces | Changed capabilities |
 | `make verify` | Build, repository checks, and ordinary tests pass as the closed inner loop | T1; network-independent after bootstrap | Repository maintainers |
@@ -95,6 +96,15 @@ This detects accidental changes to status names, runners, and verification
 targets. Under the current manual merge workflow, the reviewer inspects the
 pull request's check results before merge. The repository check does not make
 GitHub reject a merge when a job fails or is absent.
+
+The [task-scoped agent runner](../../tools/agent-harness/README.md) accepts
+host-supplied audit or implementation profiles and records named offline Make
+checks for an agent's plan, execute, verify loop. Its path and host-state
+checks validate declarations, not the actual sandbox. The trusted agent host
+must enforce writable roots, network denial, credential isolation, and child
+process containment. Host integration and proof of those restrictions remain
+an M10 deployment follow-up. Repository acceptance still requires the normal
+applicable Make targets and review of their results.
 
 `make build` proves commands compile without writing repository artifacts.
 `make binaries` is the explicit artifact-producing target and writes ignored

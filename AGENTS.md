@@ -78,6 +78,11 @@ changes additionally follow the
 
 The [coding harness guide](docs/development/harness.md) maps repository guidance
 to its executable feedback sensors and verification tiers.
+For host-managed, task-scoped work, use the
+[agent harness runner](tools/agent-harness/README.md) to inspect the declared
+profile and record named offline checks. Its policy validation and limited
+child environment do not enforce filesystem or network isolation; the agent
+host owns those restrictions.
 
 ## Completion
 
