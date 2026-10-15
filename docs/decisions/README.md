@@ -128,3 +128,4 @@ How will the assumptions and consequences be verified?
 | [ADR-0027](0027-opt-in-browser-selection-from-declared-component-roots.md) | Opt in to browser selection from declared component roots | Proposed | 2026-10-03 |
 | [ADR-0028](0028-evaluate-embedded-dbos-workflows-for-change-processing.md) | Evaluate embedded DBOS workflows for change processing | Proposed | 2026-10-04 |
 | [ADR-0029](0029-migrate-stable-contract-toolchain-without-wire-changes.md) | Migrate the stable contract toolchain without wire changes | Proposed | 2026-10-13 |
+| [ADR-0030](0030-bind-reviewed-functional-api-policy-to-complete-head-inventory.md) | Bind reviewed functional API policy to complete head inventory | Proposed | 2026-10-15 |

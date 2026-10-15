@@ -337,6 +337,15 @@ slice. The
 OpenAPI browser manifest is a distinct v2 contract, while the opt-in
 component-root policy has v3. Neither changes v1 JSON or fallback semantics.
 
+The opt-in reviewed functional API policy consumes v2 composite impact,
+complete head test inventory from trusted CI, and owner-reviewed policy rules.
+It evaluates catalog edges at the change observation time and emits
+execution-manifest v4 with policy and inventory digests. Stale or conflicting
+affected mappings require a full-suite fallback. New or modified tests,
+must-run rules, and pins take precedence over early-stage exclusions; every
+omission remains in the full-suite control. The reference v4 execution adapter
+is the next M05 slice. See [ADR-0030](../decisions/0030-bind-reviewed-functional-api-policy-to-complete-head-inventory.md).
+
 ### Current functional API execution boundaries
 
 The second M05 slice consumes the manifest through an execution-owned process

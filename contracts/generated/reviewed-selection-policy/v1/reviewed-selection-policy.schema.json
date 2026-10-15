@@ -1,0 +1,153 @@
+{
+  "$id": "https://argus.dev/contracts/reviewed-selection-policy/v1/schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$ref": "#/$defs/ReviewedSelectionPolicyV1",
+  "$defs": {
+    "RepositoryIdentity": {
+      "type": "object",
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": [
+            "github",
+            "gitlab",
+            "azure-devops",
+            "other"
+          ]
+        },
+        "host": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "pattern": "^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$"
+        },
+        "providerRepositoryId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        }
+      },
+      "required": [
+        "provider",
+        "host",
+        "providerRepositoryId"
+      ],
+      "additionalProperties": false,
+      "description": "A repository identity that remains stable across ordinary renames and transfers."
+    },
+    "LocalKey": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 63,
+      "pattern": "^[a-z][a-z0-9._-]*$",
+      "description": "A stable, repository-declared key. It is scoped by its containing repository or parent declaration."
+    },
+    "ReviewedSelectionPolicyV1": {
+      "type": "object",
+      "properties": {
+        "apiVersion": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "argus.dev/reviewed-selection-policy/v1"
+              ]
+            }
+          ]
+        },
+        "sourceRepository": {
+          "$ref": "#/$defs/RepositoryIdentity"
+        },
+        "mustRunCapabilities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LocalKey"
+          },
+          "maxItems": 10000
+        },
+        "mustRunTests": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "testRepository": {
+                "$ref": "#/$defs/RepositoryIdentity"
+              },
+              "suiteKey": {
+                "$ref": "#/$defs/LocalKey"
+              },
+              "testKey": {
+                "$ref": "#/$defs/LocalKey"
+              }
+            },
+            "required": [
+              "testRepository",
+              "suiteKey",
+              "testKey"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 10000
+        },
+        "pins": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "testRepository": {
+                "$ref": "#/$defs/RepositoryIdentity"
+              },
+              "suiteKey": {
+                "$ref": "#/$defs/LocalKey"
+              },
+              "testKey": {
+                "$ref": "#/$defs/LocalKey"
+              }
+            },
+            "required": [
+              "testRepository",
+              "suiteKey",
+              "testKey"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 10000
+        },
+        "exclusions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "testRepository": {
+                "$ref": "#/$defs/RepositoryIdentity"
+              },
+              "suiteKey": {
+                "$ref": "#/$defs/LocalKey"
+              },
+              "testKey": {
+                "$ref": "#/$defs/LocalKey"
+              }
+            },
+            "required": [
+              "testRepository",
+              "suiteKey",
+              "testKey"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 10000
+        }
+      },
+      "required": [
+        "apiVersion",
+        "sourceRepository",
+        "mustRunCapabilities",
+        "mustRunTests",
+        "pins",
+        "exclusions"
+      ],
+      "additionalProperties": false,
+      "description": "Owner-reviewed functional API selection rules scoped to one source repository."
+    }
+  }
+}

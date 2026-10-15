@@ -204,6 +204,35 @@ func (reader *Reader) ReadImpact(
 	return projection, err
 }
 
+// ReadReviewedImpact exposes composite file mappings to the opt-in reviewed
+// policy without changing the published legacy manifest projection.
+func (reader *Reader) ReadReviewedImpact(
+	ctx context.Context, provider catalog.Provider, deliveryID string,
+) (selection.ImpactProjection, error) {
+	if reader == nil || reader.source == nil {
+		return selection.ImpactProjection{}, selection.ErrUnavailable
+	}
+	impact, err := reader.source.FindCapabilityImpact(ctx, provider, deliveryID)
+	if err != nil {
+		return selection.ImpactProjection{}, err
+	}
+	impact = change.CanonicalCapabilityImpact(impact)
+	if impact.APIVersion != change.CompositeImpactAPIVersion || change.ValidateCapabilityImpact(impact) != nil {
+		return selection.ImpactProjection{}, selection.ErrUnavailable
+	}
+	projection := projectOpenAPI(impact)
+	if len(projection.Warnings) > selection.MaxManifestWarnings {
+		projection.Warnings = append(projection.Warnings[:selection.MaxManifestWarnings-1],
+			"additional impact warnings omitted; all tests are required")
+		projection.Completeness = selection.ImpactIncomplete
+	}
+	if err := selection.ValidateImpactProjection(projection); err != nil {
+		return selection.ImpactProjection{}, selection.ErrUnavailable
+	}
+
+	return projection, nil
+}
+
 func (reader *Reader) readImpact(
 	ctx context.Context, provider catalog.Provider, deliveryID string,
 ) (change.CapabilityImpact, selection.ImpactProjection, error) {
