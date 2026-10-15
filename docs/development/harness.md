@@ -167,6 +167,8 @@ remain authoritative for durable decisions.
 
 The current [harness hardening plan](plans/harness-hardening.md) records the
 ordered CI policy, workflow regression, and agent runner slices.
+The [M01–M07 completion plan](plans/m01-m07-implementation-completion.md)
+records the remaining product slices and their dependency gates.
 
 ## Extending the harness
 

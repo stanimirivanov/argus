@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
@@ -47,6 +48,31 @@ func (store *ChangeStore) FindCapabilityImpact(
 	if err != nil {
 		return change.CapabilityImpact{}, err
 	}
+	semanticWarnings := append([]string(nil), impact.Warnings...)
+	semanticStatus := impact.Status
+	err = tx.QueryRow(operationContext, `
+		SELECT impact_api_version, analyzer_version, impact_status, file_status, file_warnings
+		FROM argus_catalog.composite_impact_assessments WHERE change_set_id = $1
+	`, changeSetID).Scan(&impact.APIVersion, &impact.AnalyzerVersion, &impact.Status,
+		&impact.FileStatus, &impact.FileWarnings)
+	if err == nil {
+		impact.SemanticStatus = semanticStatus
+		impact.SemanticWarnings = semanticWarnings
+		impact.Warnings = append(impact.Warnings, impact.FileWarnings...)
+		impact.Files, err = readFileImpacts(operationContext, tx, changeSetID)
+		if err != nil {
+			return change.CapabilityImpact{}, err
+		}
+		stored.ChangeSet.Files, err = readChangeFiles(operationContext, tx, changeSetID)
+		if err != nil {
+			return change.CapabilityImpact{}, err
+		}
+		if err := change.ValidateImpactFileCoverage(impact, stored.ChangeSet); err != nil {
+			return change.CapabilityImpact{}, fmt.Errorf("%w: incomplete persisted file impact", change.ErrUnavailable)
+		}
+	} else if !errors.Is(err, pgx.ErrNoRows) {
+		return change.CapabilityImpact{}, classifyChangeDatabaseError(err)
+	}
 	impact = change.CanonicalCapabilityImpact(impact)
 	if err := change.ValidateCapabilityImpact(impact); err != nil {
 		return change.CapabilityImpact{}, fmt.Errorf("%w: invalid persisted capability impact", change.ErrUnavailable)
@@ -56,6 +82,34 @@ func (store *ChangeStore) FindCapabilityImpact(
 	}
 
 	return impact, nil
+}
+
+func readFileImpacts(ctx context.Context, tx pgx.Tx, changeSetID int64) ([]change.FileImpact, error) {
+	rows, err := tx.Query(ctx, `
+		SELECT file_path, previous_file_path, change_kind, coverage,
+		       capability_keys, component_roots, unmapped_paths
+		FROM argus_catalog.change_file_impacts
+		WHERE change_set_id = $1
+		ORDER BY file_path
+	`, changeSetID)
+	if err != nil {
+		return nil, classifyChangeDatabaseError(err)
+	}
+	defer rows.Close()
+	var files []change.FileImpact
+	for rows.Next() {
+		var file change.FileImpact
+		if err := rows.Scan(&file.Path, &file.PreviousPath, &file.Kind, &file.Coverage,
+			&file.Capabilities, &file.ComponentRoots, &file.UnmappedPaths); err != nil {
+			return nil, classifyChangeDatabaseError(err)
+		}
+		files = append(files, file)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, classifyChangeDatabaseError(err)
+	}
+
+	return files, nil
 }
 
 func readDocumentImpacts(ctx context.Context, tx pgx.Tx, assessmentID int64) ([]change.DocumentImpact, error) {

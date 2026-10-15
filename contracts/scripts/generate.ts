@@ -12,6 +12,7 @@ import {
   ValidationRejectionV1,
 } from "../source/adaptation-validation-v1.js";
 import { CapabilityImpactV1 } from "../source/capability-impact-v1.js";
+import { CapabilityImpactV2 } from "../source/capability-impact-v2.js";
 import { ChangeSetV1 } from "../source/change-set-v1.js";
 import { ExecutionManifestV1 } from "../source/execution-manifest-v1.js";
 import { ExecutionManifestV2 } from "../source/execution-manifest-v2.js";
@@ -267,6 +268,17 @@ const artifacts = [
     document: {
       $id: "https://argus.dev/contracts/capability-impact/v1/schema.json",
       ...compileJsonSchema(CapabilityImpactV1),
+    },
+  },
+  {
+    name: "capability impact v2",
+    outputPath: new URL(
+      "../generated/capability-impact/v2/capability-impact.schema.json",
+      import.meta.url,
+    ),
+    document: {
+      $id: "https://argus.dev/contracts/capability-impact/v2/schema.json",
+      ...compileJsonSchema(CapabilityImpactV2),
     },
   },
   {

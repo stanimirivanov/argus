@@ -218,12 +218,16 @@ migration is additive: it creates `change_sets` and `change_files`, performs no
 backfill or table rewrite, and remains compatible with older binaries that do
 not use these tables. Application rollback leaves the unused evidence intact.
 
-Semantic OpenAPI processing adds one immutable assessment per change set plus
-typed document, operation, capability-mapping, and warning rows. A canonical
-impact SHA-256 makes exact retries idempotent and rejects divergent output for
-the same change identity. Provider document reads and semantic analysis finish
-before the short database transaction begins. Reads use repeatable read so the
-assessment and all explainability rows come from one snapshot.
+Semantic OpenAPI processing adds one immutable v1 assessment per change set plus
+typed document, operation, capability-mapping, and warning rows. New deliveries
+also save a v2 extension and typed changed-file rows in the same transaction;
+the original v1 row and checksum stay readable by an older binary after
+rollback. Independent canonical SHA-256 values make exact retries idempotent
+and reject divergent semantic or file evidence. Provider document reads and
+descriptor lookup finish before the short database transaction begins. Reads
+use repeatable read so both producer records come from one snapshot. A missing
+base descriptor yields partial file impact; a catalog outage fails assessment
+and leaves the delivery retryable.
 
 Inspect a completed assessment locally:
 
@@ -233,9 +237,14 @@ go run ./cmd/catalog get-change-impact \
   -delivery-id 01234567-89ab-cdef-0123-456789abcdef
 ~~~
 
-The command emits `argus.dev/capability-impact/v1`. Empty capability arrays
+By default, the command emits `argus.dev/capability-impact/v1`. For new v2
+assessments this is a conservative semantic compatibility projection: incomplete
+file evidence remains `partial`, and a source-only change has no complete
+OpenAPI evidence. To inspect the persisted file mappings alongside semantic
+operations, pass `-api-version argus.dev/capability-impact/v2`. Historical v1
+assessments cannot be upgraded by the read command. Empty capability arrays
 are deliberate unmapped-operation evidence. A `partial` status and warnings
-require conservative downstream handling.
+require broader execution or abstention downstream.
 
 ## Persist execution evidence and compare shadow runs
 

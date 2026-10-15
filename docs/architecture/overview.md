@@ -277,8 +277,11 @@ pagination and rejects revision or file-count movement as stale rather than
 publishing mixed evidence. The workflow acknowledges a webhook only after its
 impact assessment is also durable. Exact assessment retries avoid document I/O.
 Changed operations map to capabilities only through explicit
-`x-argus-capabilities` declarations; unmapped operations and partial analysis
-remain visible so M05 can broaden or abstain. The architecture test enforces
+`x-argus-capabilities` declarations. New v2 assessments also retain each
+bounded changed file and map source, configuration, and test paths only through
+component roots in the immutable base descriptor. Unmapped, truncated, and
+unsupported evidence remains visible so M05 can broaden or abstain. Historical
+v1 assessments retain their original meaning. The architecture test enforces
 inward dependencies for the domain, application, workflow, and driving-adapter
 packages.
 
@@ -292,7 +295,7 @@ ports:
 | `internal/selection` | Manifest and producer-neutral impact-projection vocabulary, outcomes, reasons, bounds, and invariants | SQL, generated contracts, catalog queries, or execution |
 | `internal/selection/capabilitymapped` | Deterministic targeted/fallback policy for cataloged functional API and UI tests, with family-specific versioning and UI changed-file coverage gating | OpenAPI document structure, PostgreSQL, JSON, CLI arguments, or framework commands |
 | `internal/selection/adapters/catalogreader` | Bounded traversal and projection of immutable catalog pages | Selection policy |
-| `internal/selection/adapters/impactreader` | Validate persisted OpenAPI impact, project capability completeness, and verify changed-file coverage before UI targeting | Selection policy or manifest serialization |
+| `internal/selection/adapters/impactreader` | Validate persisted OpenAPI and file impact, project capability completeness, and verify changed-file coverage before UI targeting | Selection policy or manifest serialization |
 | `internal/selection/adapters/contract` | Domain-to-execution-manifest v1/v2 conversion | Policy or persistence |
 | `internal/selection/adapters/cli/selectioncli` | Local arguments and JSON output through injected ports | Concrete infrastructure |
 | `cmd/select` | PostgreSQL composition, process lifecycle, and environment configuration | Selection or serialization policy |
@@ -327,8 +330,10 @@ inference is implied. See [ADR-0027](../decisions/0027-opt-in-browser-selection-
 
 The selector's inward projection can accept another impact producer without
 changing its policy. The public execution-manifest v1 Effect contract still
-pins the OpenAPI impact and analyzer versions; adding a producer requires a
-separately reviewed contract version and compatibility fixtures. The
+pins the OpenAPI impact and analyzer versions. For v2 assessments, its legacy
+projection requires the full candidate set for any non-OpenAPI changed file;
+the richer file mappings need the separately versioned policy in the next
+slice. The
 OpenAPI browser manifest is a distinct v2 contract, while the opt-in
 component-root policy has v3. Neither changes v1 JSON or fallback semantics.
 

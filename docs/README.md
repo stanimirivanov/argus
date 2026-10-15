@@ -47,7 +47,7 @@ overview are always relevant.
 | Host-managed task scope or recorded agent verification | [Agent harness runner](../tools/agent-harness/README.md), [harness guide](development/harness.md) | `go test ./tools/agent-harness`, host isolation follow-up |
 | Start the local control plane or prepare the DBOS evaluation | [Local start](development/local-start.md), [developer quickstart](development/developer-quickstart.md) | [PostgreSQL guide](development/postgresql.md), [ADR-0028](decisions/0028-evaluate-embedded-dbos-workflows-for-change-processing.md) |
 | Dependency admission, upgrades, licensing, or vulnerability response | [Dependency policy](development/dependency-policy.md) | [Security policy](../SECURITY.md), `make supply-chain` |
-| Milestone or issue planning | [Milestones](roadmap/milestones.md), [CONTRIBUTING.md](../CONTRIBUTING.md) | Relevant product and architecture sources |
+| Milestone or issue planning | [Milestones](roadmap/milestones.md), [CONTRIBUTING.md](../CONTRIBUTING.md) | [M01–M07 completion plan](development/plans/m01-m07-implementation-completion.md), relevant product and architecture sources |
 | Research or competitive claims | [Research landscape](research/landscape.md) | Primary sources recorded with the claim |
 | Vulnerability reporting or security-sensitive behavior | [Security policy](../SECURITY.md) | Product safety rules, relevant ADRs and integration guides |
 

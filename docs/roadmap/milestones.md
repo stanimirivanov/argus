@@ -127,7 +127,7 @@ system skeleton using versioned instructions.
 
 Acceptance ingredients:
 
-- Author the repository descriptor in Effect Schema v3.
+- Author the repository descriptor in Effect Schema v4.
 - Generate and verify a deterministic JSON Schema Draft 2020-12 artifact.
 - Define stable provider repository identity and trusted immutable revision
   context without premature global identifier syntax.
@@ -206,11 +206,12 @@ Acceptance ingredients:
 Completion means an API-changing pull request produces a reproducible,
 explainable capability impact result.
 
-The OpenAPI vertical slice now discovers changed OpenAPI 3 documents at
-immutable base/head revisions, persists semantic document and operation
-evidence, maps explicit `x-argus-capabilities`, retains partial and unmapped
-evidence, and exposes a local versioned query. Remaining M04 work broadens
-ChangeSet normalization beyond OpenAPI before M05 consumes this result.
+The OpenAPI vertical slice discovers changed OpenAPI 3 documents at immutable
+base/head revisions and retains semantic operation evidence as v1. The
+subsequent v2 slice records every bounded changed file, maps source,
+configuration, and test paths only through the immutable base descriptor's
+explicit component roots, and retains unmapped or incomplete coverage for
+conservative selection. Existing v1 assessments remain immutable.
 
 ## M05 - Functional API selection
 

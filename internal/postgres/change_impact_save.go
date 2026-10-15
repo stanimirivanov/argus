@@ -36,21 +36,127 @@ func (store *ChangeStore) SaveCapabilityImpact(ctx context.Context, impact chang
 	if stored.ChangeSet.Reference() != impact.Change {
 		return false, change.ErrConflict
 	}
-
-	assessmentID, created, err := claimCapabilityImpact(
-		operationContext, tx, changeSetID, impact, fingerprint,
-	)
-	if err != nil || !created {
-		return created, err
+	if impact.APIVersion == change.CompositeImpactAPIVersion {
+		stored.ChangeSet.Files, err = readChangeFiles(operationContext, tx, changeSetID)
+		if err != nil {
+			return false, err
+		}
+		if err := change.ValidateImpactFileCoverage(impact, stored.ChangeSet); err != nil {
+			return false, err
+		}
 	}
-	if err := insertCapabilityImpactDetails(operationContext, tx, assessmentID, impact); err != nil {
+
+	created, err := persistImpactAssessments(operationContext, tx, changeSetID, impact, fingerprint)
+	if err != nil {
 		return false, err
 	}
 	if err := tx.Commit(operationContext); err != nil {
 		return false, classifyChangeDatabaseError(err)
 	}
 
-	return true, nil
+	return created, nil
+}
+
+func persistImpactAssessments(
+	ctx context.Context, tx pgx.Tx, changeSetID int64, impact change.CapabilityImpact, fingerprint string,
+) (bool, error) {
+	semantic := semanticImpactV1(impact)
+	semanticFingerprint, err := capabilityImpactFingerprint(semantic)
+	if err != nil {
+		return false, change.ErrUnavailable
+	}
+	assessmentID, semanticCreated, err := claimCapabilityImpact(ctx, tx, changeSetID, semantic, semanticFingerprint)
+	if err != nil {
+		return false, err
+	}
+	if semanticCreated {
+		if err := insertCapabilityImpactDetails(ctx, tx, assessmentID, semantic); err != nil {
+			return false, err
+		}
+	}
+	if impact.APIVersion != change.CompositeImpactAPIVersion {
+		return semanticCreated, nil
+	}
+	created, err := claimCompositeImpact(ctx, tx, changeSetID, impact, fingerprint)
+	if err != nil {
+		return false, err
+	}
+	if created {
+		if err := insertFileImpacts(ctx, tx, changeSetID, impact.Files); err != nil {
+			return false, err
+		}
+	}
+
+	return created, nil
+}
+
+func semanticImpactV1(impact change.CapabilityImpact) change.CapabilityImpact {
+	if impact.APIVersion == change.ImpactAPIVersion {
+		return impact
+	}
+	semantic := impact
+	semantic.APIVersion = change.ImpactAPIVersion
+	semantic.AnalyzerVersion = change.OpenAPIAnalyzerVersion
+	semantic.Status = impact.SemanticStatus
+	semantic.Warnings = append([]string(nil), impact.SemanticWarnings...)
+	semantic.Files = nil
+	semantic.SemanticStatus, semantic.FileStatus = "", ""
+	semantic.SemanticWarnings, semantic.FileWarnings = nil, nil
+
+	return change.CanonicalCapabilityImpact(semantic)
+}
+
+func claimCompositeImpact(ctx context.Context, tx pgx.Tx, changeSetID int64, impact change.CapabilityImpact, fingerprint string) (bool, error) {
+	var inserted int64
+	err := tx.QueryRow(ctx, `
+		INSERT INTO argus_catalog.composite_impact_assessments (
+			change_set_id, impact_api_version, analyzer_version, impact_status,
+			file_status, file_warnings, impact_sha256
+		) VALUES ($1, $2, $3, $4, $5, $6, $7)
+		ON CONFLICT (change_set_id) DO NOTHING
+		RETURNING change_set_id
+	`, changeSetID, impact.APIVersion, impact.AnalyzerVersion, impact.Status,
+		impact.FileStatus, nonNilStrings(impact.FileWarnings), fingerprint).Scan(&inserted)
+	if err == nil {
+		return true, nil
+	}
+	if !errors.Is(err, pgx.ErrNoRows) {
+		return false, classifyChangeDatabaseError(err)
+	}
+	var existingFingerprint string
+	if err := tx.QueryRow(ctx, `
+		SELECT impact_sha256 FROM argus_catalog.composite_impact_assessments WHERE change_set_id = $1
+	`, changeSetID).Scan(&existingFingerprint); err != nil {
+		return false, classifyChangeDatabaseError(err)
+	}
+	if existingFingerprint != fingerprint {
+		return false, change.ErrConflict
+	}
+
+	return false, nil
+}
+
+func insertFileImpacts(ctx context.Context, tx pgx.Tx, changeSetID int64, files []change.FileImpact) error {
+	for _, file := range files {
+		if _, err := tx.Exec(ctx, `
+			INSERT INTO argus_catalog.change_file_impacts (
+				change_set_id, file_path, previous_file_path, change_kind, coverage,
+				capability_keys, component_roots, unmapped_paths
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		`, changeSetID, file.Path, file.PreviousPath, file.Kind, file.Coverage,
+			nonNilStrings(file.Capabilities), nonNilStrings(file.ComponentRoots), nonNilStrings(file.UnmappedPaths)); err != nil {
+			return classifyChangeDatabaseError(err)
+		}
+	}
+
+	return nil
+}
+
+func nonNilStrings(values []string) []string {
+	if values == nil {
+		return []string{}
+	}
+	return values
 }
 
 func claimCapabilityImpact(

@@ -74,6 +74,9 @@ func (service *Service) Assess(ctx context.Context, set change.Set) (Result, err
 	if err := change.ValidateCapabilityImpact(assessment); err != nil {
 		return Result{}, err
 	}
+	if err := change.ValidateImpactFileCoverage(assessment, set); err != nil {
+		return Result{}, err
+	}
 
 	created, err := service.store.SaveCapabilityImpact(ctx, assessment)
 	if err != nil {
