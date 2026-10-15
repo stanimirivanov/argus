@@ -57,7 +57,7 @@ runners, or commands must update the workflow and policy together. If a new
 sensor is noisy, fix its inputs and diagnostics before relying on it in
 review.
 
-The task runner's future host scope declaration is an integration contract,
+The task runner's host scope declaration is an integration contract,
 not proof of enforcement. The host integration follow-up must demonstrate
 actual writable-root and network restrictions before anyone claims task
 isolation. Keep existing GitHub credential compatibility behavior until a
