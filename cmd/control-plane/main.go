@@ -17,6 +17,7 @@ import (
 
 	dbosgo "github.com/dbos-inc/dbos-transact-golang/dbos"
 	dbosadapter "github.com/stanimirivanov/argus/internal/change/adapters/dbos"
+	fileimpactadapter "github.com/stanimirivanov/argus/internal/change/adapters/fileimpact"
 	githubadapter "github.com/stanimirivanov/argus/internal/change/adapters/github"
 	"github.com/stanimirivanov/argus/internal/change/adapters/httpapi"
 	openapiadapter "github.com/stanimirivanov/argus/internal/change/adapters/openapi"
@@ -131,7 +132,8 @@ func newApplication(ctx context.Context, getenv func(string) string, local bool)
 	}
 	changeStore := runtime.Change()
 	ingestionService := ingest.NewService(changeStore, githubClient)
-	impactService := changeimpact.NewService(changeStore, openapiadapter.NewAnalyzer(githubClient))
+	impactService := changeimpact.NewService(changeStore,
+		fileimpactadapter.NewAnalyzer(openapiadapter.NewAnalyzer(githubClient), runtime.Catalog()))
 	var service httpapi.IngestService = workflow.NewService(ingestionService, impactService)
 	var durable dbosgo.Context
 	if config.dbosEvaluation {

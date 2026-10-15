@@ -62,6 +62,68 @@ func TestProjectOpenAPIPreservesSelectionFallbackTriggers(t *testing.T) {
 	}
 }
 
+func TestCompositeImpactIncludesMappedFilesAndRetainsUnmappedFallback(t *testing.T) {
+	for _, example := range []struct {
+		name         string
+		unmapped     bool
+		completeness selection.ImpactCompleteness
+	}{
+		{name: "mapped source", completeness: selection.ImpactComplete},
+		{name: "unmapped configuration", unmapped: true, completeness: selection.ImpactIncomplete},
+	} {
+		t.Run(example.name, func(t *testing.T) {
+			impact := validImpact()
+			impact.APIVersion = change.CompositeImpactAPIVersion
+			impact.AnalyzerVersion = change.CompositeAnalyzerVersion
+			impact.SemanticStatus = change.ImpactComplete
+			impact.FileStatus = change.ImpactComplete
+			impact.Files = []change.FileImpact{
+				{Path: "api/openapi.yaml", Kind: change.KindModified, Coverage: change.FileCoverageOpenAPI},
+				{Path: "src/orders/service.go", Kind: change.KindModified, Coverage: change.FileCoverageComponent,
+					Capabilities: []string{"create-order"}, ComponentRoots: []string{"src/orders"}},
+			}
+			if example.unmapped {
+				impact.Files = append(impact.Files, change.FileImpact{Path: "config/unknown.yml", Kind: change.KindAdded,
+					Coverage: change.FileCoverageUnmapped, UnmappedPaths: []string{"config/unknown.yml"}})
+				impact.Status = change.ImpactPartial
+				impact.FileStatus = change.ImpactPartial
+				impact.FileWarnings = []string{"unmapped configuration"}
+				impact.Warnings = []string{"unmapped configuration"}
+			}
+			projection := projectOpenAPI(impact)
+			legacy, err := New(stubSource{impact: impact}).ReadImpact(t.Context(), catalog.ProviderGitHub, "delivery-42")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if projection.Completeness != example.completeness || len(projection.AffectedCapabilities) != 1 ||
+				(example.unmapped && projection.UnresolvedCount != 1) || legacy.Completeness != selection.ImpactIncomplete ||
+				legacy.ProducerAPIVersion != change.ImpactAPIVersion {
+				t.Fatalf("composite or legacy projection lost conservative behavior: composite=%+v legacy=%+v", projection, legacy)
+			}
+		})
+	}
+}
+
+func TestCompositeTruncatedOpenAPIOnlyImpactKeepsLegacyFallback(t *testing.T) {
+	impact := validImpact()
+	impact.APIVersion = change.CompositeImpactAPIVersion
+	impact.AnalyzerVersion = change.CompositeAnalyzerVersion
+	impact.SemanticStatus = change.ImpactComplete
+	impact.FileStatus = change.ImpactPartial
+	impact.Status = change.ImpactPartial
+	impact.FileWarnings = []string{"changed-file evidence was truncated"}
+	impact.Warnings = append([]string(nil), impact.FileWarnings...)
+	impact.Files = []change.FileImpact{{Path: "api/openapi.yaml", Kind: change.KindModified, Coverage: change.FileCoverageOpenAPI}}
+
+	projection, err := New(stubSource{impact: impact}).ReadImpact(t.Context(), catalog.ProviderGitHub, "delivery-42")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if projection.Completeness != selection.ImpactIncomplete {
+		t.Fatalf("truncated file evidence allowed a selective legacy projection: %+v", projection)
+	}
+}
+
 func TestReaderRejectsInvalidStoredImpact(t *testing.T) {
 	t.Parallel()
 	impact := validImpact()

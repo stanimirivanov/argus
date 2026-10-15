@@ -218,12 +218,47 @@ func (reader *Reader) readImpact(
 	if err := change.ValidateCapabilityImpact(impact); err != nil {
 		return change.CapabilityImpact{}, selection.ImpactProjection{}, fmt.Errorf("%w: invalid stored impact", selection.ErrUnavailable)
 	}
-	projection := projectOpenAPI(impact)
+	projectionImpact := impact
+	if impact.APIVersion == change.CompositeImpactAPIVersion {
+		// Existing manifest v1 pins OpenAPI producer identifiers. Until the
+		// reviewed policy in the next slice versions that manifest, mixed file
+		// changes must use its conservative full-suite fallback.
+		projectionImpact.APIVersion = change.ImpactAPIVersion
+		projectionImpact.AnalyzerVersion = change.OpenAPIAnalyzerVersion
+		projectionImpact.Status = impact.SemanticStatus
+		projectionImpact.Warnings = append([]string(nil), impact.SemanticWarnings...)
+		projectionImpact.Files = nil
+		projectionImpact.SemanticStatus, projectionImpact.FileStatus = "", ""
+		projectionImpact.SemanticWarnings, projectionImpact.FileWarnings = nil, nil
+		if impact.FileStatus == change.ImpactPartial {
+			projectionImpact.Status = change.ImpactPartial
+			projectionImpact.Warnings = appendProjectionWarning(projectionImpact.Warnings,
+				"incomplete changed-file evidence requires full-suite execution under v1 policy")
+		}
+		for _, file := range impact.Files {
+			if file.Coverage != change.FileCoverageOpenAPI {
+				projectionImpact.Status = change.ImpactPartial
+				projectionImpact.Warnings = appendProjectionWarning(projectionImpact.Warnings,
+					"non-OpenAPI file impact requires full-suite execution under v1 policy")
+				break
+			}
+		}
+	}
+	projection := projectOpenAPI(projectionImpact)
 	if err := selection.ValidateImpactProjection(projection); err != nil {
 		return change.CapabilityImpact{}, selection.ImpactProjection{}, fmt.Errorf("%w: invalid impact projection: %w", selection.ErrUnavailable, err)
 	}
 
 	return impact, projection, nil
+}
+
+func appendProjectionWarning(warnings []string, warning string) []string {
+	warnings = append([]string(nil), warnings...)
+	if len(warnings) == selection.MaxManifestWarnings {
+		warnings = warnings[:len(warnings)-1]
+	}
+
+	return append(warnings, warning)
 }
 
 // projectOpenAPI preserves producer provenance and retains a bounded sample of
@@ -234,8 +269,19 @@ func projectOpenAPI(impact change.CapabilityImpact) selection.ImpactProjection {
 		ProducerVersion: impact.AnalyzerVersion, Completeness: selection.ImpactComplete,
 		Warnings: append([]string{}, impact.Warnings...),
 	}
-	if impact.Status == change.ImpactPartial || len(impact.Documents) == 0 {
+	if impact.Status == change.ImpactPartial ||
+		(impact.APIVersion == change.ImpactAPIVersion && len(impact.Documents) == 0) ||
+		(impact.APIVersion == change.CompositeImpactAPIVersion && len(impact.Files) == 0) {
 		projection.Completeness = selection.ImpactIncomplete
+	}
+	for _, file := range impact.Files {
+		projection.Evidence = appendBounded(projection.Evidence, selection.ImpactEvidenceReference{
+			Source: "changed-file", Path: file.Path,
+		})
+		projection.AffectedCapabilities = append(projection.AffectedCapabilities, file.Capabilities...)
+		for _, path := range file.UnmappedPaths {
+			addUnresolved(&projection, "changed-file", path)
+		}
 	}
 	for _, document := range impact.Documents {
 		projection.Evidence = appendBounded(projection.Evidence, selection.ImpactEvidenceReference{

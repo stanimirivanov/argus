@@ -16,14 +16,22 @@ const (
 	// OpenAPIAnalyzerVersion identifies Argus's interpretation of libopenapi
 	// output and x-argus-capabilities mappings.
 	OpenAPIAnalyzerVersion = "argus-openapi/v1+libopenapi/v0.38.7"
+	// CompositeImpactAPIVersion adds explicit changed-file mapping evidence.
+	CompositeImpactAPIVersion = "argus.dev/capability-impact/v2"
+	// CompositeAnalyzerVersion binds the file-root and semantic API policies.
+	CompositeAnalyzerVersion = "argus-component-roots/v1+argus-openapi/v1+libopenapi/v0.38.7"
 	// MaxImpactDocuments bounds contract discovery for one change set.
 	MaxImpactDocuments = 50
 	// MaxImpactWarnings bounds partial-analysis explanations.
 	MaxImpactWarnings = 100
+	// MaxCompositeImpactWarnings retains both bounded producers' explanations.
+	MaxCompositeImpactWarnings = 200
 	// MaxImpactOperations bounds semantic evidence retained for one document.
 	MaxImpactOperations = 5000
 	// MaxOperationCapabilities bounds explicit mappings for one operation.
 	MaxOperationCapabilities = 50
+	// MaxFileMappings bounds one file's explicit root and capability evidence.
+	MaxFileMappings = 100
 )
 
 // ImpactStatus states whether all candidate evidence was understood.
@@ -74,13 +82,37 @@ func (set Set) Reference() Reference {
 // CapabilityImpact is the immutable, explainable result of semantic API
 // analysis for one change delivery.
 type CapabilityImpact struct {
-	APIVersion      string
-	AnalyzerVersion string
-	Change          Reference
-	Status          ImpactStatus
-	Documents       []DocumentImpact
-	Warnings        []string
+	APIVersion       string
+	AnalyzerVersion  string
+	Change           Reference
+	Status           ImpactStatus
+	SemanticStatus   ImpactStatus
+	FileStatus       ImpactStatus
+	Documents        []DocumentImpact
+	Files            []FileImpact
+	Warnings         []string
+	SemanticWarnings []string
+	FileWarnings     []string
 }
+
+// FileImpact records how one changed file was covered. UnmappedPaths retains
+// either side of a rename that lacked an explicit component root.
+type FileImpact struct {
+	Path           string
+	PreviousPath   *string
+	Kind           Kind
+	Coverage       string
+	Capabilities   []string
+	ComponentRoots []string
+	UnmappedPaths  []string
+}
+
+// File coverage identifies the explicit evidence source or an unresolved path.
+const (
+	FileCoverageOpenAPI   = "openapi"
+	FileCoverageComponent = "component-root"
+	FileCoverageUnmapped  = "unmapped"
+)
 
 // DocumentImpact summarizes one OpenAPI document and its changed operations.
 type DocumentImpact struct {
@@ -111,6 +143,19 @@ func CanonicalCapabilityImpact(impact CapabilityImpact) CapabilityImpact {
 	canonical.Warnings = append([]string(nil), impact.Warnings...)
 	slices.Sort(canonical.Warnings)
 	canonical.Warnings = slices.Compact(canonical.Warnings)
+	canonical.SemanticWarnings = sortedUnique(impact.SemanticWarnings)
+	canonical.FileWarnings = sortedUnique(impact.FileWarnings)
+	canonical.Files = make([]FileImpact, len(impact.Files))
+	for index, file := range impact.Files {
+		canonical.Files[index] = file
+		canonical.Files[index].PreviousPath = cloneOptionalString(file.PreviousPath)
+		canonical.Files[index].Capabilities = sortedUnique(file.Capabilities)
+		canonical.Files[index].ComponentRoots = sortedUnique(file.ComponentRoots)
+		canonical.Files[index].UnmappedPaths = sortedUnique(file.UnmappedPaths)
+	}
+	slices.SortFunc(canonical.Files, func(left, right FileImpact) int {
+		return cmp.Compare(left.Path, right.Path)
+	})
 	canonical.Documents = make([]DocumentImpact, len(impact.Documents))
 	for documentIndex, document := range impact.Documents {
 		canonical.Documents[documentIndex] = document
@@ -143,8 +188,8 @@ func CanonicalCapabilityImpact(impact CapabilityImpact) CapabilityImpact {
 // ValidateCapabilityImpact enforces invariants independent of transports,
 // parsers, and persistence.
 func ValidateCapabilityImpact(impact CapabilityImpact) error {
-	if impact.APIVersion != ImpactAPIVersion || impact.AnalyzerVersion != OpenAPIAnalyzerVersion {
-		return fmt.Errorf("%w: unsupported capability-impact version", ErrInvalid)
+	if err := validateImpactVersion(impact); err != nil {
+		return err
 	}
 	if err := validateReference(impact.Change); err != nil {
 		return err
@@ -152,9 +197,63 @@ func ValidateCapabilityImpact(impact CapabilityImpact) error {
 	if impact.Status != ImpactComplete && impact.Status != ImpactPartial {
 		return fmt.Errorf("%w: impact status", ErrInvalid)
 	}
-	if len(impact.Documents) > MaxImpactDocuments || len(impact.Warnings) > MaxImpactWarnings {
+	warningLimit := MaxImpactWarnings
+	if impact.APIVersion == CompositeImpactAPIVersion {
+		warningLimit = MaxCompositeImpactWarnings
+	}
+	if len(impact.Documents) > MaxImpactDocuments || len(impact.Warnings) > warningLimit {
 		return fmt.Errorf("%w: capability-impact bounds", ErrInvalid)
 	}
+	if err := validateImpactWarnings(impact); err != nil {
+		return err
+	}
+
+	if err := validateDocumentImpacts(impact.Documents); err != nil {
+		return err
+	}
+	if impact.APIVersion == CompositeImpactAPIVersion {
+		return validateFileImpacts(impact)
+	}
+
+	return nil
+}
+
+func validateImpactVersion(impact CapabilityImpact) error {
+	switch {
+	case impact.APIVersion == ImpactAPIVersion && impact.AnalyzerVersion == OpenAPIAnalyzerVersion:
+		if len(impact.Files) != 0 || impact.SemanticStatus != "" || impact.FileStatus != "" ||
+			len(impact.SemanticWarnings) != 0 || len(impact.FileWarnings) != 0 {
+			return fmt.Errorf("%w: v1 impact cannot contain file evidence", ErrInvalid)
+		}
+	case impact.APIVersion == CompositeImpactAPIVersion && impact.AnalyzerVersion == CompositeAnalyzerVersion:
+		if err := validateProducerCompleteness(impact); err != nil {
+			return err
+		}
+	default:
+		return fmt.Errorf("%w: unsupported capability-impact version", ErrInvalid)
+	}
+
+	return nil
+}
+
+func validateProducerCompleteness(impact CapabilityImpact) error {
+	if (impact.SemanticStatus != ImpactComplete && impact.SemanticStatus != ImpactPartial) ||
+		(impact.FileStatus != ImpactComplete && impact.FileStatus != ImpactPartial) {
+		return fmt.Errorf("%w: producer completeness", ErrInvalid)
+	}
+	combined := ImpactComplete
+	if impact.SemanticStatus == ImpactPartial || impact.FileStatus == ImpactPartial {
+		combined = ImpactPartial
+	}
+	if impact.Status != combined || !slices.Equal(sortedUnique(impact.Warnings),
+		sortedUnique(append(append([]string(nil), impact.SemanticWarnings...), impact.FileWarnings...))) {
+		return fmt.Errorf("%w: inconsistent producer completeness", ErrInvalid)
+	}
+
+	return nil
+}
+
+func validateImpactWarnings(impact CapabilityImpact) error {
 	if impact.Status == ImpactComplete && len(impact.Warnings) != 0 {
 		return fmt.Errorf("%w: complete impact contains warnings", ErrInvalid)
 	}
@@ -164,7 +263,108 @@ func ValidateCapabilityImpact(impact CapabilityImpact) error {
 		}
 	}
 
-	return validateDocumentImpacts(impact.Documents)
+	return nil
+}
+
+func sortedUnique(values []string) []string {
+	result := append([]string(nil), values...)
+	slices.Sort(result)
+	return slices.Compact(result)
+}
+
+func validateFileImpacts(impact CapabilityImpact) error {
+	files := impact.Files
+	if len(files) > MaxFiles || (len(files) == 0 && impact.FileStatus == ImpactComplete) {
+		return fmt.Errorf("%w: file impact bound", ErrInvalid)
+	}
+	documents := make(map[string]bool, len(impact.Documents))
+	for _, document := range impact.Documents {
+		documents[document.Path] = true
+	}
+	seen := make(map[string]bool, len(files))
+	for _, file := range files {
+		if seen[file.Path] || !validRepositoryPath(file.Path) {
+			return fmt.Errorf("%w: duplicate or invalid file impact path", ErrInvalid)
+		}
+		seen[file.Path] = true
+		if err := validateFileImpact(file, documents, impact.FileStatus); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func validateFileImpact(file FileImpact, documents map[string]bool, status ImpactStatus) error {
+	if err := validateFile(File{Path: file.Path, PreviousPath: file.PreviousPath, Kind: file.Kind, PatchStatus: PatchUnavailable}); err != nil {
+		return err
+	}
+	if len(file.Capabilities) > MaxFileMappings || len(file.ComponentRoots) > MaxFileMappings || len(file.UnmappedPaths) > 2 {
+		return fmt.Errorf("%w: file mapping bound", ErrInvalid)
+	}
+	for _, key := range file.Capabilities {
+		if !catalog.IsLocalKey(key) {
+			return fmt.Errorf("%w: invalid file capability", ErrInvalid)
+		}
+	}
+	for _, root := range file.ComponentRoots {
+		if !validRepositoryPath(root) {
+			return fmt.Errorf("%w: invalid component root", ErrInvalid)
+		}
+	}
+	for _, path := range file.UnmappedPaths {
+		if !validRepositoryPath(path) || (path != file.Path && (file.PreviousPath == nil || path != *file.PreviousPath)) {
+			return fmt.Errorf("%w: invalid unmapped path", ErrInvalid)
+		}
+	}
+
+	return validateFileCoverage(file, documents, status)
+}
+
+func validateFileCoverage(file FileImpact, documents map[string]bool, status ImpactStatus) error {
+	switch file.Coverage {
+	case FileCoverageOpenAPI:
+		if !documents[file.Path] || len(file.Capabilities)+len(file.ComponentRoots)+len(file.UnmappedPaths) != 0 {
+			return fmt.Errorf("%w: OpenAPI file mapping", ErrInvalid)
+		}
+	case FileCoverageComponent:
+		if len(file.Capabilities) == 0 || len(file.ComponentRoots) == 0 || len(file.UnmappedPaths) != 0 {
+			return fmt.Errorf("%w: component file mapping", ErrInvalid)
+		}
+	case FileCoverageUnmapped:
+		if len(file.UnmappedPaths) == 0 || status != ImpactPartial {
+			return fmt.Errorf("%w: unmapped file lacks reason", ErrInvalid)
+		}
+	default:
+		return fmt.Errorf("%w: file coverage", ErrInvalid)
+	}
+
+	return nil
+}
+
+// ValidateImpactFileCoverage ensures a v2 producer retained every normalized
+// changed file, including both sides of rename and copy observations.
+func ValidateImpactFileCoverage(impact CapabilityImpact, set Set) error {
+	if impact.APIVersion != CompositeImpactAPIVersion {
+		return nil
+	}
+	impact = CanonicalCapabilityImpact(impact)
+	set = CanonicalSet(set)
+	if len(impact.Files) != len(set.Files) {
+		return fmt.Errorf("%w: incomplete file impact coverage", ErrInvalid)
+	}
+	if set.FilesTruncated && impact.FileStatus != ImpactPartial {
+		return fmt.Errorf("%w: truncated files require partial impact", ErrInvalid)
+	}
+	for index, file := range set.Files {
+		observed := impact.Files[index]
+		if observed.Path != file.Path || observed.Kind != file.Kind ||
+			optionalString(observed.PreviousPath) != optionalString(file.PreviousPath) {
+			return fmt.Errorf("%w: file impact differs from immutable change", ErrInvalid)
+		}
+	}
+
+	return nil
 }
 
 func validateDocumentImpacts(documents []DocumentImpact) error {

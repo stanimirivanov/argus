@@ -19,6 +19,7 @@ import (
 	"github.com/stanimirivanov/argus/internal/catalog/impact"
 	snapshotapp "github.com/stanimirivanov/argus/internal/catalog/snapshot"
 	"github.com/stanimirivanov/argus/internal/catalog/testquery"
+	"github.com/stanimirivanov/argus/internal/change"
 	changecontract "github.com/stanimirivanov/argus/internal/change/adapters/contract"
 	changeimpact "github.com/stanimirivanov/argus/internal/change/impact"
 	"github.com/stanimirivanov/argus/internal/commandline"
@@ -94,11 +95,12 @@ func runGetChangeImpact(
 	flags.SetOutput(io.Discard)
 	provider := flags.String("provider", string(catalog.ProviderGitHub), "delivery provider")
 	deliveryID := flags.String("delivery-id", "", "verified provider delivery ID")
+	apiVersion := flags.String("api-version", change.ImpactAPIVersion, "output impact API version")
 	if err := commandline.Parse(flags, arguments); err != nil {
 		return fmt.Errorf("catalog get-change-impact: %w", err)
 	}
-	if *deliveryID == "" || flags.NArg() != 0 {
-		return commandline.UsageText("usage: catalog get-change-impact [-provider github] -delivery-id <id>")
+	if *deliveryID == "" || flags.NArg() != 0 || (*apiVersion != change.ImpactAPIVersion && *apiVersion != change.CompositeImpactAPIVersion) {
+		return commandline.UsageText("usage: catalog get-change-impact [-provider github] [-api-version argus.dev/capability-impact/v1|argus.dev/capability-impact/v2] -delivery-id <id>")
 	}
 	store, err := openStore(ctx, databaseURL, open)
 	if err != nil {
@@ -115,7 +117,18 @@ func runGetChangeImpact(
 	if err != nil {
 		return fmt.Errorf("read change impact: %w", err)
 	}
-	document, err := changecontract.ExportCapabilityImpactV1(assessment)
+	if *apiVersion == change.CompositeImpactAPIVersion {
+		if assessment.APIVersion != change.CompositeImpactAPIVersion {
+			return fmt.Errorf("%w: v2 impact evidence is unavailable for this historical delivery", change.ErrNotFound)
+		}
+		document, err := changecontract.ExportCapabilityImpactV2(assessment)
+		if err != nil {
+			return err
+		}
+
+		return encodeJSON(output, document)
+	}
+	document, err := changecontract.ProjectCapabilityImpactV1(assessment)
 	if err != nil {
 		return err
 	}

@@ -96,6 +96,7 @@ actually fetched.
 | `fixtures/impact-edge-page/v1/` | Evaluated relationship and conflict fixtures. |
 | `fixtures/change-set/v1/` | Positive and negative normalized-change fixtures. |
 | `fixtures/capability-impact/v1/` | Positive and negative semantic-impact fixtures. |
+| `fixtures/capability-impact/v2/` | Mixed OpenAPI and explicit changed-file coverage fixtures. |
 | `fixtures/execution-manifest/v1/` | Positive and negative selection-manifest fixtures. |
 | `fixtures/execution-manifest/v2/` | Browser capability-selection compatibility fixture. |
 | `fixtures/functional-api-adapter-request/v1/` | Adapter request conformance fixtures. |

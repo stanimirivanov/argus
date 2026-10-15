@@ -141,6 +141,66 @@ func TestCapabilityImpactRoundTripRetryConflictAndRestart(t *testing.T) {
 	}
 }
 
+func TestCompositeFileImpactRoundTripRetryConflictAndRestart(t *testing.T) {
+	databaseURL := newTestDatabase(t)
+	migrateTestDatabase(t, databaseURL)
+	store := openTestStore(t, databaseURL)
+	delivery := integrationDelivery()
+	set := integrationChangeSet(delivery)
+	set.Files = append(set.Files, change.File{Path: "src/orders/service.go", Kind: change.KindModified,
+		PatchStatus: change.PatchUnavailable})
+	if _, err := store.SaveDelivery(t.Context(), delivery, set); err != nil {
+		t.Fatal(err)
+	}
+	assessment := integrationCapabilityImpact(set)
+	assessment.APIVersion = change.CompositeImpactAPIVersion
+	assessment.AnalyzerVersion = change.CompositeAnalyzerVersion
+	assessment.SemanticStatus = change.ImpactComplete
+	assessment.FileStatus = change.ImpactComplete
+	assessment.Files = []change.FileImpact{
+		{Path: "api/openapi.yaml", Kind: change.KindModified, Coverage: change.FileCoverageOpenAPI},
+		{Path: "src/orders/service.go", Kind: change.KindModified, Coverage: change.FileCoverageComponent,
+			Capabilities: []string{"create-order"}, ComponentRoots: []string{"src/orders"}},
+	}
+	if created, err := store.SaveCapabilityImpact(t.Context(), assessment); err != nil || !created {
+		t.Fatalf("save v2 assessment: created=%t err=%v", created, err)
+	}
+	var semanticVersion, semanticAnalyzer string
+	if err := store.pool.QueryRow(t.Context(), `
+		SELECT impact_api_version, analyzer_version
+		FROM argus_catalog.openapi_impact_assessments
+	`).Scan(&semanticVersion, &semanticAnalyzer); err != nil ||
+		semanticVersion != change.ImpactAPIVersion || semanticAnalyzer != change.OpenAPIAnalyzerVersion {
+		t.Fatalf("legacy semantic row changed: version=%q analyzer=%q err=%v", semanticVersion, semanticAnalyzer, err)
+	}
+	if created, err := store.SaveCapabilityImpact(t.Context(), assessment); err != nil || created {
+		t.Fatalf("retry v2 assessment: created=%t err=%v", created, err)
+	}
+	if created, err := store.SaveCapabilityImpact(t.Context(), semanticImpactV1(assessment)); err != nil || created {
+		t.Fatalf("rollback v1 retry: created=%t err=%v", created, err)
+	}
+	got, err := store.FindCapabilityImpact(t.Context(), delivery.Provider, delivery.ID)
+	if err != nil || !reflect.DeepEqual(got, change.CanonicalCapabilityImpact(assessment)) {
+		t.Fatalf("read v2 assessment: got=%+v err=%v", got, err)
+	}
+	conflict := assessment
+	conflict.Files = append([]change.FileImpact(nil), assessment.Files...)
+	conflict.Files[1].Capabilities = []string{"different-capability"}
+	if _, err := store.SaveCapabilityImpact(t.Context(), conflict); !errors.Is(err, change.ErrConflict) {
+		t.Fatalf("conflicting file evidence: %v", err)
+	}
+	store.Close()
+	reopened, err := openIntegratedStore(t.Context(), databaseURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(reopened.Close)
+	got, err = reopened.FindCapabilityImpact(t.Context(), delivery.Provider, delivery.ID)
+	if err != nil || !reflect.DeepEqual(got, change.CanonicalCapabilityImpact(assessment)) {
+		t.Fatalf("read v2 assessment after restart: got=%+v err=%v", got, err)
+	}
+}
+
 func integrationCapabilityImpact(set change.Set) change.CapabilityImpact {
 	operationID := "createOrder"
 	return change.CapabilityImpact{

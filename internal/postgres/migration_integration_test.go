@@ -105,8 +105,8 @@ func TestMigrationUpgradesReleasedCatalogWithRepresentativeData(t *testing.T) {
 	).Scan(&migrationCount); err != nil {
 		t.Fatalf("count upgraded migration ledger: %v", err)
 	}
-	if migrationCount != 7 {
-		t.Fatalf("upgraded migration count = %d, want 7", migrationCount)
+	if migrationCount != 8 {
+		t.Fatalf("upgraded migration count = %d, want 8", migrationCount)
 	}
 }
 

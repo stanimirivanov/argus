@@ -1,0 +1,6 @@
+{
+  "fixtures": [
+    { "path": "fixtures/capability-impact/v2/valid/mixed-impact.json", "schemaValid": true },
+    { "path": "fixtures/capability-impact/v2/invalid/guessed-coverage.json", "schemaValid": false }
+  ]
+}

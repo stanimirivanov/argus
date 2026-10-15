@@ -119,3 +119,100 @@ func ExportCapabilityImpactV1(impact change.CapabilityImpact) (contracts.Capabil
 
 	return result, nil
 }
+
+// ExportCapabilityImpactV2 exposes changed-file and semantic evidence together
+// while keeping the v1 wire meaning unchanged for historical assessments.
+func ExportCapabilityImpactV2(impact change.CapabilityImpact) (contracts.CapabilityImpactV2, error) {
+	impact = change.CanonicalCapabilityImpact(impact)
+	if impact.APIVersion != change.CompositeImpactAPIVersion {
+		return contracts.CapabilityImpactV2{}, fmt.Errorf("%w: not a v2 assessment", change.ErrInvalid)
+	}
+	if err := change.ValidateCapabilityImpact(impact); err != nil {
+		return contracts.CapabilityImpactV2{}, err
+	}
+	semantic := impact
+	semantic.APIVersion = change.ImpactAPIVersion
+	semantic.AnalyzerVersion = change.OpenAPIAnalyzerVersion
+	semantic.Status = impact.SemanticStatus
+	semantic.Warnings = append([]string(nil), impact.SemanticWarnings...)
+	semantic.Files = nil
+	semantic.SemanticStatus, semantic.FileStatus = "", ""
+	semantic.SemanticWarnings, semantic.FileWarnings = nil, nil
+	base, err := ExportCapabilityImpactV1(semantic)
+	if err != nil {
+		return contracts.CapabilityImpactV2{}, err
+	}
+	base.APIVersion = impact.APIVersion
+	base.AnalyzerVersion = impact.AnalyzerVersion
+	base.Status = string(impact.Status)
+	base.Warnings = append([]string{}, impact.Warnings...)
+	result := contracts.CapabilityImpactV2{
+		CapabilityImpactV1: base, SemanticStatus: string(impact.SemanticStatus), FileStatus: string(impact.FileStatus),
+		SemanticWarnings: append([]string{}, impact.SemanticWarnings...), FileWarnings: append([]string{}, impact.FileWarnings...),
+		Files: make([]contracts.ChangedFileImpact, 0, len(impact.Files)),
+	}
+	for _, file := range impact.Files {
+		result.Files = append(result.Files, contracts.ChangedFileImpact{
+			Path: file.Path, PreviousPath: cloneString(file.PreviousPath), Kind: string(file.Kind),
+			Coverage: file.Coverage, Capabilities: append([]string{}, file.Capabilities...),
+			ComponentRoots: append([]string{}, file.ComponentRoots...), UnmappedPaths: append([]string{}, file.UnmappedPaths...),
+		})
+	}
+	if err := contracts.ValidateCapabilityImpactV2(result); err != nil {
+		return contracts.CapabilityImpactV2{}, fmt.Errorf("export capability impact v2: %w", err)
+	}
+
+	return result, nil
+}
+
+// ProjectCapabilityImpactV1 keeps the original read contract available for
+// v2 assessments. Any incomplete file evidence remains a conservative partial
+// result; source-only changes never masquerade as complete semantic API impact.
+func ProjectCapabilityImpactV1(impact change.CapabilityImpact) (contracts.CapabilityImpactV1, error) {
+	if impact.APIVersion == change.ImpactAPIVersion {
+		return ExportCapabilityImpactV1(impact)
+	}
+	if impact.APIVersion != change.CompositeImpactAPIVersion {
+		return contracts.CapabilityImpactV1{}, fmt.Errorf("%w: unsupported impact projection", change.ErrInvalid)
+	}
+	if err := change.ValidateCapabilityImpact(impact); err != nil {
+		return contracts.CapabilityImpactV1{}, err
+	}
+	semantic := impact
+	semantic.APIVersion = change.ImpactAPIVersion
+	semantic.AnalyzerVersion = change.OpenAPIAnalyzerVersion
+	semantic.Status = impact.SemanticStatus
+	semantic.Warnings = append([]string(nil), impact.SemanticWarnings...)
+	semantic.Files = nil
+	semantic.SemanticStatus, semantic.FileStatus = "", ""
+	semantic.SemanticWarnings, semantic.FileWarnings = nil, nil
+	if impact.FileStatus == change.ImpactPartial {
+		semantic.Status = change.ImpactPartial
+		semantic.Warnings = appendLegacyFallbackWarning(semantic.Warnings,
+			"incomplete changed-file evidence requires broader execution under v1 consumers")
+	}
+	for _, file := range impact.Files {
+		if file.Coverage != change.FileCoverageOpenAPI {
+			semantic.Status = change.ImpactPartial
+			semantic.Warnings = appendLegacyFallbackWarning(semantic.Warnings,
+				"non-OpenAPI file impact requires broader execution under v1 consumers")
+			break
+		}
+	}
+	if len(semantic.Documents) == 0 {
+		semantic.Status = change.ImpactPartial
+		semantic.Warnings = appendLegacyFallbackWarning(semantic.Warnings,
+			"no semantic OpenAPI evidence was retained for this change")
+	}
+
+	return ExportCapabilityImpactV1(semantic)
+}
+
+func appendLegacyFallbackWarning(warnings []string, warning string) []string {
+	warnings = append([]string(nil), warnings...)
+	if len(warnings) == change.MaxImpactWarnings {
+		warnings = warnings[:len(warnings)-1]
+	}
+
+	return append(warnings, warning)
+}

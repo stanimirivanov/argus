@@ -30,7 +30,23 @@ func capabilityImpactFingerprint(impact change.CapabilityImpact) (string, error)
 		Warnings:        canonical.Warnings,
 	}
 	payload.Change.ObservedAt = time.Time{}
-	data, err := json.Marshal(payload)
+	var data []byte
+	var err error
+	if canonical.APIVersion == change.CompositeImpactAPIVersion {
+		data, err = json.Marshal(struct {
+			Payload          any
+			SemanticStatus   change.ImpactStatus
+			FileStatus       change.ImpactStatus
+			Files            []change.FileImpact
+			SemanticWarnings []string
+			FileWarnings     []string
+		}{Payload: payload, SemanticStatus: canonical.SemanticStatus,
+			FileStatus: canonical.FileStatus, Files: canonical.Files,
+			SemanticWarnings: canonical.SemanticWarnings, FileWarnings: canonical.FileWarnings})
+	} else {
+		// Keep the original v1 fingerprint byte-for-byte stable for retries.
+		data, err = json.Marshal(payload)
+	}
 	if err != nil {
 		return "", fmt.Errorf("encode canonical capability impact: %w", err)
 	}

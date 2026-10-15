@@ -36,7 +36,7 @@ const OperationImpact = Schema.Struct({
     "A semantically changed HTTP operation and its explicit repository-scoped capability mappings.",
 });
 
-const DocumentImpact = Schema.Struct({
+export const DocumentImpact = Schema.Struct({
   path: RepositoryPath,
   previousPath: Schema.NullOr(RepositoryPath),
   kind: ChangeKind,

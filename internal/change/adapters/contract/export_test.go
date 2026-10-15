@@ -71,4 +71,20 @@ func TestExportV1ProducesValidatedCanonicalDocument(t *testing.T) {
 	if impactDocument.Documents == nil || impactDocument.Warnings == nil {
 		t.Fatalf("empty arrays encoded as null: %#v", impactDocument)
 	}
+	composite := change.CapabilityImpact{
+		APIVersion: change.CompositeImpactAPIVersion, AnalyzerVersion: change.CompositeAnalyzerVersion,
+		Change: set.Reference(), Status: change.ImpactComplete,
+		SemanticStatus: change.ImpactComplete, FileStatus: change.ImpactComplete,
+		Files: []change.FileImpact{{Path: "api/openapi.yaml", Kind: change.KindModified,
+			Coverage: change.FileCoverageComponent, Capabilities: []string{"create-order"},
+			ComponentRoots: []string{"api"}}},
+	}
+	v2, err := contractadapter.ExportCapabilityImpactV2(composite)
+	if err != nil || v2.APIVersion != change.CompositeImpactAPIVersion || len(v2.Files) != 1 {
+		t.Fatalf("export v2: document=%+v err=%v", v2, err)
+	}
+	legacy, err := contractadapter.ProjectCapabilityImpactV1(composite)
+	if err != nil || legacy.APIVersion != change.ImpactAPIVersion || legacy.Status != string(change.ImpactPartial) {
+		t.Fatalf("conservative v1 projection: document=%+v err=%v", legacy, err)
+	}
 }
