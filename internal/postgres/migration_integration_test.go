@@ -64,8 +64,8 @@ func TestMigrateEmptyDatabaseAndRepeat(t *testing.T) {
 	).Scan(&count); err != nil {
 		t.Fatalf("count migration ledger: %v", err)
 	}
-	if count != 7 {
-		t.Fatalf("migration ledger count = %d, want 7", count)
+	if count != 8 {
+		t.Fatalf("migration ledger count = %d, want 8", count)
 	}
 }
 
