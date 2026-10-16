@@ -236,7 +236,9 @@ The opt-in `argus.dev/execution-manifest/v4` binds reviewed owner policy and
 complete head inventory by SHA-256. It admits composite file impact and
 evaluated catalog edge keys while preserving v1-v3 JSON and selection meaning.
 Its head-only tests require early execution without gaining an unreviewed
-capability mapping. Reference execution of v4 is the next M05 integration.
+capability mapping. The Playwright API reference integration exercises v4
+through the existing functional API execution envelopes; their manifest
+reference now permits v1 or v4 while preserving existing v1 outputs.
 
 ## Functional API execution contracts
 

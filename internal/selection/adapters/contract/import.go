@@ -16,7 +16,7 @@ func ImportV1(document contracts.ExecutionManifestV1) (selection.Manifest, error
 	if err := contracts.ValidateExecutionManifestV1(document); err != nil {
 		return selection.Manifest{}, err
 	}
-	return importValidatedManifest(document)
+	return importValidatedManifest(document, nil)
 }
 
 // ImportV2 converts a browser selection document into the domain manifest.
@@ -24,7 +24,7 @@ func ImportV2(document contracts.ExecutionManifestV2) (selection.Manifest, error
 	if err := contracts.ValidateExecutionManifestV2(document); err != nil {
 		return selection.Manifest{}, err
 	}
-	return importValidatedManifest(contracts.ExecutionManifestV1(document))
+	return importValidatedManifest(contracts.ExecutionManifestV1(document), nil)
 }
 
 // ImportV3 converts a component-root browser selection document.
@@ -32,10 +32,10 @@ func ImportV3(document contracts.ExecutionManifestV3) (selection.Manifest, error
 	if err := contracts.ValidateExecutionManifestV3(document); err != nil {
 		return selection.Manifest{}, err
 	}
-	return importValidatedManifest(contracts.ExecutionManifestV1(document))
+	return importValidatedManifest(contracts.ExecutionManifestV1(document), nil)
 }
 
-func importValidatedManifest(document contracts.ExecutionManifestV1) (selection.Manifest, error) {
+func importValidatedManifest(document contracts.ExecutionManifestV1, reviewed *contracts.ExecutionManifestV4) (selection.Manifest, error) {
 	observedAt, err := time.Parse(time.RFC3339Nano, document.Change.ObservedAt)
 	if err != nil {
 		return selection.Manifest{}, fmt.Errorf("parse manifest observation time: %w", err)
@@ -65,8 +65,19 @@ func importValidatedManifest(document contracts.ExecutionManifestV1) (selection.
 		UncoveredCapabilities: append([]string{}, document.UncoveredCapabilities...),
 		Warnings:              append([]string{}, document.Warnings...),
 	}
-	for _, decision := range document.Decisions {
-		manifest.Decisions = append(manifest.Decisions, importDecision(decision))
+	if reviewed != nil {
+		manifest.PolicyDigest = reviewed.PolicyDigest
+		manifest.InventoryDigest = reviewed.InventoryDigest
+	}
+	for index, decision := range document.Decisions {
+		imported := importDecision(decision)
+		if reviewed != nil {
+			for reasonIndex := range imported.Reasons {
+				imported.Reasons[reasonIndex].EvidenceKeys = append([]string{},
+					reviewed.Decisions[index].Reasons[reasonIndex].EvidenceKeys...)
+			}
+		}
+		manifest.Decisions = append(manifest.Decisions, imported)
 	}
 	manifest = selection.CanonicalManifest(manifest)
 	if err := selection.ValidateManifest(manifest); err != nil {

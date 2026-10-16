@@ -240,7 +240,7 @@ jobs:
   postgres:
     name: PostgreSQL integration
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 25
 
     env:
       GOTOOLCHAIN: local
@@ -279,6 +279,26 @@ jobs:
 
       - name: Run PostgreSQL integration suite
         run: make db-validate
+
+      - name: Set up pnpm for the API reference campaign
+        uses: pnpm/action-setup@v6
+        with:
+          run_install: false
+
+      - name: Set up Node.js for the API reference campaign
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install reference dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run Playwright API reference campaign with durable evidence
+        env:
+          ARGUS_DATABASE_URL: ${{ env.ARGUS_TEST_POSTGRES_URL }}
+        run: make api-validate
 
   dbos-webhook:
     name: DBOS webhook integration

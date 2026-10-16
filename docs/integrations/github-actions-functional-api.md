@@ -83,8 +83,8 @@ runner; see [functional UI selection](functional-ui-selection.md).
 
 ### Opt-in reviewed selection policy
 
-The reviewed v2 policy emits `execution-manifest/v4` for inspection and
-evaluation. CI must supply both a reviewed policy file and a complete head
+The reviewed v2 policy emits executable `execution-manifest/v4`. CI must supply
+both a reviewed policy file and a complete head
 inventory from trusted discovery at immutable test-repository revisions:
 
 ~~~sh
@@ -112,9 +112,11 @@ evidence fail before output. Stale or conflicting affected mappings require
 every known head test. Pins and must-run rules override early-stage exclusions,
 and every omission remains in the full-suite obligation.
 
-The existing planner and runner consume manifest v1. The next M05 reference
-integration will connect verified discovery and v4 execution. Continue using
-the v1 command above for executable shadow runs until that integration lands.
+The planner, runner, attempt ingestion, and shadow reports accept v1 or v4
+manifest references. Use the [Playwright API reference integration](reference-playwright-api.md)
+to generate trusted head inventory and run real tests. Deploy the updated
+components together before sending v4 to CI; older strict readers may reject
+its reference.
 
 ## Generate the matrix
 
@@ -262,6 +264,20 @@ jobs:
           name: argus-execution-plan-${{ github.run_id }}-${{ github.run_attempt }}
           path: input
 
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: argus/.node-version
+
+      - name: Install checked-out test dependencies
+        working-directory: test-repository
+        run: pnpm install --frozen-lockfile
+
       - name: Build trusted runner
         working-directory: argus
         run: |
@@ -300,7 +316,7 @@ jobs:
           case "$ADAPTER" in
             playwright)
               ../bin/run-functional-api "${common[@]}" -- \
-                node ./tools/argus-playwright-adapter.mjs > "$attempt"
+                node ../argus/examples/functional-api/playwright-adapter.mjs execute > "$attempt"
               ;;
             pytest)
               ../bin/run-functional-api "${common[@]}" -- \
@@ -439,8 +455,9 @@ focused diagnosis, but it is not the complete-plan safety metric.
   and ownership rules.
 - Resolve `argus_ref` to reviewed immutable content. Do not use a moving branch
   for evidence-producing runs.
-- Add dependency installation and caches inside each literal adapter branch.
-  Treat lockfiles from the checked-out test revision as untrusted input.
+- Install from the checked-out test repository's lockfile before execution and
+  cache only dependencies appropriate for that repository. Treat lockfiles from
+  the checked-out test revision as untrusted input.
 - Give forked or otherwise untrusted pull requests a separate policy. GitHub
   does not supply ordinary secrets to fork workflows, and bypassing that
   boundary would expose cross-repository credentials.

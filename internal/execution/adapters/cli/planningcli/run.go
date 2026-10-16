@@ -36,15 +36,11 @@ func Run(_ context.Context, arguments []string, stdin io.Reader, stdout io.Write
 	if err != nil {
 		return err
 	}
-	manifestDocument, err := contracts.DecodeExecutionManifestV1(manifestData)
-	if err != nil {
-		return fmt.Errorf("read execution manifest: %w", err)
-	}
-	manifest, err := selectioncontract.ImportV1(manifestDocument)
+	manifest, err := selectioncontract.ImportExecutableManifest(manifestData)
 	if err != nil {
 		return fmt.Errorf("import execution manifest: %w", err)
 	}
-	manifestSHA256, err := selectioncontract.ManifestSHA256V1(manifest)
+	manifestSHA256, err := selectioncontract.ExecutableManifestSHA256(manifest)
 	if err != nil {
 		return err
 	}

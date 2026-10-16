@@ -245,8 +245,9 @@ falls back to running every functional API candidate.
 An opt-in reviewed policy slice versions the functional API manifest to v4.
 It binds owner rules and complete head test inventory by content digest, admits
 composite file impact, and resolves stale or conflicting mapping evidence
-conservatively. The existing v1 manifest and execution path remain available
-until the reference v4 integration is delivered.
+conservatively. The v1 manifest and execution path remain available. The
+Playwright reference campaign now carries v4 through discovery, planning,
+execution, persisted attempts, and complete-plan shadow evaluation.
 
 The second M05 slice defines a framework-neutral functional API adapter
 request/result protocol, consumes a manifest in a bounded CI-local process

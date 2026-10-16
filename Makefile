@@ -34,7 +34,7 @@ TOOL_LICENSE_EXCEPTIONS := \
 	--ignore github.com/leonklingele/grouper \
 	--ignore github.com/xen0n/gosmopolitan
 
-.PHONY: help bootstrap doctor build binaries generate-contracts fmt fmt-check docs-check architecture-check ci-policy-check check test verify race fuzz-smoke db-validate dbos-evaluate vuln license supply-chain validate
+.PHONY: help bootstrap doctor build binaries generate-contracts fmt fmt-check docs-check architecture-check ci-policy-check check test verify api-validate race fuzz-smoke db-validate dbos-evaluate vuln license supply-chain validate
 
 help:
 	@echo Argus engineering-foundation command surface
@@ -51,6 +51,7 @@ help:
 	@echo   make check  Run format, lint, static-analysis, and module checks
 	@echo   make test   Run ordinary tests without cached results
 	@echo   make verify  Run the fast network-independent development feedback loop
+	@echo   make api-validate  Run the disposable Playwright API reference campaign
 	@echo   make race   Run all tests with the race detector
 	@echo   make fuzz-smoke  Run bounded native fuzzing of untrusted Go inputs
 	@echo   make db-validate  Run PostgreSQL integration tests against a disposable local server
@@ -120,7 +121,10 @@ test:
 	go test -vet=off -count=1 ./...
 	pnpm test
 
-verify: build check test
+verify: build check test api-validate
+
+api-validate:
+	pnpm api-validate
 
 race:
 	go test -vet=off -race -count=1 ./...

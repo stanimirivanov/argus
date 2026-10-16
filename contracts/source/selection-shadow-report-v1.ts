@@ -1,6 +1,6 @@
 import { Schema } from "effect";
 
-import { ExecutionManifestV1APIVersion } from "./execution-manifest-v1.js";
+import { FunctionalAPIExecutableManifestVersion } from "./execution-manifest-v4.js";
 import { LocalKey, RepositoryReference } from "./repository-descriptor-v1.js";
 import { Revision } from "./test-catalog-page-v1.js";
 
@@ -31,7 +31,7 @@ const FailureMiss = Schema.Struct({
 export const SelectionShadowReportV1 = Schema.Struct({
   apiVersion: Schema.Literals(["argus.dev/selection-shadow-report/v1"]),
   manifest: Schema.Struct({
-    apiVersion: ExecutionManifestV1APIVersion,
+    apiVersion: FunctionalAPIExecutableManifestVersion,
     sha256: SHA256,
   }),
   testRepository: RepositoryReference,

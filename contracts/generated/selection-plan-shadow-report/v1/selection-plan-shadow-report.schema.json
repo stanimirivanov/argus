@@ -148,13 +148,10 @@
           "type": "object",
           "properties": {
             "apiVersion": {
-              "anyOf": [
-                {
-                  "type": "string",
-                  "enum": [
-                    "argus.dev/execution-manifest/v1"
-                  ]
-                }
+              "type": "string",
+              "enum": [
+                "argus.dev/execution-manifest/v1",
+                "argus.dev/execution-manifest/v4"
               ]
             },
             "sha256": {

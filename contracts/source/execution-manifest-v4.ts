@@ -59,4 +59,9 @@ export const ExecutionManifestV4 = Schema.Struct({
     "Reviewed functional API policy with immutable policy, inventory and mapping evidence.",
 });
 
+export const FunctionalAPIExecutableManifestVersion = Schema.Literals([
+  "argus.dev/execution-manifest/v1",
+  "argus.dev/execution-manifest/v4",
+]);
+
 export type ExecutionManifestV4 = typeof ExecutionManifestV4.Type;

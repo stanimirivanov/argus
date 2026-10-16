@@ -1,5 +1,5 @@
 import { Schema } from "effect";
-import { ExecutionManifestV1APIVersion } from "./execution-manifest-v1.js";
+import { FunctionalAPIExecutableManifestVersion } from "./execution-manifest-v4.js";
 import { DisplayName, LocalKey, RepositoryReference } from "./repository-descriptor-v1.js";
 import { Revision } from "./test-catalog-page-v1.js";
 import { Timestamp } from "./timestamp.js";
@@ -14,7 +14,7 @@ const SHA256 = Schema.String.check(Schema.isPattern(/^[0-9a-f]{64}$/u));
 const Version = Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(127));
 
 const ManifestReference = Schema.Struct({
-  apiVersion: ExecutionManifestV1APIVersion,
+  apiVersion: FunctionalAPIExecutableManifestVersion,
   sha256: SHA256,
 });
 
