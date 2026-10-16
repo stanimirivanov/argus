@@ -30,6 +30,7 @@ import {
 import { HeadTestInventoryV1 } from "../source/head-test-inventory-v1.js";
 import { ImpactEdgePageV1 } from "../source/impact-edge-page-v1.js";
 import { ImpactEvidenceBundleV1 } from "../source/impact-evidence-bundle-v1.js";
+import { MaintenanceAssessmentV1 } from "../source/maintenance-assessment-v1.js";
 import { RepositoryDescriptorV1 } from "../source/repository-descriptor-v1.js";
 import { ReviewOutcomeV1 } from "../source/review-outcome-v1.js";
 import { ReviewedSelectionPolicyV1 } from "../source/reviewed-selection-policy-v1.js";
@@ -42,6 +43,17 @@ import { TestCatalogPageV1 } from "../source/test-catalog-page-v1.js";
 import { compileJsonSchema } from "./json-schema.js";
 
 const artifacts = [
+  {
+    name: "maintenance assessment",
+    outputPath: new URL(
+      "../generated/maintenance-assessment/v1/maintenance-assessment.schema.json",
+      import.meta.url,
+    ),
+    document: {
+      $id: "https://argus.dev/contracts/maintenance-assessment/v1/schema.json",
+      ...compileJsonSchema(MaintenanceAssessmentV1),
+    },
+  },
   {
     name: "validation rejection",
     outputPath: new URL(

@@ -12,6 +12,7 @@ import (
 
 	"github.com/stanimirivanov/argus/internal/catalog"
 	"github.com/stanimirivanov/argus/internal/change"
+	changecontract "github.com/stanimirivanov/argus/internal/change/adapters/contract"
 	"github.com/stanimirivanov/argus/internal/change/adapters/fileimpact"
 	"github.com/stanimirivanov/argus/internal/change/ingest"
 	"github.com/stanimirivanov/argus/internal/selection"
@@ -32,6 +33,9 @@ func main() {
 	head := flag.String("source-head", "", "source repository head SHA")
 	policyPath := flag.String("policy", "", "reviewed policy JSON")
 	inventoryPath := flag.String("inventory", "", "complete head inventory JSON")
+	scenario := flag.String("scenario", "selection", "reference scenario")
+	impactPath := flag.String("impact-output", "", "optional capability impact output")
+	sourceDirectory := flag.String("source-directory", "", "source fixture Git checkout")
 	flag.Parse()
 	if *base == "" || *head == "" || *policyPath == "" || *inventoryPath == "" || flag.NArg() != 0 {
 		fail(fmt.Errorf("usage: select-reference -source-base SHA -source-head SHA -policy FILE -inventory FILE"))
@@ -48,9 +52,30 @@ func main() {
 	if err != nil {
 		fail(err)
 	}
-	manifest, err := selectReference(context.Background(), *base, *head, inputs)
+	var manifest selection.Manifest
+	var impact change.CapabilityImpact
+	if *scenario == "endpoint-repair" && *sourceDirectory != "" {
+		manifest, impact, err = repairReference(context.Background(), *base, *head, *sourceDirectory, inputs)
+	} else if *scenario == "selection" && *impactPath == "" {
+		manifest, err = selectReference(context.Background(), *base, *head, inputs)
+	} else {
+		fail(fmt.Errorf("unsupported reference scenario"))
+	}
 	if err != nil {
 		fail(err)
+	}
+	if *impactPath != "" {
+		document, exportErr := changecontract.ExportCapabilityImpactV2(impact)
+		if exportErr != nil {
+			fail(exportErr)
+		}
+		data, encodeErr := json.MarshalIndent(document, "", "  ")
+		if encodeErr != nil {
+			fail(encodeErr)
+		}
+		if writeErr := os.WriteFile(*impactPath, data, 0o600); writeErr != nil {
+			fail(writeErr)
+		}
 	}
 	document, err := selectioncontract.ExportV4(manifest)
 	if err != nil {

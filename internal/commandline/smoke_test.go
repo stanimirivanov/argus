@@ -13,6 +13,7 @@ import (
 
 var commandNames = []string{
 	"adaptation-evidence",
+	"assess-functional-api-maintenance",
 	"capture-functional-api-review-outcome",
 	"catalog",
 	"control-plane",

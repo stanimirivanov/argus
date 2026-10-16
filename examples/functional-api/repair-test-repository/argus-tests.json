@@ -1,0 +1,11 @@
+{
+  "apiVersion": "argus.dev/reference-playwright-test-map/v1",
+  "tests": [
+    {
+      "suiteKey": "orders-api",
+      "testKey": "renamed-orders-test",
+      "tag": "argus:orders-api:renamed-orders-test",
+      "file": "tests/orders.spec.mjs"
+    }
+  ]
+}

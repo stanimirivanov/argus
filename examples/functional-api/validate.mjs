@@ -1,6 +1,5 @@
 import { spawn } from "node:child_process";
 import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
 import { dirname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { startFixtureService } from "./fixture-service.mjs";
@@ -8,6 +7,7 @@ import { startFixtureService } from "./fixture-service.mjs";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const fixture = dirname(fileURLToPath(import.meta.url));
 const adapter = join(fixture, "playwright-adapter.mjs");
+const repairAdapter = join(fixture, "playwright-repair-adapter.mjs");
 const sourceIdentity = {
   provider: "github",
   host: "github.com",
@@ -119,7 +119,7 @@ async function prepareTests(temp, entry) {
   await cp(join(fixture, entry.directory), directory, {
     recursive: true,
     filter: (path) =>
-      !["node_modules", "test-results", "playwright-report"].some(
+      !["node_modules", "test-results", "playwright-report", ".pnpm-store"].some(
         (name) => path.includes(`${sep}${name}${sep}`) || path.endsWith(`${sep}${name}`),
       ),
   });
@@ -425,13 +425,248 @@ async function campaign(temp, service) {
   );
 }
 
-const temp = await mkdtemp(join(tmpdir(), "argus-functional-api-"));
-if (!resolve(temp).startsWith(`${resolve(tmpdir())}${sep}`))
+async function prepareRepairSource(directory) {
+  const path = join(directory, "api", "openapi.yaml");
+  await mkdir(dirname(path), { recursive: true });
+  const document = (route) =>
+    `openapi: 3.0.3\ninfo:\n  title: Orders API\n  version: 1.0.0\npaths:\n  ${route}:\n    get:\n      operationId: listOrders\n      x-argus-capabilities: [list-orders]\n      responses:\n        '200':\n          description: Orders\n`;
+  await writeFile(path, document("/v1/orders"));
+  const base = await initialize(directory);
+  await writeFile(path, document("/v2/orders"));
+  await git(directory, "add", ".");
+  await git(directory, "commit", "-qm", "Rename orders endpoint");
+  return { base, head: await git(directory, "rev-parse", "HEAD") };
+}
+
+async function repairCampaign(temp, service) {
+  const source = await prepareRepairSource(join(temp, "repair-source"));
+  const test = await prepareTests(temp, {
+    directory: "repair-test-repository",
+    groupKey: "repair-playwright",
+    repository: {
+      provider: "github",
+      host: "github.com",
+      providerRepositoryId: "fixture-tests-repair",
+      owner: "argus-fixture",
+      name: "repair-tests",
+    },
+  });
+  const inventoryPath = join(temp, "repair-inventory.json");
+  const policyPath = join(temp, "repair-policy.json");
+  const manifestPath = join(temp, "repair-manifest.json");
+  const impactPath = join(temp, "repair-impact.json");
+  const proposalPath = join(temp, "repair-proposal.json");
+  await writeFile(inventoryPath, JSON.stringify(test.inventory));
+  await writeFile(
+    policyPath,
+    JSON.stringify({
+      apiVersion: "argus.dev/reviewed-selection-policy/v1",
+      sourceRepository: sourceIdentity,
+      mustRunCapabilities: [],
+      mustRunTests: [],
+      pins: [],
+      exclusions: [],
+    }),
+  );
+  const select = await build(temp, "select-repair", "./examples/functional-api/select-reference");
+  await readFile(policyPath);
+  await readFile(inventoryPath);
+  const manifest = parse(
+    await command(select, [
+      "-source-base",
+      source.base,
+      "-source-head",
+      source.head,
+      "-policy",
+      policyPath,
+      "-inventory",
+      inventoryPath,
+      "-scenario",
+      "endpoint-repair",
+      "-source-directory",
+      join(temp, "repair-source"),
+      "-impact-output",
+      impactPath,
+    ]),
+    "repair manifest",
+  );
+  if (
+    manifest.mode !== "targeted" ||
+    manifest.decisions.length !== 1 ||
+    manifest.decisions[0].outcome !== "RUN_REQUIRED"
+  )
+    throw new Error("endpoint repair was not selected");
+  await writeFile(manifestPath, JSON.stringify(manifest));
+  const runner = await build(temp, "run-repair", "./cmd/run-functional-api");
+  const attempts = join(temp, "repair-attempts");
+  await mkdir(attempts);
+  const originalAttempt = parse(
+    await command(
+      runner,
+      [
+        "-manifest",
+        manifestPath,
+        "-stage",
+        "selected",
+        "-attempt-id",
+        "repair-original",
+        "-test-repository-id",
+        test.repository.providerRepositoryId,
+        "-test-revision",
+        test.revision,
+        "-adapter",
+        "playwright",
+        "--",
+        process.execPath,
+        adapter,
+        "execute",
+      ],
+      { cwd: test.directory, env: { ARGUS_FIXTURE_URL: service.url }, acceptFailure: true },
+    ),
+    "original repair attempt",
+  );
+  if (originalAttempt.outcome !== "failed") throw new Error("old endpoint did not fail");
+  await writeFile(join(attempts, "original.json"), JSON.stringify(originalAttempt));
+  const assess = await build(temp, "assess-repair", "./cmd/assess-functional-api-maintenance");
+  const assessArgs = [
+    "-impact",
+    impactPath,
+    "-manifest",
+    manifestPath,
+    "-inventory",
+    inventoryPath,
+    "-attempt-directory",
+    attempts,
+  ];
+  const assessment = parse(await command(assess, assessArgs), "maintenance assessment");
+  if (assessment.items.length !== 1 || assessment.items[0].state !== "INVALIDATED")
+    throw new Error("maintenance assessment did not retain failed rename evidence");
+  const wrongRevisionPath = join(attempts, "wrong-revision.json");
+  const wrongRevision = structuredClone(originalAttempt);
+  wrongRevision.testRevision.digest = "0".repeat(40);
+  await writeFile(wrongRevisionPath, JSON.stringify(wrongRevision));
+  try {
+    await expectFailure(assess, assessArgs, {}, "unreviewed test revision");
+  } finally {
+    await rm(wrongRevisionPath);
+  }
+  const propose = await build(temp, "propose-repair", "./cmd/propose-functional-api-repair");
+  const proposal = parse(
+    await command(
+      propose,
+      [
+        "-impact",
+        impactPath,
+        "-manifest",
+        manifestPath,
+        "-test-repository-id",
+        test.repository.providerRepositoryId,
+        "-suite-key",
+        "orders-api",
+        "-test-key",
+        "renamed-orders-test",
+        "-test-revision",
+        test.revision,
+        "--",
+        process.execPath,
+        repairAdapter,
+        "propose",
+      ],
+      { cwd: test.directory },
+    ),
+    "endpoint proposal",
+  );
+  if (
+    proposal.classification !== "INVALIDATED" ||
+    proposal.edit?.original !== "/v1/orders" ||
+    proposal.edit?.replacement !== "/v2/orders"
+  )
+    throw new Error("unsafe endpoint proposal");
+  await writeFile(proposalPath, JSON.stringify(proposal));
+  const validate = await build(temp, "validate-repair", "./cmd/validate-functional-api-repair");
+  const original = await readFile(join(test.directory, proposal.edit.path));
+  const evidence = parse(
+    await command(
+      validate,
+      [
+        "-proposal",
+        proposalPath,
+        "-disposable-workspace",
+        test.directory,
+        "--",
+        process.execPath,
+        repairAdapter,
+        "validate",
+      ],
+      { cwd: test.directory, env: { ARGUS_FIXTURE_URL: service.url } },
+    ),
+    "repair validation",
+  );
+  if (
+    evidence.runs?.map((run) => run.outcome).join(",") !== "failed,passed,failed" ||
+    !original.equals(await readFile(join(test.directory, proposal.edit.path)))
+  )
+    throw new Error("repair validation did not prove all phases and restoration");
+  const sourcePath = join(test.directory, proposal.edit.path);
+  const proposeArgs = [
+    "-impact",
+    impactPath,
+    "-manifest",
+    manifestPath,
+    "-test-repository-id",
+    test.repository.providerRepositoryId,
+    "-suite-key",
+    "orders-api",
+    "-test-key",
+    "renamed-orders-test",
+    "-test-revision",
+    test.revision,
+    "--",
+    process.execPath,
+    repairAdapter,
+    "propose",
+  ];
+  try {
+    await writeFile(
+      sourcePath,
+      original.toString("utf8").replace('request.get("/v1/orders")', "request.get(dynamicPath)"),
+    );
+    await expectFailure(propose, proposeArgs, { cwd: test.directory }, "dynamic endpoint syntax");
+    await writeFile(
+      sourcePath,
+      original
+        .toString("utf8")
+        .replace(
+          'const response = await request.get("/v1/orders");',
+          'await request.get("/v1/orders");\n  const response = await request.get("/v1/orders");',
+        ),
+    );
+    await expectFailure(propose, proposeArgs, { cwd: test.directory }, "ambiguous endpoint syntax");
+  } finally {
+    await writeFile(sourcePath, original);
+  }
+  await command("go", [
+    "test",
+    "-count=1",
+    "-run",
+    "TestPublishCreatesDraftAndExactRetryReturnsIt|TestPublishCreatesCorrelatedDraftRequest|TestObserveOutcomeCapturesCompleteReviewerDiff|TestObserveOutcomeRejectsOpenReview|TestCaptureDerivesTerminalReviewDecisions",
+    "./internal/adaptation/adapters/githubreview",
+    "./internal/adaptation/review",
+    "./internal/adaptation/outcome",
+  ]);
+  process.stdout.write(
+    "api-validate: endpoint repair, restoration, and mock GitHub review checks passed\n",
+  );
+}
+
+const temp = await mkdtemp(join(fixture, ".run-"));
+if (!resolve(temp).startsWith(`${resolve(fixture)}${sep}`))
   throw new Error("unsafe fixture cleanup path");
 let service;
 try {
   service = await startFixtureService({ missedFailure: true });
-  await campaign(temp, service);
+  if (process.env.ARGUS_REFERENCE_SCENARIO !== "repair") await campaign(temp, service);
+  await repairCampaign(temp, service);
 } finally {
   if (service) await service.close();
   await rm(temp, { recursive: true, force: true });

@@ -68,6 +68,7 @@ bootstrap:
 	pnpm install --frozen-lockfile
 	pnpm --dir examples/functional-api/test-repository install --frozen-lockfile
 	pnpm --dir examples/functional-api/billing-test-repository install --frozen-lockfile
+	pnpm --dir examples/functional-api/repair-test-repository install --frozen-lockfile
 
 doctor:
 	@git --version

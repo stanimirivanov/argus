@@ -1,0 +1,13 @@
+{
+  "name": "argus-functional-api-repair-reference",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.58.2",
+    "typescript": "5.9.3"
+  }
+}

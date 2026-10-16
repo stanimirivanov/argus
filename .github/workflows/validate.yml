@@ -68,6 +68,7 @@ jobs:
           pnpm install --frozen-lockfile
           pnpm --dir examples/functional-api/test-repository install --frozen-lockfile
           pnpm --dir examples/functional-api/billing-test-repository install --frozen-lockfile
+          pnpm --dir examples/functional-api/repair-test-repository install --frozen-lockfile
 
       - name: Install GNU Make on Windows
         id: make_choco
@@ -300,6 +301,7 @@ jobs:
           pnpm install --frozen-lockfile
           pnpm --dir examples/functional-api/test-repository install --frozen-lockfile
           pnpm --dir examples/functional-api/billing-test-repository install --frozen-lockfile
+          pnpm --dir examples/functional-api/repair-test-repository install --frozen-lockfile
 
       - name: Run Playwright API reference campaign with durable evidence
         env:

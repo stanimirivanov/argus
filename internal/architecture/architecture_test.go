@@ -117,6 +117,7 @@ var productionPackagePolicy = map[string]packagePolicy{
 	modulePath + "/internal/selection/adapters/edgereader":                {adapterLayer, selectionCapability},
 	modulePath + "/internal/selection/adapters/impactreader":              {adapterLayer, selectionCapability},
 	modulePath + "/cmd/adaptation-evidence":                               {compositionRootLayer, productCapability},
+	modulePath + "/cmd/assess-functional-api-maintenance":                 {compositionRootLayer, productCapability},
 	modulePath + "/cmd/capture-functional-api-review-outcome":             {compositionRootLayer, productCapability},
 	modulePath + "/cmd/catalog":                                           {compositionRootLayer, productCapability},
 	modulePath + "/cmd/control-plane":                                     {compositionRootLayer, productCapability},
@@ -179,6 +180,7 @@ var adapterPolicy = map[string]adapterKind{
 // see generated wire DTOs; provider and persistence adapters must use domain
 // values and application-owned ports instead.
 var generatedContractImporters = map[string]bool{
+	modulePath + "/cmd/assess-functional-api-maintenance":                 true,
 	modulePath + "/internal/adaptation/adapters/cli/evidencecli":          true,
 	modulePath + "/internal/adaptation/adapters/cli/outcomecli":           true,
 	modulePath + "/internal/adaptation/adapters/cli/proposalcli":          true,

@@ -74,9 +74,9 @@ func Run(
 	if err != nil {
 		return err
 	}
-	if manifest.Change != impact.Change || manifest.ImpactAPIVersion != impact.APIVersion ||
-		manifest.ImpactAnalyzerVersion != impact.AnalyzerVersion {
-		return fmt.Errorf("%w: manifest and impact provenance differ", adaptation.ErrInvalid)
+	impact, err = semanticProposalImpact(impact, manifest)
+	if err != nil {
+		return err
 	}
 	decision, err := findTest(manifest, *repositoryID, *suiteKey, *testKey)
 	if err != nil {
@@ -113,10 +113,40 @@ func Run(
 	return nil
 }
 
+func semanticProposalImpact(impact change.CapabilityImpact, manifest selection.Manifest) (change.CapabilityImpact, error) {
+	if manifest.Change != impact.Change || manifest.ImpactAPIVersion != impact.APIVersion ||
+		manifest.ImpactAnalyzerVersion != impact.AnalyzerVersion {
+		return change.CapabilityImpact{}, fmt.Errorf("%w: manifest and impact provenance differ", adaptation.ErrInvalid)
+	}
+	if impact.APIVersion != change.CompositeImpactAPIVersion {
+		return impact, nil
+	}
+	projected, err := changecontract.ProjectCapabilityImpactV1(impact)
+	if err != nil {
+		return change.CapabilityImpact{}, err
+	}
+
+	return changecontract.ImportCapabilityImpactV1(projected)
+}
+
 func readImpact(path string) (change.CapabilityImpact, error) {
 	data, err := readBoundedFile(path)
 	if err != nil {
 		return change.CapabilityImpact{}, fmt.Errorf("read capability impact: %w", err)
+	}
+	var envelope struct {
+		APIVersion string `json:"apiVersion"`
+	}
+	if err := json.Unmarshal(data, &envelope); err != nil {
+		return change.CapabilityImpact{}, err
+	}
+	if envelope.APIVersion == change.CompositeImpactAPIVersion {
+		document, err := contracts.DecodeCapabilityImpactV2(data)
+		if err != nil {
+			return change.CapabilityImpact{}, err
+		}
+
+		return changecontract.ImportCapabilityImpactV2(document)
 	}
 	document, err := contracts.DecodeCapabilityImpactV1(data)
 	if err != nil {
@@ -131,12 +161,8 @@ func readManifest(path string) (selection.Manifest, error) {
 	if err != nil {
 		return selection.Manifest{}, fmt.Errorf("read execution manifest: %w", err)
 	}
-	document, err := contracts.DecodeExecutionManifestV1(data)
-	if err != nil {
-		return selection.Manifest{}, err
-	}
 
-	return selectioncontract.ImportV1(document)
+	return selectioncontract.ImportExecutableManifest(data)
 }
 
 func readBoundedFile(path string) ([]byte, error) {

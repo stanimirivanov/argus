@@ -83,6 +83,11 @@ func TestExportV1ProducesValidatedCanonicalDocument(t *testing.T) {
 	if err != nil || v2.APIVersion != change.CompositeImpactAPIVersion || len(v2.Files) != 1 {
 		t.Fatalf("export v2: document=%+v err=%v", v2, err)
 	}
+	restored, err := contractadapter.ImportCapabilityImpactV2(v2)
+	if err != nil || restored.APIVersion != composite.APIVersion || restored.Change != composite.Change ||
+		len(restored.Files) != 1 || restored.Files[0].Coverage != change.FileCoverageComponent {
+		t.Fatalf("import v2: impact=%+v err=%v", restored, err)
+	}
 	legacy, err := contractadapter.ProjectCapabilityImpactV1(composite)
 	if err != nil || legacy.APIVersion != change.ImpactAPIVersion || legacy.Status != string(change.ImpactPartial) {
 		t.Fatalf("conservative v1 projection: document=%+v err=%v", legacy, err)

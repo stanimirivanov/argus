@@ -21,7 +21,7 @@ use native parsers without giving each adapter control over adaptation policy.
 The command requires:
 
 - a `capability-impact/v1` document with `status: complete`;
-- the matching `execution-manifest/v1` document;
+- the matching executable `execution-manifest/v1` or reviewed `execution-manifest/v4` document;
 - one `RUN_REQUIRED` test identity from that manifest;
 - the immutable test repository revision checked out by CI; and
 - a literal, reviewed adapter command after `--`.
@@ -88,7 +88,41 @@ go run ./cmd/propose-functional-api-repair \
 The executable is an integration point; Argus does not ship a universal
 Playwright or pytest source rewriter. The repository should pin, review, and
 test its adapter using the shared request/result fixtures under
-`contracts/fixtures`.
+`contracts/fixtures`. The disposable reference campaign includes a reviewed
+Playwright adapter at `examples/functional-api/playwright-repair-adapter.mjs`.
+It parses the tagged test using TypeScript syntax, accepts one literal
+`request.get` target, and abstains for ambiguous or unsupported source.
+
+## Maintenance assessment
+
+After executing the selected test, classify its evidence separately from patch
+eligibility:
+
+```sh
+go run ./cmd/assess-functional-api-maintenance \
+  -impact ./capability-impact.json \
+  -manifest ./execution-manifest.json \
+  -inventory ./head-test-inventory.json \
+  -attempt-directory ./attempts \
+  > maintenance-assessment.json
+```
+
+`argus.dev/maintenance-assessment/v1` records `VALID` for a passing test,
+`INVALIDATED` for a failed test with a unique authoritative endpoint rename,
+`UNCOVERED` for an affected capability without a mapped test, and `UNCERTAIN`
+when execution is missing, conflicting, incomplete, or does not support the
+rename policy. The command validates each attempt and its canonical manifest
+digest before classification. An invalidated assessment does not permit a patch;
+the proposal and isolated validation gates below remain mandatory. The report
+retains the source repository and both immutable revisions, input digests,
+per-test attempt IDs, and explicit reason codes. Its wire shape is generated
+from `contracts/source/maintenance-assessment-v1.ts`.
+
+`make api-validate` exercises the reference endpoint rename through failed
+original execution, reviewed selection, syntax-aware proposal, passing
+candidate, failing negative control, restoration, unsupported-source
+abstention, and mock GitHub draft/review tests. Set
+`ARGUS_REFERENCE_SCENARIO=repair` for a focused local run.
 
 ## Proposal output
 
