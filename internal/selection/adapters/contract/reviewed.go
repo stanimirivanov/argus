@@ -1,10 +1,101 @@
 package contract
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
+
 	"github.com/stanimirivanov/argus/internal/catalog"
 	"github.com/stanimirivanov/argus/internal/contracts"
 	"github.com/stanimirivanov/argus/internal/selection"
 )
+
+// ImportV4 validates reviewed execution input without erasing policy digests
+// or mapping evidence needed by downstream execution correlation.
+func ImportV4(document contracts.ExecutionManifestV4) (selection.Manifest, error) {
+	if err := contracts.ValidateExecutionManifestV4(document); err != nil {
+		return selection.Manifest{}, err
+	}
+	base := contracts.ExecutionManifestV1{
+		APIVersion: document.APIVersion, PolicyVersion: document.PolicyVersion,
+		Impact: document.Impact, Change: document.Change, Catalog: document.Catalog,
+		Family: document.Family, Mode: document.Mode,
+		AffectedCapabilities:  document.AffectedCapabilities,
+		UncoveredCapabilities: document.UncoveredCapabilities, Warnings: document.Warnings,
+	}
+	for _, decision := range document.Decisions {
+		converted := contracts.TestDecision{
+			TestRepository: decision.TestRepository, Suite: decision.Suite, Test: decision.Test,
+			Capabilities: decision.Capabilities, Outcome: decision.Outcome,
+			RemainingExecution: decision.RemainingExecution,
+		}
+		for _, reason := range decision.Reasons {
+			converted.Reasons = append(converted.Reasons, contracts.SelectionReason{
+				Code: reason.Code, Capabilities: reason.Capabilities,
+			})
+		}
+		base.Decisions = append(base.Decisions, converted)
+	}
+
+	return importValidatedManifest(base, &document)
+}
+
+// ManifestSHA256V4 binds execution to canonical reviewed manifest bytes.
+func ManifestSHA256V4(manifest selection.Manifest) (string, error) {
+	document, err := ExportV4(manifest)
+	if err != nil {
+		return "", fmt.Errorf("canonicalize reviewed execution manifest: %w", err)
+	}
+	data, err := json.Marshal(document)
+	if err != nil {
+		return "", fmt.Errorf("encode reviewed execution manifest: %w", err)
+	}
+	digest := sha256.Sum256(data)
+
+	return hex.EncodeToString(digest[:]), nil
+}
+
+// ImportExecutableManifest accepts the two functional API manifest versions
+// supported by the planner and runner, rejecting every browser variant.
+func ImportExecutableManifest(data []byte) (selection.Manifest, error) {
+	var envelope struct {
+		APIVersion string `json:"apiVersion"`
+	}
+	if err := json.Unmarshal(data, &envelope); err != nil {
+		return selection.Manifest{}, err
+	}
+	switch envelope.APIVersion {
+	case selection.ManifestAPIVersion:
+		document, err := contracts.DecodeExecutionManifestV1(data)
+		if err != nil {
+			return selection.Manifest{}, err
+		}
+
+		return ImportV1(document)
+	case selection.ReviewedManifestAPIVersion:
+		document, err := contracts.DecodeExecutionManifestV4(data)
+		if err != nil {
+			return selection.Manifest{}, err
+		}
+
+		return ImportV4(document)
+	default:
+		return selection.Manifest{}, selection.ErrInvalid
+	}
+}
+
+// ExecutableManifestSHA256 binds a supported manifest to its canonical wire bytes.
+func ExecutableManifestSHA256(manifest selection.Manifest) (string, error) {
+	switch manifest.APIVersion {
+	case selection.ManifestAPIVersion:
+		return ManifestSHA256V1(manifest)
+	case selection.ReviewedManifestAPIVersion:
+		return ManifestSHA256V4(manifest)
+	default:
+		return "", selection.ErrInvalid
+	}
+}
 
 // ImportReviewedInputs validates trusted CI documents and binds their exact
 // bytes to the resulting selection. Scope and completeness remain domain rules.

@@ -265,7 +265,7 @@ func TestRunVerificationExecutesNamedMakeTargetAndRecordsFailure(t *testing.T) {
 		wantSuccess bool
 	}{
 		{name: "success", recipe: "@echo verified", wantSuccess: true},
-		{name: "failure", recipe: "@go no-such-command", wantSuccess: false},
+		{name: "failure", recipe: "@$(MAKE) --no-print-directory no-such-target", wantSuccess: false},
 	} {
 		t.Run(example.name, func(t *testing.T) {
 			makefile := "verify:\n\t" + example.recipe + "\n"

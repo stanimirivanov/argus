@@ -1,0 +1,11 @@
+{
+  "apiVersion": "argus.dev/reference-playwright-test-map/v1",
+  "tests": [
+    {
+      "suiteKey": "billing-api",
+      "testKey": "billing-health-test",
+      "tag": "argus:billing-api:billing-health-test",
+      "file": "tests/billing.spec.mjs"
+    }
+  ]
+}

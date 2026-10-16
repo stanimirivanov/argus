@@ -194,7 +194,6 @@ var generatedContractImporters = map[string]bool{
 	modulePath + "/internal/catalog/adapters/contract/evidence":           true,
 	modulePath + "/internal/change/adapters/contract":                     true,
 	modulePath + "/internal/execution/adapters/cli/evidencecli":           true,
-	modulePath + "/internal/execution/adapters/cli/executioncli":          true,
 	modulePath + "/internal/execution/adapters/cli/planningcli":           true,
 	modulePath + "/internal/execution/adapters/contract":                  true,
 	modulePath + "/internal/execution/adapters/processadapter":            true,

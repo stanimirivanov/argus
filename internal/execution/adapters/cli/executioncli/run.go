@@ -13,7 +13,6 @@ import (
 
 	"github.com/stanimirivanov/argus/internal/catalog"
 	"github.com/stanimirivanov/argus/internal/commandline"
-	"github.com/stanimirivanov/argus/internal/contracts"
 	"github.com/stanimirivanov/argus/internal/execution"
 	executioncontract "github.com/stanimirivanov/argus/internal/execution/adapters/contract"
 	"github.com/stanimirivanov/argus/internal/execution/functionalapi"
@@ -70,11 +69,7 @@ func Run(
 	if err != nil {
 		return err
 	}
-	document, err := contracts.DecodeExecutionManifestV1(data)
-	if err != nil {
-		return fmt.Errorf("read execution manifest: %w", err)
-	}
-	manifest, err := selectioncontract.ImportV1(document)
+	manifest, err := selectioncontract.ImportExecutableManifest(data)
 	if err != nil {
 		return fmt.Errorf("import execution manifest: %w", err)
 	}
@@ -154,5 +149,5 @@ func readBoundedManifest(reader io.Reader) ([]byte, error) {
 }
 
 func manifestDigest(manifest selection.Manifest) (string, error) {
-	return selectioncontract.ManifestSHA256V1(manifest)
+	return selectioncontract.ExecutableManifestSHA256(manifest)
 }

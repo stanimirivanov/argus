@@ -2,8 +2,8 @@
 
 ## TL;DR
 
-- `run-functional-api` consumes an execution manifest and runs one explicit
-  test-repository/adapter group.
+- `run-functional-api` consumes a functional API execution manifest v1 or v4
+  and runs one explicit test-repository/adapter group.
 - `plan-functional-api` first turns heterogeneous manifest groups and reviewed
   immutable-revision bindings into a deterministic flat CI matrix.
 - The adapter reads `argus.dev/functional-api-adapter-request/v1` from stdin and
@@ -27,6 +27,11 @@ stable catalog IDs to native framework filters.
 The reference runner does not clone repositories, install dependencies, upload
 artifacts, or persist results. Run it after the test repository is checked out
 at the exact revision supplied with `-test-revision`.
+
+A supported [Playwright API reference adapter](reference-playwright-api.md)
+now supplies stable discovery and actual framework execution. Deploy the
+updated planner, runner, and report reader together before opting into v4;
+older strict consumers may reject its manifest reference.
 
 For a heterogeneous manifest, run `plan-functional-api` first. The planner
 requires an exact reviewed binding for every repository/adapter group and

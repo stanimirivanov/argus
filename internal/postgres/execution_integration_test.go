@@ -112,6 +112,27 @@ func TestConcurrentExecutionAttemptRetryCreatesOnce(t *testing.T) {
 	}
 }
 
+func TestReviewedManifestAttemptPersistsAndSurvivesRestart(t *testing.T) {
+	databaseURL := newTestDatabase(t)
+	migrateTestDatabase(t, databaseURL)
+	store := openTestStore(t, databaseURL)
+	attempt := integrationExecutionAttempt("reviewed-attempt", execution.StageFullSuite)
+	attempt.Manifest.APIVersion = "argus.dev/execution-manifest/v4"
+	if created, err := store.SaveExecutionAttempt(t.Context(), attempt); err != nil || !created {
+		t.Fatalf("save reviewed attempt: created=%t err=%v", created, err)
+	}
+	store.Close()
+	reopened, err := openIntegratedStore(t.Context(), databaseURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(reopened.Close)
+	got, err := reopened.FindExecutionAttempt(t.Context(), attempt.AttemptID)
+	if err != nil || !reflect.DeepEqual(got, execution.CanonicalAttempt(attempt)) {
+		t.Fatalf("reviewed attempt after restart: got=%+v err=%v", got, err)
+	}
+}
+
 func TestExecutionAttemptConstraintsRejectInvalidChildEvidence(t *testing.T) {
 	databaseURL := newTestDatabase(t)
 	migrateTestDatabase(t, databaseURL)

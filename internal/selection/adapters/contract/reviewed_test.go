@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -32,6 +33,11 @@ func TestReviewedManifestV4PreservesLegacyWireVersions(t *testing.T) {
 	manifest.ImpactAnalyzerVersion = "argus-component-roots/v1+argus-openapi/v1+libopenapi/v0.38.7"
 	manifest.PolicyDigest = strings.Repeat("a", 64)
 	manifest.InventoryDigest = strings.Repeat("b", 64)
+	manifest.Decisions[0].Reasons[0] = selection.Reason{
+		Code:         selection.ReasonSupportedMapping,
+		Capabilities: append([]string{}, manifest.AffectedCapabilities...),
+		EvidenceKeys: []string{"observation-1"},
+	}
 	v4, err := selectioncontract.ExportV4(manifest)
 	if err != nil {
 		t.Fatal(err)
@@ -42,6 +48,13 @@ func TestReviewedManifestV4PreservesLegacyWireVersions(t *testing.T) {
 	}
 	if _, err := contracts.DecodeExecutionManifestV4(encoded); err != nil {
 		t.Fatalf("v4 roundtrip: %v", err)
+	}
+	imported, err := selectioncontract.ImportExecutableManifest(encoded)
+	if err != nil || !reflect.DeepEqual(imported, selection.CanonicalManifest(manifest)) {
+		t.Fatalf("executable v4 roundtrip: imported=%+v err=%v", imported, err)
+	}
+	if _, err := selectioncontract.ExecutableManifestSHA256(imported); err != nil {
+		t.Fatalf("v4 digest: %v", err)
 	}
 	if _, err := contracts.DecodeExecutionManifestV1(encoded); err == nil {
 		t.Fatal("legacy v1 decoder accepted v4")

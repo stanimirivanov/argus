@@ -1,6 +1,6 @@
 import { Schema } from "effect";
 
-import { ExecutionManifestV1APIVersion } from "./execution-manifest-v1.js";
+import { FunctionalAPIExecutableManifestVersion } from "./execution-manifest-v4.js";
 import { FunctionalAPIExecutionPlanV1APIVersion } from "./functional-api-execution-plan-v1.js";
 import { LocalKey, RepositoryReference } from "./repository-descriptor-v1.js";
 import { Revision } from "./test-catalog-page-v1.js";
@@ -77,7 +77,7 @@ export const SelectionPlanShadowReportV1 = Schema.Struct({
     sha256: SHA256,
   }),
   manifest: Schema.Struct({
-    apiVersion: ExecutionManifestV1APIVersion,
+    apiVersion: FunctionalAPIExecutableManifestVersion,
     sha256: SHA256,
   }),
   groupCount: Count,

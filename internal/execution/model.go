@@ -174,7 +174,8 @@ func ValidateAttemptID(attemptID string) error {
 // ValidateManifestReference verifies the version and digest of canonical
 // execution-manifest bytes without loading the manifest itself.
 func ValidateManifestReference(reference ManifestReference) error {
-	if reference.APIVersion != selection.ManifestAPIVersion ||
+	if (reference.APIVersion != selection.ManifestAPIVersion &&
+		reference.APIVersion != selection.ReviewedManifestAPIVersion) ||
 		!hexSHA256Pattern.MatchString(reference.SHA256) {
 		return fmt.Errorf("%w: manifest reference", ErrInvalid)
 	}

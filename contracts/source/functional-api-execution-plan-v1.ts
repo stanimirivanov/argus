@@ -1,6 +1,6 @@
 import { Schema } from "effect";
 
-import { ExecutionManifestV1APIVersion } from "./execution-manifest-v1.js";
+import { FunctionalAPIExecutableManifestVersion } from "./execution-manifest-v4.js";
 import { LocalKey, RepositoryReference } from "./repository-descriptor-v1.js";
 import { Revision } from "./test-catalog-page-v1.js";
 
@@ -10,7 +10,7 @@ const PositiveTestCount = Schema.Int.check(
   Schema.isLessThanOrEqualTo(10000),
 );
 const ManifestReference = Schema.Struct({
-  apiVersion: ExecutionManifestV1APIVersion,
+  apiVersion: FunctionalAPIExecutableManifestVersion,
   sha256: SHA256,
 });
 

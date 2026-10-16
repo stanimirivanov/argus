@@ -343,8 +343,10 @@ It evaluates catalog edges at the change observation time and emits
 execution-manifest v4 with policy and inventory digests. Stale or conflicting
 affected mappings require a full-suite fallback. New or modified tests,
 must-run rules, and pins take precedence over early-stage exclusions; every
-omission remains in the full-suite control. The reference v4 execution adapter
-is the next M05 slice. See [ADR-0030](../decisions/0030-bind-reviewed-functional-api-policy-to-complete-head-inventory.md).
+omission remains in the full-suite control. The Playwright API reference
+adapter now executes v4 through the existing bounded process protocol. See
+[ADR-0030](../decisions/0030-bind-reviewed-functional-api-policy-to-complete-head-inventory.md)
+and [ADR-0031](../decisions/0031-execute-reviewed-functional-api-manifests-through-the-existing-protocol.md).
 
 ### Current functional API execution boundaries
 
