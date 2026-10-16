@@ -40,8 +40,9 @@ type Request struct {
 
 // Service combines semantic impact with explicit catalog mappings.
 type Service struct {
-	impacts ImpactReader
-	catalog CatalogReader
+	impacts  ImpactReader
+	catalog  CatalogReader
+	mappings MappingReader
 }
 
 // NewService constructs the functional API selection use case.

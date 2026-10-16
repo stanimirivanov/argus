@@ -81,6 +81,41 @@ reports affected capabilities with no mapped test. The browser selection
 manifests are different versions and are **not** accepted by this planner or
 runner; see [functional UI selection](functional-ui-selection.md).
 
+### Opt-in reviewed selection policy
+
+The reviewed v2 policy emits `execution-manifest/v4` for inspection and
+evaluation. CI must supply both a reviewed policy file and a complete head
+inventory from trusted discovery at immutable test-repository revisions:
+
+~~~sh
+go run ./cmd/select \
+  -provider github \
+  -delivery-id 01234567-89ab-cdef-0123-456789abcdef \
+  -policy-file ./.argus/reviewed-selection-policy.json \
+  -head-inventory-file ./head-test-inventory.json \
+  > ./reviewed-execution-manifest.json
+~~~
+
+The [policy schema](../../contracts/generated/reviewed-selection-policy/v1/reviewed-selection-policy.schema.json)
+requires `sourceRepository`, `mustRunCapabilities`, `mustRunTests`, `pins`,
+and `exclusions`. Test rules use stable test-repository, suite, and test keys.
+The [inventory schema](../../contracts/generated/head-test-inventory/v1/head-test-inventory.schema.json)
+requires `complete: true` and one record per observed functional API test,
+including an immutable repository revision and `new`/`modified` flags. A
+head-only test must have `new: true` and an empty capabilities array: PR-head
+metadata cannot authorize a new mapping. Policy and inventory bytes are bound
+by SHA-256 in the [v4 manifest](../../contracts/generated/execution-manifest/v4/execution-manifest.schema.json).
+
+CI owns the inventory's completeness assertion; a PR-authored inventory is not
+trusted input. Missing base tests, absent policy targets, or unavailable catalog
+evidence fail before output. Stale or conflicting affected mappings require
+every known head test. Pins and must-run rules override early-stage exclusions,
+and every omission remains in the full-suite obligation.
+
+The existing planner and runner consume manifest v1. The next M05 reference
+integration will connect verified discovery and v4 execution. Continue using
+the v1 command above for executable shadow runs until that integration lands.
+
 ## Generate the matrix
 
 Create the plan before any test repository is executed:

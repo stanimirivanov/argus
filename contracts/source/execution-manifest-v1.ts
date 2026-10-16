@@ -6,7 +6,7 @@ import { Timestamp } from "./timestamp.js";
 
 const PositiveInteger = Schema.Int.check(Schema.isGreaterThanOrEqualTo(1));
 
-const ChangeReference = Schema.Struct({
+export const ChangeReference = Schema.Struct({
   sourceRepository: RepositoryReference,
   pullRequest: Schema.Struct({ number: PositiveInteger }),
   baseRevision: Revision,

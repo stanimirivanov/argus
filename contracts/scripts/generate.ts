@@ -17,6 +17,7 @@ import { ChangeSetV1 } from "../source/change-set-v1.js";
 import { ExecutionManifestV1 } from "../source/execution-manifest-v1.js";
 import { ExecutionManifestV2 } from "../source/execution-manifest-v2.js";
 import { ExecutionManifestV3 } from "../source/execution-manifest-v3.js";
+import { ExecutionManifestV4 } from "../source/execution-manifest-v4.js";
 import {
   FunctionalAPIExecutionBindingsV1,
   FunctionalAPIExecutionPlanV1,
@@ -26,10 +27,12 @@ import {
   FunctionalAPIAdapterRequestV1,
   FunctionalAPIAdapterResultV1,
 } from "../source/functional-api-execution-v1.js";
+import { HeadTestInventoryV1 } from "../source/head-test-inventory-v1.js";
 import { ImpactEdgePageV1 } from "../source/impact-edge-page-v1.js";
 import { ImpactEvidenceBundleV1 } from "../source/impact-evidence-bundle-v1.js";
 import { RepositoryDescriptorV1 } from "../source/repository-descriptor-v1.js";
 import { ReviewOutcomeV1 } from "../source/review-outcome-v1.js";
+import { ReviewedSelectionPolicyV1 } from "../source/reviewed-selection-policy-v1.js";
 import {
   ExecutionPlanAttemptBindingsV1,
   SelectionPlanShadowReportV1,
@@ -257,6 +260,39 @@ const artifacts = [
     document: {
       $id: "https://argus.dev/contracts/execution-manifest/v3/schema.json",
       ...compileJsonSchema(ExecutionManifestV3),
+    },
+  },
+  {
+    name: "reviewed functional API selection manifest",
+    outputPath: new URL(
+      "../generated/execution-manifest/v4/execution-manifest.schema.json",
+      import.meta.url,
+    ),
+    document: {
+      $id: "https://argus.dev/contracts/execution-manifest/v4/schema.json",
+      ...compileJsonSchema(ExecutionManifestV4),
+    },
+  },
+  {
+    name: "reviewed selection policy",
+    outputPath: new URL(
+      "../generated/reviewed-selection-policy/v1/reviewed-selection-policy.schema.json",
+      import.meta.url,
+    ),
+    document: {
+      $id: "https://argus.dev/contracts/reviewed-selection-policy/v1/schema.json",
+      ...compileJsonSchema(ReviewedSelectionPolicyV1),
+    },
+  },
+  {
+    name: "head test inventory",
+    outputPath: new URL(
+      "../generated/head-test-inventory/v1/head-test-inventory.schema.json",
+      import.meta.url,
+    ),
+    document: {
+      $id: "https://argus.dev/contracts/head-test-inventory/v1/schema.json",
+      ...compileJsonSchema(HeadTestInventoryV1),
     },
   },
   {

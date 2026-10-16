@@ -114,6 +114,7 @@ var productionPackagePolicy = map[string]packagePolicy{
 	modulePath + "/internal/selection/adapters/catalogreader":             {adapterLayer, selectionCapability},
 	modulePath + "/internal/selection/adapters/cli/selectioncli":          {adapterLayer, selectionCapability},
 	modulePath + "/internal/selection/adapters/contract":                  {adapterLayer, selectionCapability},
+	modulePath + "/internal/selection/adapters/edgereader":                {adapterLayer, selectionCapability},
 	modulePath + "/internal/selection/adapters/impactreader":              {adapterLayer, selectionCapability},
 	modulePath + "/cmd/adaptation-evidence":                               {compositionRootLayer, productCapability},
 	modulePath + "/cmd/capture-functional-api-review-outcome":             {compositionRootLayer, productCapability},
@@ -169,6 +170,7 @@ var adapterPolicy = map[string]adapterKind{
 	modulePath + "/internal/selection/adapters/catalogreader":             bridgeAdapter,
 	modulePath + "/internal/selection/adapters/cli/selectioncli":          drivingAdapter,
 	modulePath + "/internal/selection/adapters/contract":                  contractAdapter,
+	modulePath + "/internal/selection/adapters/edgereader":                bridgeAdapter,
 	modulePath + "/internal/selection/adapters/impactreader":              bridgeAdapter,
 }
 

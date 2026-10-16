@@ -76,6 +76,9 @@ actually fetched.
 | `source/capability-impact-v1.ts` | Authoritative semantic OpenAPI capability-impact result. |
 | `source/execution-manifest-v1.ts` | Authoritative functional API execution-manifest result. |
 | `source/execution-manifest-v2.ts` | Authoritative functional UI capability-selection result. |
+| `source/execution-manifest-v4.ts` | Opt-in reviewed functional API selection result. |
+| `source/reviewed-selection-policy-v1.ts` | Repository-scoped owner policy input. |
+| `source/head-test-inventory-v1.ts` | Complete head test-discovery input at immutable revisions. |
 | `source/functional-api-execution-v1.ts` | Authoritative adapter request/result and normalized execution-attempt contracts. |
 | `source/functional-api-execution-plan-v1.ts` | Authoritative reviewed execution-bindings and generated execution-plan contracts. |
 | `source/selection-shadow-report-v1.ts` | Authoritative selected-versus-full-suite shadow report contract. |
@@ -228,6 +231,12 @@ mode requires every candidate when impact is partial, empty, or unmapped.
 `uncoveredCapabilities` identifies affected behavior without a mapped
 functional API test. The manifest is an explainable selection result; it does
 not claim that execution occurred or that an early subset is release authority.
+
+The opt-in `argus.dev/execution-manifest/v4` binds reviewed owner policy and
+complete head inventory by SHA-256. It admits composite file impact and
+evaluated catalog edge keys while preserving v1-v3 JSON and selection meaning.
+Its head-only tests require early execution without gaining an unreviewed
+capability mapping. Reference execution of v4 is the next M05 integration.
 
 ## Functional API execution contracts
 

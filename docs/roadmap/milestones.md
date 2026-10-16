@@ -242,6 +242,12 @@ records inclusion and omission reasons, uncovered capabilities, and a mandatory
 later full-suite path for early omissions. Partial, empty, or unmapped impact
 falls back to running every functional API candidate.
 
+An opt-in reviewed policy slice versions the functional API manifest to v4.
+It binds owner rules and complete head test inventory by content digest, admits
+composite file impact, and resolves stale or conflicting mapping evidence
+conservatively. The existing v1 manifest and execution path remain available
+until the reference v4 integration is delivered.
+
 The second M05 slice defines a framework-neutral functional API adapter
 request/result protocol, consumes a manifest in a bounded CI-local process
 runner, correlates the exact requested result set, and emits a normalized

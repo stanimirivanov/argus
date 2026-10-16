@@ -70,6 +70,16 @@ const (
 	ReasonConservativeFallback ReasonCode = "CONSERVATIVE_FALLBACK"
 	// ReasonNotAffected identifies an omitted candidate without a capability match.
 	ReasonNotAffected ReasonCode = "NOT_AFFECTED_IN_EARLY_STAGE"
+	// ReasonMustRunRule identifies a mandatory owner rule.
+	ReasonMustRunRule ReasonCode = "MUST_RUN_RULE"
+	// ReasonExplicitPin identifies a pinned test.
+	ReasonExplicitPin ReasonCode = "EXPLICIT_PIN"
+	// ReasonNewOrModifiedTest identifies changed head inventory.
+	ReasonNewOrModifiedTest ReasonCode = "NEW_OR_MODIFIED_TEST"
+	// ReasonSupportedMapping identifies catalog evidence supporting a mapping.
+	ReasonSupportedMapping ReasonCode = "SUPPORTED_MAPPING"
+	// ReasonExcludedEarly identifies an optional early-stage exclusion.
+	ReasonExcludedEarly ReasonCode = "EXCLUDED_EARLY_STAGE"
 )
 
 // RemainingExecution states whether an omitted test has a later control path.
@@ -106,6 +116,7 @@ func (reference TestReference) Identity() catalog.TestIdentity {
 type Reason struct {
 	Code         ReasonCode
 	Capabilities []string
+	EvidenceKeys []string
 }
 
 // Decision records inclusion or omission for one cataloged test.
@@ -130,6 +141,8 @@ type Manifest struct {
 	UncoveredCapabilities []string
 	Decisions             []Decision
 	Warnings              []string
+	PolicyDigest          string
+	InventoryDigest       string
 }
 
 // CanonicalManifest deep-copies and orders all set-like fields.
@@ -147,6 +160,7 @@ func CanonicalManifest(manifest Manifest) Manifest {
 		for reasonIndex, reason := range decision.Reasons {
 			canonical.Decisions[index].Reasons[reasonIndex] = reason
 			canonical.Decisions[index].Reasons[reasonIndex].Capabilities = canonicalStrings(reason.Capabilities)
+			canonical.Decisions[index].Reasons[reasonIndex].EvidenceKeys = canonicalStrings(reason.EvidenceKeys)
 		}
 		slices.SortFunc(canonical.Decisions[index].Reasons, func(left, right Reason) int {
 			return cmp.Compare(left.Code, right.Code)
@@ -161,17 +175,9 @@ func CanonicalManifest(manifest Manifest) Manifest {
 
 // ValidateManifest enforces policy-result invariants independent of transports.
 func ValidateManifest(manifest Manifest) error {
-	validVersion := manifest.APIVersion == ManifestAPIVersion &&
-		manifest.PolicyVersion == FunctionalAPIPolicyVersion && manifest.Family == catalog.TestFamilyFunctionalAPI
-	validBrowserVersion := manifest.APIVersion == BrowserManifestAPIVersion &&
-		manifest.PolicyVersion == FunctionalUIPolicyVersion && manifest.Family == catalog.TestFamilyFunctionalUI
-	validComponentVersion := manifest.APIVersion == ComponentManifestAPIVersion &&
-		manifest.PolicyVersion == UIComponentPolicyVersion && manifest.Family == catalog.TestFamilyFunctionalUI
-	if (!validVersion && !validBrowserVersion && !validComponentVersion) ||
-		strings.TrimSpace(manifest.ImpactAPIVersion) == "" ||
-		strings.TrimSpace(manifest.ImpactAnalyzerVersion) == "" ||
-		len(manifest.ImpactAPIVersion) > 255 || len(manifest.ImpactAnalyzerVersion) > 255 {
-		return fmt.Errorf("%w: version", ErrInvalid)
+	validReviewedVersion, err := validateManifestVersion(manifest)
+	if err != nil {
+		return err
 	}
 	if manifest.Mode != ModeTargeted && manifest.Mode != ModeFallback {
 		return fmt.Errorf("%w: family or mode", ErrInvalid)
@@ -194,7 +200,8 @@ func ValidateManifest(manifest Manifest) error {
 	}
 	identities := make(map[catalog.TestIdentity]struct{}, len(manifest.Decisions))
 	for _, decision := range manifest.Decisions {
-		if err := validateDecision(decision, manifest.Family, manifest.Mode, manifest.AffectedCapabilities); err != nil {
+		if err := validateDecision(decision, manifest.Family, manifest.Mode, manifest.AffectedCapabilities,
+			validReviewedVersion); err != nil {
 			return err
 		}
 		identity := decision.Test.Identity()
@@ -205,6 +212,36 @@ func ValidateManifest(manifest Manifest) error {
 	}
 
 	return nil
+}
+
+func validateManifestVersion(manifest Manifest) (bool, error) {
+	validVersion := manifest.APIVersion == ManifestAPIVersion &&
+		manifest.PolicyVersion == FunctionalAPIPolicyVersion && manifest.Family == catalog.TestFamilyFunctionalAPI
+	validBrowserVersion := manifest.APIVersion == BrowserManifestAPIVersion &&
+		manifest.PolicyVersion == FunctionalUIPolicyVersion && manifest.Family == catalog.TestFamilyFunctionalUI
+	validComponentVersion := manifest.APIVersion == ComponentManifestAPIVersion &&
+		manifest.PolicyVersion == UIComponentPolicyVersion && manifest.Family == catalog.TestFamilyFunctionalUI
+	validReviewedVersion := manifest.APIVersion == ReviewedManifestAPIVersion &&
+		manifest.PolicyVersion == ReviewedFunctionalAPIPolicyVersion && manifest.Family == catalog.TestFamilyFunctionalAPI
+	if (!validVersion && !validBrowserVersion && !validComponentVersion && !validReviewedVersion) ||
+		strings.TrimSpace(manifest.ImpactAPIVersion) == "" ||
+		strings.TrimSpace(manifest.ImpactAnalyzerVersion) == "" ||
+		len(manifest.ImpactAPIVersion) > 255 || len(manifest.ImpactAnalyzerVersion) > 255 {
+		return false, fmt.Errorf("%w: version", ErrInvalid)
+	}
+	if validReviewedVersion {
+		if !validDigest(manifest.PolicyDigest) || !validDigest(manifest.InventoryDigest) {
+			return false, fmt.Errorf("%w: reviewed input digests", ErrInvalid)
+		}
+		if manifest.ImpactAPIVersion != change.CompositeImpactAPIVersion ||
+			manifest.ImpactAnalyzerVersion != change.CompositeAnalyzerVersion {
+			return false, fmt.Errorf("%w: reviewed impact provenance", ErrInvalid)
+		}
+	} else if manifest.PolicyDigest != "" || manifest.InventoryDigest != "" {
+		return false, fmt.Errorf("%w: legacy manifest contains reviewed input", ErrInvalid)
+	}
+
+	return validReviewedVersion, nil
 }
 
 func validateCapabilitySets(manifest Manifest) error {
@@ -237,10 +274,10 @@ func validateCapabilitySets(manifest Manifest) error {
 	return nil
 }
 
-func validateDecision(decision Decision, family catalog.TestFamily, mode Mode, affected []string) error {
+func validateDecision(decision Decision, family catalog.TestFamily, mode Mode, affected []string, reviewed bool) error {
 	if !decision.Test.Identity().Valid() || decision.Test.Family != family ||
 		strings.TrimSpace(decision.Test.Adapter) == "" || strings.TrimSpace(decision.Test.Name) == "" ||
-		len(decision.Test.Capabilities) == 0 ||
+		(!reviewed && len(decision.Test.Capabilities) == 0) ||
 		len(decision.Test.Capabilities) > MaxManifestCapabilities || len(decision.Reasons) == 0 {
 		return fmt.Errorf("%w: test decision", ErrInvalid)
 	}
@@ -250,8 +287,12 @@ func validateDecision(decision Decision, family catalog.TestFamily, mode Mode, a
 	if err := validateOutcome(decision, mode); err != nil {
 		return err
 	}
-	if err := validateReasons(decision, affected); err != nil {
+	if err := validateReasons(decision, affected, reviewed); err != nil {
 		return err
+	}
+
+	if reviewed {
+		return validateReviewedReasonPolicy(decision, mode)
 	}
 
 	return validateReasonPolicy(decision, mode)
@@ -284,22 +325,73 @@ func validateOutcome(decision Decision, mode Mode) error {
 	return nil
 }
 
-func validateReasons(decision Decision, affected []string) error {
+func validateReasons(decision Decision, affected []string, reviewed bool) error {
 	for _, reason := range decision.Reasons {
-		if reason.Code != ReasonDirectCapabilityImpact &&
-			reason.Code != ReasonConservativeFallback &&
-			reason.Code != ReasonNotAffected {
-			return fmt.Errorf("%w: reason", ErrInvalid)
+		if err := validateReason(reason, decision.Test.Capabilities, affected, reviewed); err != nil {
+			return err
 		}
-		if len(reason.Capabilities) > MaxManifestCapabilities {
-			return fmt.Errorf("%w: reason capability bound", ErrInvalid)
+	}
+
+	return nil
+}
+
+func validateReason(reason Reason, testCapabilities, affected []string, reviewed bool) error {
+	if reason.Code != ReasonMustRunRule && reason.Code != ReasonExplicitPin &&
+		reason.Code != ReasonNewOrModifiedTest && reason.Code != ReasonSupportedMapping &&
+		reason.Code != ReasonExcludedEarly && reason.Code != ReasonDirectCapabilityImpact &&
+		reason.Code != ReasonConservativeFallback && reason.Code != ReasonNotAffected {
+		return fmt.Errorf("%w: reason", ErrInvalid)
+	}
+	if len(reason.Capabilities) > MaxManifestCapabilities {
+		return fmt.Errorf("%w: reason capability bound", ErrInvalid)
+	}
+	if len(reason.EvidenceKeys) > MaxManifestCapabilities || (!reviewed && len(reason.EvidenceKeys) != 0) {
+		return fmt.Errorf("%w: reason evidence bound", ErrInvalid)
+	}
+	for _, key := range reason.EvidenceKeys {
+		if !catalog.IsLocalKey(key) {
+			return fmt.Errorf("%w: reason evidence key", ErrInvalid)
 		}
-		for _, capability := range reason.Capabilities {
-			if !slices.Contains(affected, capability) ||
-				!slices.Contains(decision.Test.Capabilities, capability) {
-				return fmt.Errorf("%w: reason capability provenance", ErrInvalid)
+	}
+	for _, capability := range reason.Capabilities {
+		if reviewed && reason.Code == ReasonMustRunRule {
+			if !slices.Contains(testCapabilities, capability) {
+				return fmt.Errorf("%w: must-run capability provenance", ErrInvalid)
 			}
+			continue
 		}
+		if !slices.Contains(affected, capability) ||
+			(!reviewed && !slices.Contains(testCapabilities, capability)) {
+			return fmt.Errorf("%w: reason capability provenance", ErrInvalid)
+		}
+	}
+
+	return nil
+}
+
+func validateReviewedReasonPolicy(decision Decision, mode Mode) error {
+	if len(decision.Reasons) != 1 {
+		return fmt.Errorf("%w: reviewed reason count", ErrInvalid)
+	}
+	reason := decision.Reasons[0]
+	if mode == ModeFallback {
+		if decision.Outcome != OutcomeRunRequired || reason.Code != ReasonConservativeFallback {
+			return fmt.Errorf("%w: reviewed fallback", ErrInvalid)
+		}
+		return nil
+	}
+	switch reason.Code {
+	case ReasonMustRunRule, ReasonExplicitPin, ReasonNewOrModifiedTest,
+		ReasonDirectCapabilityImpact, ReasonSupportedMapping:
+		if decision.Outcome != OutcomeRunRequired {
+			return fmt.Errorf("%w: required reviewed decision", ErrInvalid)
+		}
+	case ReasonExcludedEarly, ReasonNotAffected:
+		if decision.Outcome != OutcomeSkipForNow {
+			return fmt.Errorf("%w: omitted reviewed decision", ErrInvalid)
+		}
+	default:
+		return fmt.Errorf("%w: reviewed reason code", ErrInvalid)
 	}
 
 	return nil
