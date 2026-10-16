@@ -16,15 +16,16 @@
 
 ## Run the campaign
 
-Install the root lockfile and run:
+Run bootstrap to seed the root and both fixture lockfiles, then run:
 
 ~~~sh
-pnpm install --frozen-lockfile
+make bootstrap
 make api-validate
 ~~~
 
 The gate creates temporary Git repositories outside the checkout, installs each
-test repository from its own lockfile in offline mode, starts a local HTTP
+test repository from its own lockfile (offline first, with a frozen-lockfile
+registry retry when a fresh cache is incomplete), starts a local HTTP
 service on a random loopback port, builds the Go commands, and removes the
 temporary repositories on success or failure. It never needs browser binaries:
 Playwright's API request fixture supplies the test transport.

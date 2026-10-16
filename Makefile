@@ -66,6 +66,8 @@ bootstrap:
 	go -C $(QUALITY_TOOLS_DIRECTORY) mod download
 	go -C tools/actionlint mod download
 	pnpm install --frozen-lockfile
+	pnpm --dir examples/functional-api/test-repository install --frozen-lockfile
+	pnpm --dir examples/functional-api/billing-test-repository install --frozen-lockfile
 
 doctor:
 	@git --version

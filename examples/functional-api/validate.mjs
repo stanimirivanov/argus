@@ -64,7 +64,12 @@ async function command(executable, args, { cwd = root, env = {}, acceptFailure =
     stderr: Buffer.concat(stderr).toString("utf8"),
   };
   if (code !== 0 && !acceptFailure)
-    throw new Error(`${executable} ${args[0]} failed: ${result.stderr}`);
+    throw new Error(
+      `${executable} ${args[0]} failed (exit ${code}): ${[result.stdout, result.stderr]
+        .filter(Boolean)
+        .join("\n")
+        .slice(-8192)}`,
+    );
   return result;
 }
 
@@ -118,7 +123,15 @@ async function prepareTests(temp, entry) {
         (name) => path.includes(`${sep}${name}${sep}`) || path.endsWith(`${sep}${name}`),
       ),
   });
-  await command("pnpm", ["install", "--frozen-lockfile", "--offline"], { cwd: directory });
+  const offlineInstall = await command("pnpm", ["install", "--frozen-lockfile", "--offline"], {
+    cwd: directory,
+    acceptFailure: true,
+  });
+  if (offlineInstall.code !== 0) {
+    // A fresh CI store can contain the root importer's packages without the
+    // metadata needed to resolve an independent fixture lockfile offline.
+    await command("pnpm", ["install", "--frozen-lockfile"], { cwd: directory });
+  }
   const revision = await initialize(directory);
   const env = {
     ARGUS_SOURCE_REPOSITORY: JSON.stringify(sourceIdentity),
