@@ -344,9 +344,15 @@ remain errors rather than learning labels.
 The seventh M06 slice proposes direct compatible request and response field
 renames only when an owner-declared identity survives complete immutable
 OpenAPI operation comparison. It emits a separate field proposal and constrains
-one syntax-aware Playwright source edit. Repeated field-specific validation,
-negative controls, draft publication, and review learning remain the next
-delivery slice; endpoint validation never accepts a field proposal.
+one syntax-aware Playwright source edit. Endpoint validation never accepts a
+field proposal.
+
+The eighth M06 slice validates each field proposal with two unchanged, two
+candidate, and two field-negative-control executions in a disposable checkout.
+Trustworthy mismatches produce a separate rejection contract; disagreements,
+infrastructure errors, and failed restoration do not. A successful proof can
+become an idempotent draft review, and terminal outcome capture reuses immutable
+reviewer edits, reasons, and PostgreSQL retry/conflict policy.
 
 ## M07 - UI test intelligence
 

@@ -395,9 +395,13 @@ function flatten(suites) {
   return (suites ?? []).flatMap((suite) => [...(suite.specs ?? []), ...flatten(suite.suites)]);
 }
 
-async function validate(request) {
+async function validate(request, field = false) {
   if (
-    request.apiVersion !== "argus.dev/functional-api-repair-validation-request/v1" ||
+    request.apiVersion !==
+      (field
+        ? "argus.dev/functional-api-field-validation-request/v1"
+        : "argus.dev/functional-api-repair-validation-request/v1") ||
+    (field && ![1, 2].includes(request.repeat)) ||
     request.test?.adapter !== "playwright" ||
     request.test?.revision?.digest !== (await revision())
   )
@@ -433,10 +437,13 @@ async function validate(request) {
   if ((result.code === 0) !== (outcome === "passed"))
     fail("Playwright exit status contradicts result");
   return {
-    apiVersion: "argus.dev/functional-api-repair-validation-result/v1",
+    apiVersion: field
+      ? "argus.dev/functional-api-field-validation-result/v1"
+      : "argus.dev/functional-api-repair-validation-result/v1",
     validationId: request.validationId,
     proposalId: request.proposalId,
     phase: request.phase,
+    ...(field ? { repeat: request.repeat } : {}),
     suiteKey: request.test.suiteKey,
     testKey: request.test.testKey,
     adapter: { id: "playwright", version },
@@ -466,7 +473,11 @@ try {
         ? await proposeField(request)
         : process.argv[2] === "validate"
           ? await validate(request)
-          : fail("usage: playwright-repair-adapter.mjs propose|validate");
+          : process.argv[2] === "validate-field"
+            ? await validate(request, true)
+            : fail(
+                "usage: playwright-repair-adapter.mjs propose|propose-field|validate|validate-field",
+              );
   process.stdout.write(`${JSON.stringify(result)}\n`);
 } catch (error) {
   process.stderr.write(`${error.message}\n`);

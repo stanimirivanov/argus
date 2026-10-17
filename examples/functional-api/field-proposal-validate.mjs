@@ -1,6 +1,7 @@
 // Exercise the reviewed field adapter against a disposable immutable checkout.
 import { spawn, spawnSync } from "node:child_process";
 import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join, resolve, sep } from "node:path";
 
@@ -8,6 +9,7 @@ const fixture = resolve("examples/functional-api/repair-test-repository");
 const adapter = resolve("examples/functional-api/playwright-repair-adapter.mjs");
 const workspace = await mkdtemp(join(tmpdir(), "argus-field-proposal-"));
 const sourcePath = join(workspace, "tests", "fields.spec.mjs");
+let server;
 
 function command(executable, args, input) {
   const result = spawnSync(executable, args, {
@@ -68,6 +70,106 @@ function request(direction, testKey, previousName, name) {
 
 function proposal(input) {
   return JSON.parse(command(process.execPath, [adapter, "propose-field"], JSON.stringify(input)));
+}
+
+function fullProposal(input, result) {
+  const sourceRepository = {
+    provider: "github",
+    host: "github.com",
+    providerRepositoryId: "fixture-source-field",
+    owner: "argus-fixture",
+    name: "field-source",
+  };
+  const testRepository = {
+    provider: "github",
+    host: "github.com",
+    providerRepositoryId: "fixture-tests-field",
+    owner: "argus-fixture",
+    name: "field-tests",
+  };
+  const isRequest = input.fieldRename.direction === "request";
+  return {
+    apiVersion: "argus.dev/field-adaptation-proposal/v1",
+    policyVersion: "argus.dev/adaptation-policy/functional-api-compatible-field-rename/v1",
+    proposalId: input.proposalId,
+    sourceImpact: {
+      apiVersion: "argus.dev/capability-impact/v1",
+      analyzerVersion: "argus-openapi/v1+libopenapi/v0.38.7",
+    },
+    change: {
+      sourceRepository,
+      pullRequest: { number: 42 },
+      baseRevision: { algorithm: "git-sha1", digest: "1".repeat(40) },
+      headRevision: { algorithm: "git-sha1", digest: "2".repeat(40) },
+      observedAt: "2026-10-17T10:00:00Z",
+      trigger: {
+        provider: "github",
+        deliveryId: "field-fixture",
+        event: "pull_request",
+        action: "synchronize",
+      },
+    },
+    test: {
+      repository: testRepository,
+      revision: input.test.revision,
+      suiteKey: "orders-api",
+      testKey: input.test.testKey,
+      name: `${isRequest ? "request" : "response"} field [argus:orders-api:${input.test.testKey}]`,
+      adapter: "playwright",
+      capabilities: ["orders"],
+    },
+    classification: "INVALIDATED",
+    decision: "PATCH_AND_VALIDATE",
+    fieldRename: {
+      documentPath: "api/orders.yaml",
+      baseSha256: "1".repeat(64),
+      headSha256: "2".repeat(64),
+      method: isRequest ? "POST" : "GET",
+      path: "/orders",
+      operationId: "orders",
+      capabilities: ["orders"],
+      direction: input.fieldRename.direction,
+      statusCode: isRequest ? "" : "200",
+      previousName: input.fieldRename.previousName,
+      name: input.fieldRename.name,
+    },
+    adapter: result.adapter,
+    edit: result.edit,
+  };
+}
+
+async function validate(executable, proposalPath, serviceURL) {
+  const child = spawn(
+    executable,
+    [
+      "-proposal",
+      proposalPath,
+      "-disposable-workspace",
+      workspace,
+      "--",
+      process.execPath,
+      adapter,
+      "validate-field",
+    ],
+    {
+      cwd: workspace,
+      windowsHide: true,
+      env: { ...process.env, ARGUS_FIXTURE_URL: serviceURL },
+    },
+  );
+  const stdout = [];
+  const stderr = [];
+  child.stdout.on("data", (chunk) => stdout.push(chunk));
+  child.stderr.on("data", (chunk) => stderr.push(chunk));
+  const status = await new Promise((done, reject) => {
+    child.once("error", reject);
+    child.once("close", done);
+  });
+  return {
+    status,
+    stdout: Buffer.concat(stdout).toString("utf8"),
+    stderr: Buffer.concat(stderr).toString("utf8"),
+  };
 }
 
 function assertEdit(result, source, previousName, name, role) {
@@ -149,6 +251,76 @@ test("response field [argus:orders-api:response-field]", async ({ request }) => 
   );
   if ((await readFile(sourcePath, "utf8")) !== source) throw new Error("proposal mutated source");
 
+  const validationCommand = resolve(
+    workspace,
+    process.platform === "win32" ? "field-validation.exe" : "field-validation",
+  );
+  const built = spawnSync(
+    "go",
+    ["build", "-o", validationCommand, "./cmd/validate-functional-api-field-repair"],
+    {
+      cwd: resolve("."),
+      encoding: "utf8",
+      windowsHide: true,
+      timeout: 120000,
+    },
+  );
+  if (built.status !== 0) throw new Error(`field validation build failed: ${built.stderr}`);
+  let falseHealing = false;
+  server = createServer(async (req, res) => {
+    let body = "";
+    for await (const chunk of req) body += chunk;
+    let status = 404;
+    let value = { error: "not-found" };
+    if (req.method === "POST" && req.url === "/orders") {
+      const data = JSON.parse(body);
+      status = data.clientId === "buyer-1" ? 200 : 400;
+      value = { accepted: status === 200 };
+    } else if (req.method === "GET" && req.url === "/orders") {
+      status = 200;
+      value = {
+        purchaseId: "order-1",
+        ...(falseHealing ? { [`__argus_negative_field_${"a".repeat(12)}`]: "order-1" } : {}),
+      };
+    }
+    res.writeHead(status, { "content-type": "application/json" });
+    res.end(JSON.stringify(value));
+  });
+  await new Promise((done) => server.listen(0, "127.0.0.1", done));
+  const serviceURL = `http://127.0.0.1:${server.address().port}`;
+  for (const [direction, testKey, previousName, name] of [
+    ["request", "request-field", "customerId", "clientId"],
+    ["response", "response-field", "orderId", "purchaseId"],
+  ]) {
+    const input = request(direction, testKey, previousName, name);
+    const result = proposal(input);
+    const proposalPath = join(workspace, `${direction}-proposal.json`);
+    await writeFile(proposalPath, JSON.stringify(fullProposal(input, result)));
+    const before = await readFile(sourcePath);
+    const checked = await validate(validationCommand, proposalPath, serviceURL);
+    if (checked.status !== 0)
+      throw new Error(`${direction} field validation failed: ${checked.stderr}`);
+    const evidence = JSON.parse(checked.stdout);
+    if (
+      evidence.apiVersion !== "argus.dev/field-validation-evidence/v1" ||
+      evidence.runs.map((run) => run.outcome).join(",") !==
+        "failed,failed,passed,passed,failed,failed" ||
+      !before.equals(await readFile(sourcePath))
+    )
+      throw new Error(`${direction} field proof or restoration failed`);
+    if (direction === "response") {
+      falseHealing = true;
+      const rejected = await validate(validationCommand, proposalPath, serviceURL);
+      if (
+        rejected.status === 0 ||
+        JSON.parse(rejected.stdout).rejection?.reason !== "negative-control-passed" ||
+        !before.equals(await readFile(sourcePath))
+      )
+        throw new Error("false-healing response control was accepted");
+      falseHealing = false;
+    }
+  }
+
   await writeFile(sourcePath, source.replace('data: { customerId: "buyer-1" }', "data: payload"));
   if (
     proposal(request("request", "request-field", "customerId", "clientId")).reasonCode !==
@@ -162,8 +334,9 @@ test("response field [argus:orders-api:response-field]", async ({ request }) => 
   )
     throw new Error("dynamic request body was accepted");
   process.stdout.write(
-    "field-proposal-validate: request, response, stale and dynamic source checks passed\n",
+    "field-proposal-validate: request/response repairs, repeated controls, false healing and source checks passed\n",
   );
 } finally {
-  await rm(workspace, { recursive: true, force: true });
+  if (server) await new Promise((done) => server.close(done));
+  await rm(workspace, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 });
 }

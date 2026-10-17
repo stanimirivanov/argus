@@ -1,0 +1,133 @@
+{
+  "$id": "https://argus.dev/contracts/functional-api-field-validation-result/v1/schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$ref": "#/$defs/FunctionalAPIFieldValidationResultV1",
+  "$defs": {
+    "LocalKey": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 63,
+      "pattern": "^[a-z][a-z0-9._-]*$",
+      "description": "A stable, repository-declared key. It is scoped by its containing repository or parent declaration."
+    },
+    "FunctionalAPIFieldValidationResultV1": {
+      "type": "object",
+      "properties": {
+        "apiVersion": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "argus.dev/functional-api-field-validation-result/v1"
+              ]
+            }
+          ]
+        },
+        "validationId": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "proposalId": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "phase": {
+          "type": "string",
+          "enum": [
+            "original",
+            "candidate",
+            "negative-control"
+          ]
+        },
+        "repeat": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2
+        },
+        "suiteKey": {
+          "$ref": "#/$defs/LocalKey"
+        },
+        "testKey": {
+          "$ref": "#/$defs/LocalKey"
+        },
+        "adapter": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/LocalKey"
+            },
+            "version": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 127
+            }
+          },
+          "required": [
+            "id",
+            "version"
+          ],
+          "additionalProperties": false
+        },
+        "sourceSha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "startedAt": {
+          "type": "string"
+        },
+        "completedAt": {
+          "type": "string"
+        },
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "passed",
+            "failed",
+            "error"
+          ]
+        },
+        "failure": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "$ref": "#/$defs/LocalKey"
+                },
+                "message": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 2000
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "apiVersion",
+        "validationId",
+        "proposalId",
+        "phase",
+        "repeat",
+        "suiteKey",
+        "testKey",
+        "adapter",
+        "sourceSha256",
+        "startedAt",
+        "completedAt",
+        "outcome",
+        "failure"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

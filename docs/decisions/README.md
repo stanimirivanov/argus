@@ -131,3 +131,4 @@ How will the assumptions and consequences be verified?
 | [ADR-0030](0030-bind-reviewed-functional-api-policy-to-complete-head-inventory.md) | Bind reviewed functional API policy to complete head inventory | Proposed | 2026-10-15 |
 | [ADR-0031](0031-execute-reviewed-functional-api-manifests-through-the-existing-protocol.md) | Execute reviewed functional API manifests through the existing protocol | Proposed | 2026-10-16 |
 | [ADR-0032](0032-propose-compatible-field-renames-from-explicit-contract-identity.md) | Propose compatible field renames from explicit contract identity | Proposed | 2026-10-17 |
+| [ADR-0033](0033-validate-field-repairs-with-repeated-discriminating-runs.md) | Validate field repairs with repeated discriminating runs | Proposed | 2026-10-17 |

@@ -3,12 +3,16 @@ package outcome
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"slices"
 	"time"
 
 	"github.com/stanimirivanov/argus/internal/adaptation"
 	"github.com/stanimirivanov/argus/internal/adaptation/endpointrepair"
+	"github.com/stanimirivanov/argus/internal/adaptation/fieldrepair"
+	"github.com/stanimirivanov/argus/internal/adaptation/fieldvalidation"
 	"github.com/stanimirivanov/argus/internal/catalog"
 )
 
@@ -53,6 +57,54 @@ func (service *Service) Capture(
 	if err := correlate(proposal, evidence, publication); err != nil {
 		return adaptation.ReviewOutcome{}, err
 	}
+
+	return service.captureTerminal(ctx, publication, reasonCode, reasonNote)
+}
+
+// CaptureField applies the same terminal-review and immutable outcome policy
+// after correlating the distinct field proposal and six-run success proof.
+func (service *Service) CaptureField(
+	ctx context.Context, proposal fieldrepair.Proposal, evidence fieldvalidation.Evidence,
+	publication adaptation.ReviewPublication, reasonCode adaptation.ReviewReasonCode, reasonNote string,
+) (adaptation.ReviewOutcome, error) {
+	if service == nil || service.gateway == nil {
+		return adaptation.ReviewOutcome{}, adaptation.ErrUnavailable
+	}
+	if err := fieldrepair.ValidateProposal(proposal); err != nil {
+		return adaptation.ReviewOutcome{}, err
+	}
+	if err := fieldvalidation.ValidateEvidence(evidence); err != nil {
+		return adaptation.ReviewOutcome{}, err
+	}
+	if err := adaptation.ValidateReviewPublication(publication); err != nil {
+		return adaptation.ReviewOutcome{}, err
+	}
+	if proposal.ProposalID != evidence.ProposalID || proposal.ProposalID != publication.ProposalID ||
+		evidence.ValidationID != publication.ValidationID || proposal.PolicyVersion != evidence.ProposalPolicyVersion ||
+		proposal.AdapterID != evidence.AdapterID || proposal.AdapterVersion != evidence.AdapterVersion ||
+		proposal.Edit != evidence.Edit || !sameTest(proposal.Test, evidence.Test) ||
+		proposal.Test.Repository != publication.Repository || proposal.Test.Revision != publication.BaseRevision ||
+		publication.HeadBranch != "argus/field-repair-"+proposal.ProposalID[:12] ||
+		publication.ReviewID != fieldReviewID(proposal.ProposalID, evidence.ValidationID,
+			proposal.Test.Repository.Identity.ProviderRepositoryID, publication.BaseBranch) {
+		return adaptation.ReviewOutcome{}, fmt.Errorf("%w: field proposal, validation, and review do not correlate", adaptation.ErrInvalid)
+	}
+
+	return service.captureTerminal(ctx, publication, reasonCode, reasonNote)
+}
+
+func fieldReviewID(proposalID, validationID, repositoryID, baseBranch string) string {
+	hash := sha256.New()
+	for _, value := range []string{"argus-field-review-v1", proposalID, validationID, repositoryID, baseBranch} {
+		_, _ = hash.Write([]byte(value))
+		_, _ = hash.Write([]byte{0})
+	}
+
+	return hex.EncodeToString(hash.Sum(nil))
+}
+
+func (service *Service) captureTerminal(ctx context.Context, publication adaptation.ReviewPublication,
+	reasonCode adaptation.ReviewReasonCode, reasonNote string) (adaptation.ReviewOutcome, error) {
 	terminal, err := service.gateway.ObserveOutcome(ctx, publication)
 	if err != nil {
 		return adaptation.ReviewOutcome{}, fmt.Errorf("observe adaptation review outcome: %w", err)
@@ -66,8 +118,8 @@ func (service *Service) Capture(
 	}
 	outcome := adaptation.CanonicalReviewOutcome(adaptation.ReviewOutcome{
 		APIVersion: adaptation.ReviewOutcomeAPIVersion,
-		ReviewID:   publication.ReviewID, ProposalID: proposal.ProposalID,
-		ValidationID: evidence.ValidationID, Repository: publication.Repository,
+		ReviewID:   publication.ReviewID, ProposalID: publication.ProposalID,
+		ValidationID: publication.ValidationID, Repository: publication.Repository,
 		PullRequestNumber: publication.PullRequestNumber, PullRequestURL: publication.PullRequestURL,
 		Decision: decision, ReasonCode: reasonCode, ReasonNote: reasonNote,
 		GeneratedRevision: publication.HeadRevision, FinalRevision: terminal.FinalRevision,

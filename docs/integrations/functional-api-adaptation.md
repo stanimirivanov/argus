@@ -6,7 +6,8 @@
 proposal. `validate-functional-api-repair` verifies it with original,
 candidate, and negative-control runs in a disposable checkout.
 `propose-functional-api-field-repair` separately emits compatible field
-rename candidates for later class-specific validation.
+rename candidates. `validate-functional-api-field-repair` proves each candidate
+with repeated original, candidate, and field-negative-control runs.
 `open-functional-api-repair-pr` then rechecks the immutable source and opens an
 idempotent draft GitHub pull request containing only the validated edit. After
 the review closes, `capture-functional-api-review-outcome` derives its terminal
@@ -367,10 +368,85 @@ test revision. Expected values, comparison operators, and fixtures remain
 untouched. Run `make api-validate` for its disposable request/response check.
 
 `argus.dev/field-adaptation-proposal/v1` cannot be passed to the endpoint
-validation or publication commands. It is a reviewable candidate for the
-field-specific repeated validation and negative-control workflow in the next
-M06 slice. [ADR-0032](../decisions/0032-propose-compatible-field-renames-from-explicit-contract-identity.md)
-records the proof and compatibility decision.
+validation or publication commands. [ADR-0032](../decisions/0032-propose-compatible-field-renames-from-explicit-contract-identity.md)
+records its proof and compatibility decision.
+
+## Repeated field validation and review
+
+Prepare and later discard a disposable test checkout at the proposal's exact
+immutable test revision. Run the repository-owned validation adapter in it:
+
+```sh
+go run ./cmd/validate-functional-api-field-repair \
+  -proposal ./field-proposal.json \
+  -disposable-workspace "$RUNNER_TEMP/orders-fields-validation" \
+  -- node ./tools/argus-playwright-adaptation-adapter.mjs validate-field \
+  > field-validation.json
+```
+
+Field validation runs the same named test twice for each phase in order:
+unchanged source must fail twice, the exact candidate must pass twice, and a
+deterministic unknown field must fail twice. The negative-control identifier
+is `__argus_negative_field_<first-12-proposal-id-characters>`; only the proposed
+field-reference span changes. Request-body keys and response-field accesses
+therefore use the same source mechanism but exercise their respective API and
+assertion behavior. The adapter receives
+`functional-api-field-validation-request/v1` and returns
+`functional-api-field-validation-result/v1`, including the repeat ordinal.
+Every result must match the proposal, test, adapter, phase, ordinal, and
+materialized source digest. Argus verifies and restores the original source
+after each execution, including cancellation paths. Discard the checkout
+regardless of command outcome.
+
+Success emits `field-validation-evidence/v1` with all six ordered runs and
+original, candidate, negative, and restored digests. If both runs at a policy
+gate agree on the wrong outcome, the command emits
+`field-validation-rejection/v1` to stdout and exits nonzero. Capture stdout
+even on policy rejection. Repeat disagreement, adapter-reported `error`,
+timeout, malformed response, source mutation, and failed restoration emit no
+candidate-quality label. The endpoint validation contracts and their three-run
+meaning are unchanged. `make api-validate` executes request and response
+repairs plus a response false-healing counterexample in disposable fixtures.
+
+Only a successful field proof can open a draft review:
+
+```sh
+export ARGUS_GITHUB_READ_TOKEN='source-read-token'
+export ARGUS_GITHUB_WRITE_TOKEN='review-write-token'
+go run ./cmd/open-functional-api-field-repair-pr \
+  -proposal ./field-proposal.json \
+  -validation-evidence ./field-validation.json \
+  -base-branch main > field-review.json
+```
+
+The command correlates the field proposal and six-run proof, reloads the
+immutable source, reconstructs the exact validated candidate, and checks its
+digest before a provider write. It uses the deterministic
+`argus/field-repair-<proposal-prefix>` branch and the same guarded GitHub
+publisher as endpoint repair. Exact retries recover the draft; conflicting
+branch or PR state fails closed. The shared `adaptation-review/v1` envelope
+records the open draft and never grants merge authority.
+
+After a human closes the review, capture the reason and complete final diff:
+
+```sh
+go run ./cmd/capture-functional-api-field-review-outcome \
+  -proposal ./field-proposal.json \
+  -validation-evidence ./field-validation.json \
+  -review ./field-review.json \
+  -reason-code corrected > field-review-outcome.json
+go run ./cmd/adaptation-evidence ingest -file ./field-review-outcome.json
+```
+
+The outcome command requires `ARGUS_GITHUB_READ_TOKEN` or the legacy token.
+It verifies the deterministic field review identity before provider access.
+`review-outcome/v1` retains provider-derived acceptance or rejection, explicit
+human reason, and complete bounded reviewer patches. The existing PostgreSQL
+store accepts that generic outcome contract: exact retries preserve its first
+observation, while changed reasons, revisions, or patches for the same review
+are conflicts. A merge is workflow evidence, not correctness proof.
+[ADR-0033](../decisions/0033-validate-field-repairs-with-repeated-discriminating-runs.md)
+records the field policy.
 
 ## Remaining non-goals
 
