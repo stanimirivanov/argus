@@ -69,6 +69,43 @@ func ImportCapabilityImpactV1(document contracts.CapabilityImpactV1) (change.Cap
 	return impact, nil
 }
 
+// ImportCapabilityImpactV2 restores composite semantic and file provenance.
+func ImportCapabilityImpactV2(document contracts.CapabilityImpactV2) (change.CapabilityImpact, error) {
+	if err := contracts.ValidateCapabilityImpactV2(document); err != nil {
+		return change.CapabilityImpact{}, err
+	}
+	semantic := document.CapabilityImpactV1
+	semantic.APIVersion = change.ImpactAPIVersion
+	semantic.AnalyzerVersion = change.OpenAPIAnalyzerVersion
+	semantic.Status = document.SemanticStatus
+	semantic.Warnings = append([]string{}, document.SemanticWarnings...)
+	impact, err := ImportCapabilityImpactV1(semantic)
+	if err != nil {
+		return change.CapabilityImpact{}, err
+	}
+	impact.APIVersion = change.CompositeImpactAPIVersion
+	impact.AnalyzerVersion = change.CompositeAnalyzerVersion
+	impact.Status = change.ImpactStatus(document.Status)
+	impact.SemanticStatus = change.ImpactStatus(document.SemanticStatus)
+	impact.FileStatus = change.ImpactStatus(document.FileStatus)
+	impact.Warnings = append([]string{}, document.Warnings...)
+	impact.SemanticWarnings = append([]string{}, document.SemanticWarnings...)
+	impact.FileWarnings = append([]string{}, document.FileWarnings...)
+	for _, file := range document.Files {
+		impact.Files = append(impact.Files, change.FileImpact{
+			Path: file.Path, PreviousPath: cloneString(file.PreviousPath), Kind: change.Kind(file.Kind),
+			Coverage: file.Coverage, Capabilities: append([]string{}, file.Capabilities...),
+			ComponentRoots: append([]string{}, file.ComponentRoots...), UnmappedPaths: append([]string{}, file.UnmappedPaths...),
+		})
+	}
+	impact = change.CanonicalCapabilityImpact(impact)
+	if err := change.ValidateCapabilityImpact(impact); err != nil {
+		return change.CapabilityImpact{}, err
+	}
+
+	return impact, nil
+}
+
 // ExportCapabilityImpactV1 converts validated domain evidence to its public contract.
 func ExportCapabilityImpactV1(impact change.CapabilityImpact) (contracts.CapabilityImpactV1, error) {
 	impact = change.CanonicalCapabilityImpact(impact)

@@ -417,6 +417,7 @@ the control plane framework-specific source knowledge or mutation authority:
 | `internal/adaptation/adapters/cli/evidencecli` | Bounded review-outcome ingestion, explicit identity lookup, and versioned JSON output through an injected evidence port | PostgreSQL, provider calls, or learning policy |
 | `internal/postgres` (`AdaptationStore`) | Atomic outcome/edit persistence, one-outcome-per-review conflict detection, and repeatable-read reconstruction | Outcome derivation, provider calls, or learning policy |
 | `cmd/propose-functional-api-repair` | Process-adapter composition and operating-system streams | Adaptation or contract policy |
+| `cmd/assess-functional-api-maintenance` | Validated impact, selection, and execution evidence composition | Adaptation or execution policy |
 | `cmd/validate-functional-api-repair` | Guarded workspace and validation-process composition | Validation, patch, or contract policy |
 | `cmd/open-functional-api-repair-pr` | GitHub review-adapter composition and operating-system streams | Review eligibility, candidate construction, or contract policy |
 | `cmd/capture-functional-api-review-outcome` | GitHub terminal-review composition and operating-system streams | Outcome policy, persistence, merge authority, or contract policy |

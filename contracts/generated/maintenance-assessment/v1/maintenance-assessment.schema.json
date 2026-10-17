@@ -1,0 +1,138 @@
+{
+  "$id": "https://argus.dev/contracts/maintenance-assessment/v1/schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$ref": "#/$defs/MaintenanceAssessmentV1",
+  "$defs": {
+    "MaintenanceAssessmentV1": {
+      "type": "object",
+      "properties": {
+        "apiVersion": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "argus.dev/maintenance-assessment/v1"
+              ]
+            }
+          ]
+        },
+        "impactApiVersion": {
+          "type": "string",
+          "enum": [
+            "argus.dev/capability-impact/v1",
+            "argus.dev/capability-impact/v2"
+          ]
+        },
+        "impactAnalyzerVersion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "sourceRepositoryId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "baseRevision": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "headRevision": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "policyDigest": {
+          "type": "string",
+          "pattern": "^$|^[0-9a-f]{64}$"
+        },
+        "inventoryDigest": {
+          "type": "string",
+          "pattern": "^$|^[0-9a-f]{64}$"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "repositoryId": {
+                "type": "string",
+                "maxLength": 255
+              },
+              "suiteKey": {
+                "type": "string",
+                "maxLength": 255,
+                "pattern": "^$|^[a-z0-9][a-z0-9._-]*$"
+              },
+              "testKey": {
+                "type": "string",
+                "maxLength": 255,
+                "pattern": "^$|^[a-z0-9][a-z0-9._-]*$"
+              },
+              "capability": {
+                "type": "string",
+                "maxLength": 255,
+                "pattern": "^$|^[a-z0-9][a-z0-9._-]*$"
+              },
+              "state": {
+                "type": "string",
+                "enum": [
+                  "VALID",
+                  "INVALIDATED",
+                  "UNCOVERED",
+                  "UNCERTAIN"
+                ]
+              },
+              "reason": {
+                "type": "string",
+                "enum": [
+                  "test-passed",
+                  "authoritative-endpoint-rename-and-test-failed",
+                  "no-mapped-test",
+                  "impact-incomplete",
+                  "conflicting-execution-evidence",
+                  "execution-evidence-missing",
+                  "failure-without-supported-rename",
+                  "non-assertion-result"
+                ]
+              },
+              "attemptIds": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 127,
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+                },
+                "maxItems": 10000
+              }
+            },
+            "required": [
+              "repositoryId",
+              "suiteKey",
+              "testKey",
+              "capability",
+              "state",
+              "reason",
+              "attemptIds"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 15000
+        }
+      },
+      "required": [
+        "apiVersion",
+        "impactApiVersion",
+        "impactAnalyzerVersion",
+        "sourceRepositoryId",
+        "baseRevision",
+        "headRevision",
+        "policyDigest",
+        "inventoryDigest",
+        "items"
+      ],
+      "additionalProperties": false,
+      "description": "Conservative functional API maintenance state with immutable evidence identifiers."
+    }
+  }
+}

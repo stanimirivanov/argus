@@ -8,6 +8,8 @@ export function startFixtureService({ missedFailure = false } = {}) {
     };
     if (request.method === "POST" && request.url === "/orders") {
       body(201, { id: "order-1" });
+    } else if (request.method === "GET" && request.url === "/v2/orders") {
+      body(200, { items: [{ id: "order-1" }] });
     } else if (request.method === "GET" && request.url === "/orders") {
       body(200, { items: missedFailure ? [] : [{ id: "order-1" }] });
     } else if (request.method === "GET" && request.url === "/billing/health") {
