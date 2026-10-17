@@ -24,6 +24,12 @@ import {
   FunctionalAPIFieldAdaptationResultV1,
 } from "../source/field-adaptation-v1.js";
 import {
+  FieldValidationEvidenceV1,
+  FieldValidationRejectionV1,
+  FunctionalAPIFieldValidationRequestV1,
+  FunctionalAPIFieldValidationResultV1,
+} from "../source/field-validation-v1.js";
+import {
   FunctionalAPIExecutionBindingsV1,
   FunctionalAPIExecutionPlanV1,
 } from "../source/functional-api-execution-plan-v1.js";
@@ -48,6 +54,21 @@ import { TestCatalogPageV1 } from "../source/test-catalog-page-v1.js";
 import { compileJsonSchema } from "./json-schema.js";
 
 const artifacts = [
+  ...(
+    [
+      ["field-validation-evidence", FieldValidationEvidenceV1],
+      ["field-validation-rejection", FieldValidationRejectionV1],
+      ["functional-api-field-validation-request", FunctionalAPIFieldValidationRequestV1],
+      ["functional-api-field-validation-result", FunctionalAPIFieldValidationResultV1],
+    ] as const
+  ).map(([name, schema]) => ({
+    name,
+    outputPath: new URL(`../generated/${name}/v1/${name}.schema.json`, import.meta.url),
+    document: {
+      $id: `https://argus.dev/contracts/${name}/v1/schema.json`,
+      ...compileJsonSchema(schema),
+    },
+  })),
   {
     name: "field adaptation proposal",
     outputPath: new URL(

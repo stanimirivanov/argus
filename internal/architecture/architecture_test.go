@@ -61,11 +61,14 @@ var productionPackagePolicy = map[string]packagePolicy{
 	modulePath + "/internal/adaptation":                                   {domainLayer, adaptationCapability},
 	modulePath + "/internal/adaptation/endpointrepair":                    {domainLayer, adaptationCapability},
 	modulePath + "/internal/adaptation/fieldrepair":                       {applicationLayer, adaptationCapability},
+	modulePath + "/internal/adaptation/fieldvalidation":                   {applicationLayer, adaptationCapability},
 	modulePath + "/internal/adaptation/functionalapi":                     {applicationLayer, adaptationCapability},
 	modulePath + "/internal/adaptation/outcome":                           {applicationLayer, adaptationCapability},
 	modulePath + "/internal/adaptation/review":                            {applicationLayer, adaptationCapability},
 	modulePath + "/internal/adaptation/validation":                        {applicationLayer, adaptationCapability},
 	modulePath + "/internal/adaptation/adapters/cli/evidencecli":          {adapterLayer, adaptationCapability},
+	modulePath + "/internal/adaptation/adapters/cli/fieldreviewcli":       {adapterLayer, adaptationCapability},
+	modulePath + "/internal/adaptation/adapters/cli/fieldvalidationcli":   {adapterLayer, adaptationCapability},
 	modulePath + "/internal/adaptation/adapters/cli/outcomecli":           {adapterLayer, adaptationCapability},
 	modulePath + "/internal/adaptation/adapters/cli/proposalcli":          {adapterLayer, adaptationCapability},
 	modulePath + "/internal/adaptation/adapters/cli/reviewcli":            {adapterLayer, adaptationCapability},
@@ -122,6 +125,7 @@ var productionPackagePolicy = map[string]packagePolicy{
 	modulePath + "/cmd/assess-functional-api-maintenance":                 {compositionRootLayer, productCapability},
 	modulePath + "/cmd/propose-functional-api-field-repair":               {compositionRootLayer, productCapability},
 	modulePath + "/cmd/capture-functional-api-review-outcome":             {compositionRootLayer, productCapability},
+	modulePath + "/cmd/capture-functional-api-field-review-outcome":       {compositionRootLayer, productCapability},
 	modulePath + "/cmd/catalog":                                           {compositionRootLayer, productCapability},
 	modulePath + "/cmd/control-plane":                                     {compositionRootLayer, productCapability},
 	modulePath + "/cmd/descriptor":                                        {compositionRootLayer, productCapability},
@@ -129,11 +133,13 @@ var productionPackagePolicy = map[string]packagePolicy{
 	modulePath + "/cmd/execution-evidence":                                {compositionRootLayer, productCapability},
 	modulePath + "/cmd/migrate":                                           {compositionRootLayer, productCapability},
 	modulePath + "/cmd/open-functional-api-repair-pr":                     {compositionRootLayer, productCapability},
+	modulePath + "/cmd/open-functional-api-field-repair-pr":               {compositionRootLayer, productCapability},
 	modulePath + "/cmd/plan-functional-api":                               {compositionRootLayer, productCapability},
 	modulePath + "/cmd/propose-functional-api-repair":                     {compositionRootLayer, productCapability},
 	modulePath + "/cmd/run-functional-api":                                {compositionRootLayer, productCapability},
 	modulePath + "/cmd/select":                                            {compositionRootLayer, productCapability},
 	modulePath + "/cmd/validate-functional-api-repair":                    {compositionRootLayer, productCapability},
+	modulePath + "/cmd/validate-functional-api-field-repair":              {compositionRootLayer, productCapability},
 }
 
 // adapterPolicy distinguishes driving adapters from infrastructure selected by
@@ -141,6 +147,8 @@ var productionPackagePolicy = map[string]packagePolicy{
 // the only adapters a driving adapter may compose directly.
 var adapterPolicy = map[string]adapterKind{
 	modulePath + "/internal/adaptation/adapters/cli/evidencecli":          drivingAdapter,
+	modulePath + "/internal/adaptation/adapters/cli/fieldreviewcli":       drivingAdapter,
+	modulePath + "/internal/adaptation/adapters/cli/fieldvalidationcli":   drivingAdapter,
 	modulePath + "/internal/adaptation/adapters/cli/outcomecli":           drivingAdapter,
 	modulePath + "/internal/adaptation/adapters/cli/proposalcli":          drivingAdapter,
 	modulePath + "/internal/adaptation/adapters/cli/reviewcli":            drivingAdapter,
@@ -186,6 +194,8 @@ var adapterPolicy = map[string]adapterKind{
 var generatedContractImporters = map[string]bool{
 	modulePath + "/cmd/assess-functional-api-maintenance":                 true,
 	modulePath + "/internal/adaptation/adapters/cli/evidencecli":          true,
+	modulePath + "/internal/adaptation/adapters/cli/fieldreviewcli":       true,
+	modulePath + "/internal/adaptation/adapters/cli/fieldvalidationcli":   true,
 	modulePath + "/internal/adaptation/adapters/cli/outcomecli":           true,
 	modulePath + "/internal/adaptation/adapters/cli/proposalcli":          true,
 	modulePath + "/internal/adaptation/adapters/cli/reviewcli":            true,
@@ -234,18 +244,20 @@ var processProtocolUsers = map[string]bool{
 // command protocol classification. Domain and persistence code cannot acquire
 // a dependency on executable behavior through this shared adapter utility.
 var commandlineUsers = map[string]bool{
-	modulePath + "/internal/adaptation/adapters/cli/evidencecli":   true,
-	modulePath + "/internal/adaptation/adapters/cli/outcomecli":    true,
-	modulePath + "/internal/adaptation/adapters/cli/proposalcli":   true,
-	modulePath + "/internal/adaptation/adapters/cli/reviewcli":     true,
-	modulePath + "/internal/adaptation/adapters/cli/validationcli": true,
-	modulePath + "/internal/catalog/adapters/cli/catalogcli":       true,
-	modulePath + "/internal/catalog/adapters/cli/descriptorcli":    true,
-	modulePath + "/internal/catalog/adapters/cli/playwrightcli":    true,
-	modulePath + "/internal/execution/adapters/cli/evidencecli":    true,
-	modulePath + "/internal/execution/adapters/cli/executioncli":   true,
-	modulePath + "/internal/execution/adapters/cli/planningcli":    true,
-	modulePath + "/internal/selection/adapters/cli/selectioncli":   true,
+	modulePath + "/internal/adaptation/adapters/cli/evidencecli":        true,
+	modulePath + "/internal/adaptation/adapters/cli/fieldreviewcli":     true,
+	modulePath + "/internal/adaptation/adapters/cli/fieldvalidationcli": true,
+	modulePath + "/internal/adaptation/adapters/cli/outcomecli":         true,
+	modulePath + "/internal/adaptation/adapters/cli/proposalcli":        true,
+	modulePath + "/internal/adaptation/adapters/cli/reviewcli":          true,
+	modulePath + "/internal/adaptation/adapters/cli/validationcli":      true,
+	modulePath + "/internal/catalog/adapters/cli/catalogcli":            true,
+	modulePath + "/internal/catalog/adapters/cli/descriptorcli":         true,
+	modulePath + "/internal/catalog/adapters/cli/playwrightcli":         true,
+	modulePath + "/internal/execution/adapters/cli/evidencecli":         true,
+	modulePath + "/internal/execution/adapters/cli/executioncli":        true,
+	modulePath + "/internal/execution/adapters/cli/planningcli":         true,
+	modulePath + "/internal/selection/adapters/cli/selectioncli":        true,
 }
 
 var githubTransportUsers = map[string]bool{
@@ -256,6 +268,19 @@ var githubTransportUsers = map[string]bool{
 // Cross-application orchestration is exceptional and explicit. Most use-case
 // packages own one port and must not reach sideways into another use case.
 var allowedApplicationDependencies = map[string]map[string]bool{
+	// Field validation, review publication, and outcome capture deliberately
+	// compose the immutable field proposal and proof stages of one workflow.
+	modulePath + "/internal/adaptation/fieldvalidation": {
+		modulePath + "/internal/adaptation/fieldrepair": true,
+	},
+	modulePath + "/internal/adaptation/review": {
+		modulePath + "/internal/adaptation/fieldrepair":     true,
+		modulePath + "/internal/adaptation/fieldvalidation": true,
+	},
+	modulePath + "/internal/adaptation/outcome": {
+		modulePath + "/internal/adaptation/fieldrepair":     true,
+		modulePath + "/internal/adaptation/fieldvalidation": true,
+	},
 	modulePath + "/internal/change/workflow": {
 		modulePath + "/internal/change/impact": true,
 		modulePath + "/internal/change/ingest": true,

@@ -44,8 +44,10 @@
 - Validation-rejection v1 records a trustworthy completed validation prefix
   when a policy gate disproves a candidate; it is never successful proof.
 - Field-adaptation request/result/proposal v1 records explicit compatible
-  JSON field identity and one constrained proposal; endpoint validation does
-  not accept it.
+  JSON field identity and one constrained proposal.
+- Field-validation request/result, success, and rejection v1 records two
+  executions per phase with a field-specific negative control. Endpoint
+  evidence retains its original three-run meaning.
 - Structural validity and domain validity are distinct and share one fixture
   corpus.
 - Generate language stubs only when a real producer or consumer needs them.
@@ -88,6 +90,7 @@ actually fetched.
 | `source/selection-plan-shadow-report-v1.ts` | Authoritative complete-plan attempt-binding and aggregate shadow-report contracts. |
 | `source/adaptation-v1.ts` | Authoritative repair proposal and framework-adapter contracts. |
 | `source/field-adaptation-v1.ts` | Compatible field-rename adapter and proposal-only contracts. |
+| `source/field-validation-v1.ts` | Repeated field validation and trustworthy rejection contracts. |
 | `source/adaptation-validation-v1.ts` | Authoritative isolated validation request, result, and evidence contracts. |
 | `source/adaptation-review-v1.ts` | Authoritative review-first publication contract. |
 | `source/review-outcome-v1.ts` | Authoritative terminal review-outcome and reviewer-edit contract. |

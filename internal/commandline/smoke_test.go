@@ -15,12 +15,14 @@ var commandNames = []string{
 	"adaptation-evidence",
 	"assess-functional-api-maintenance",
 	"capture-functional-api-review-outcome",
+	"capture-functional-api-field-review-outcome",
 	"catalog",
 	"control-plane",
 	"descriptor",
 	"execution-evidence",
 	"migrate",
 	"open-functional-api-repair-pr",
+	"open-functional-api-field-repair-pr",
 	"plan-functional-api",
 	"playwright-catalog",
 	"propose-functional-api-repair",
@@ -28,6 +30,7 @@ var commandNames = []string{
 	"run-functional-api",
 	"select",
 	"validate-functional-api-repair",
+	"validate-functional-api-field-repair",
 }
 
 // TestExecutableMetadataAndExitCodes exercises actual command roots, including

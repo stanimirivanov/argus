@@ -2,9 +2,11 @@ package contract
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/stanimirivanov/argus/internal/adaptation"
 	"github.com/stanimirivanov/argus/internal/adaptation/fieldrepair"
+	"github.com/stanimirivanov/argus/internal/catalog"
 	"github.com/stanimirivanov/argus/internal/change"
 	"github.com/stanimirivanov/argus/internal/contracts"
 )
@@ -86,4 +88,40 @@ func exportFieldRename(rename change.FieldRename) contracts.FieldRenameEvidenceV
 		Direction: rename.Direction, StatusCode: rename.StatusCode,
 		PreviousName: rename.PreviousName, Name: rename.Name,
 	}
+}
+
+// ImportFieldProposalV1 verifies a public proposal before any source mutation.
+func ImportFieldProposalV1(document contracts.FieldAdaptationProposalV1) (fieldrepair.Proposal, error) {
+	if err := contracts.ValidateFieldAdaptationProposalV1(document); err != nil {
+		return fieldrepair.Proposal{}, err
+	}
+	observedAt, err := time.Parse(time.RFC3339Nano, document.Change.ObservedAt)
+	if err != nil {
+		return fieldrepair.Proposal{}, err
+	}
+	proposal := fieldrepair.Proposal{
+		APIVersion: document.APIVersion, PolicyVersion: document.PolicyVersion, ProposalID: document.ProposalID,
+		ImpactAPIVersion: document.SourceImpact.APIVersion, ImpactAnalyzerVersion: document.SourceImpact.AnalyzerVersion,
+		Change: change.Reference{SourceRepository: importRepository(document.Change.SourceRepository),
+			PullRequestNumber: document.Change.PullRequest.Number, BaseRevision: importRevision(document.Change.BaseRevision),
+			HeadRevision: importRevision(document.Change.HeadRevision), ObservedAt: observedAt,
+			Trigger: change.Trigger{Provider: catalog.Provider(document.Change.Trigger.Provider),
+				DeliveryID: document.Change.Trigger.DeliveryID, Event: document.Change.Trigger.Event, Action: document.Change.Trigger.Action}},
+		Test: importTest(document.Test), Classification: document.Classification, Decision: document.Decision,
+		Rename: change.FieldRename{DocumentPath: document.FieldRename.DocumentPath, BaseSHA256: document.FieldRename.BaseSHA256,
+			HeadSHA256: document.FieldRename.HeadSHA256, Method: document.FieldRename.Method, Path: document.FieldRename.Path,
+			OperationID: document.FieldRename.OperationID, Capabilities: append([]string{}, document.FieldRename.Capabilities...),
+			Direction: document.FieldRename.Direction, StatusCode: document.FieldRename.StatusCode,
+			PreviousName: document.FieldRename.PreviousName, Name: document.FieldRename.Name},
+		AdapterID: document.Adapter.ID, AdapterVersion: document.Adapter.Version,
+		Edit: adaptation.TextEdit{Path: document.Edit.Path, BeforeSHA256: document.Edit.BeforeSHA256,
+			StartByte: document.Edit.StartByte, EndByte: document.Edit.EndByte,
+			Original: document.Edit.Original, Replacement: document.Edit.Replacement, SemanticRole: document.Edit.SemanticRole},
+	}
+	proposal.Test = adaptation.CanonicalTestReference(proposal.Test)
+	if err := fieldrepair.ValidateProposal(proposal); err != nil {
+		return fieldrepair.Proposal{}, err
+	}
+
+	return proposal, nil
 }

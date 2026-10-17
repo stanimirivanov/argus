@@ -12,6 +12,7 @@ import (
 
 	"github.com/stanimirivanov/argus/internal/adaptation"
 	adaptationcontract "github.com/stanimirivanov/argus/internal/adaptation/adapters/contract"
+	"github.com/stanimirivanov/argus/internal/adaptation/fieldvalidation"
 	"github.com/stanimirivanov/argus/internal/contracts"
 	"github.com/stanimirivanov/argus/internal/processprotocol"
 )
@@ -24,6 +25,34 @@ type Adapter struct {
 	command   []string
 	directory string
 	stderr    io.Writer
+}
+
+// ExecuteField exchanges the distinct repeated field-validation protocol.
+func (adapter *Adapter) ExecuteField(ctx context.Context, request fieldvalidation.Request) (fieldvalidation.Result, error) {
+	if adapter == nil || len(adapter.command) == 0 || adapter.directory == "" {
+		return fieldvalidation.Result{}, adaptation.ErrInvalid
+	}
+	document, err := adaptationcontract.ExportFieldValidationRequestV1(request)
+	if err != nil {
+		return fieldvalidation.Result{}, err
+	}
+	input, err := json.Marshal(document)
+	if err != nil {
+		return fieldvalidation.Result{}, err
+	}
+	output, err := processprotocol.Run(ctx, processprotocol.Options{
+		Command: adapter.command, Directory: adapter.directory, Input: input,
+		Stderr: adapter.stderr, Timeout: maxAdapterRuntime,
+	})
+	if err != nil {
+		return fieldvalidation.Result{}, err
+	}
+	resultDocument, err := contracts.DecodeFieldValidationResultV1(output)
+	if err != nil {
+		return fieldvalidation.Result{}, fmt.Errorf("decode field validation result: %w", err)
+	}
+
+	return adaptationcontract.ImportFieldValidationResultV1(resultDocument)
 }
 
 // New constructs a no-shell validation process adapter.
