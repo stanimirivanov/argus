@@ -24,6 +24,7 @@ var commandNames = []string{
 	"plan-functional-api",
 	"playwright-catalog",
 	"propose-functional-api-repair",
+	"propose-functional-api-field-repair",
 	"run-functional-api",
 	"select",
 	"validate-functional-api-repair",

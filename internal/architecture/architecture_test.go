@@ -60,6 +60,7 @@ const (
 var productionPackagePolicy = map[string]packagePolicy{
 	modulePath + "/internal/adaptation":                                   {domainLayer, adaptationCapability},
 	modulePath + "/internal/adaptation/endpointrepair":                    {domainLayer, adaptationCapability},
+	modulePath + "/internal/adaptation/fieldrepair":                       {applicationLayer, adaptationCapability},
 	modulePath + "/internal/adaptation/functionalapi":                     {applicationLayer, adaptationCapability},
 	modulePath + "/internal/adaptation/outcome":                           {applicationLayer, adaptationCapability},
 	modulePath + "/internal/adaptation/review":                            {applicationLayer, adaptationCapability},
@@ -71,6 +72,7 @@ var productionPackagePolicy = map[string]packagePolicy{
 	modulePath + "/internal/adaptation/adapters/cli/validationcli":        {adapterLayer, adaptationCapability},
 	modulePath + "/internal/adaptation/adapters/contract":                 {adapterLayer, adaptationCapability},
 	modulePath + "/internal/adaptation/adapters/fileworkspace":            {adapterLayer, adaptationCapability},
+	modulePath + "/internal/adaptation/adapters/gitfieldsource":           {adapterLayer, adaptationCapability},
 	modulePath + "/internal/adaptation/adapters/githubreview":             {adapterLayer, adaptationCapability},
 	modulePath + "/internal/adaptation/adapters/processadapter":           {adapterLayer, adaptationCapability},
 	modulePath + "/internal/adaptation/adapters/validationprocessadapter": {adapterLayer, adaptationCapability},
@@ -118,6 +120,7 @@ var productionPackagePolicy = map[string]packagePolicy{
 	modulePath + "/internal/selection/adapters/impactreader":              {adapterLayer, selectionCapability},
 	modulePath + "/cmd/adaptation-evidence":                               {compositionRootLayer, productCapability},
 	modulePath + "/cmd/assess-functional-api-maintenance":                 {compositionRootLayer, productCapability},
+	modulePath + "/cmd/propose-functional-api-field-repair":               {compositionRootLayer, productCapability},
 	modulePath + "/cmd/capture-functional-api-review-outcome":             {compositionRootLayer, productCapability},
 	modulePath + "/cmd/catalog":                                           {compositionRootLayer, productCapability},
 	modulePath + "/cmd/control-plane":                                     {compositionRootLayer, productCapability},
@@ -144,6 +147,7 @@ var adapterPolicy = map[string]adapterKind{
 	modulePath + "/internal/adaptation/adapters/cli/validationcli":        drivingAdapter,
 	modulePath + "/internal/adaptation/adapters/contract":                 contractAdapter,
 	modulePath + "/internal/adaptation/adapters/fileworkspace":            drivenAdapter,
+	modulePath + "/internal/adaptation/adapters/gitfieldsource":           drivenAdapter,
 	modulePath + "/internal/adaptation/adapters/githubreview":             drivenAdapter,
 	modulePath + "/internal/adaptation/adapters/processadapter":           drivenAdapter,
 	modulePath + "/internal/adaptation/adapters/validationprocessadapter": drivenAdapter,
@@ -218,10 +222,11 @@ var allowedAdapterDependencies = map[adapterKind]map[adapterKind]bool{
 }
 
 // The process runner shares infrastructure mechanics, not domain concepts.
-// Only the three protocol adapters may import this cross-capability utility.
+// Only explicitly reviewed process-owning adapters may import this utility.
 var processProtocolUsers = map[string]bool{
 	modulePath + "/internal/execution/adapters/processadapter":            true,
 	modulePath + "/internal/adaptation/adapters/processadapter":           true,
+	modulePath + "/internal/adaptation/adapters/gitfieldsource":           true,
 	modulePath + "/internal/adaptation/adapters/validationprocessadapter": true,
 }
 

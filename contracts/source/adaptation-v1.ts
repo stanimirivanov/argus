@@ -17,7 +17,7 @@ const OperationPath = Schema.String.check(
 const ByteOffset = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0));
 const Version = Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(127));
 
-const ChangeReference = Schema.Struct({
+export const AdaptationChangeReference = Schema.Struct({
   sourceRepository: RepositoryReference,
   pullRequest: Schema.Struct({ number: Schema.Int.check(Schema.isGreaterThanOrEqualTo(1)) }),
   baseRevision: Revision,
@@ -72,7 +72,7 @@ export const AdaptationTextEdit = Schema.Struct({
 export const FunctionalAPIAdaptationRequestV1 = Schema.Struct({
   apiVersion: Schema.Literals(["argus.dev/functional-api-adaptation-request/v1"]),
   proposalId: SHA256,
-  change: ChangeReference,
+  change: AdaptationChangeReference,
   test: AdaptationTestReference,
   endpointRename: EndpointRename,
 }).annotate({
@@ -105,7 +105,7 @@ export const AdaptationProposalV1 = Schema.Struct({
     apiVersion: Schema.Literals(["argus.dev/capability-impact/v1"]),
     analyzerVersion: Schema.Literals(["argus-openapi/v1+libopenapi/v0.38.7"]),
   }),
-  change: ChangeReference,
+  change: AdaptationChangeReference,
   test: AdaptationTestReference,
   classification: Schema.Literals(["INVALIDATED"]),
   decision: Schema.Literals(["PATCH_AND_VALIDATE"]),
