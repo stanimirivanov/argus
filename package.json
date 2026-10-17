@@ -14,7 +14,7 @@
     "format:check": "biome check contracts/source contracts/scripts contracts/fixtures examples/functional-api package.json tsconfig.json biome.json",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test contracts/source/*.test.ts",
-    "api-validate": "node examples/functional-api/validate.mjs",
+    "api-validate": "node examples/functional-api/validate.mjs && node examples/functional-api/field-proposal-validate.mjs",
     "licenses:check": "tsx contracts/scripts/check-licenses.ts"
   },
   "dependencies": {

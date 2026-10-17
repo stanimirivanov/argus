@@ -5,6 +5,8 @@
 `propose-functional-api-repair` emits one deterministic endpoint-reference
 proposal. `validate-functional-api-repair` verifies it with original,
 candidate, and negative-control runs in a disposable checkout.
+`propose-functional-api-field-repair` separately emits compatible field
+rename candidates for later class-specific validation.
 `open-functional-api-repair-pr` then rechecks the immutable source and opens an
 idempotent draft GitHub pull request containing only the validated edit. After
 the review closes, `capture-functional-api-review-outcome` derives its terminal
@@ -330,6 +332,45 @@ Reads use a repeatable-read transaction so the outcome header and reviewer
 patches come from one database snapshot. Persistence performs no GitHub calls,
 does not update PR state, and does not convert a merge into correctness or
 promotion authority.
+
+## Compatible field proposal
+
+`propose-functional-api-field-repair` is a separate proposal-only command for
+direct `application/json` request and response properties. It requires a
+complete semantic impact, matching reviewed manifest/test identity, a source
+checkout at the impact head, and a test checkout at the named immutable test
+revision. The source owner declares `x-argus-renamed-from: previousName` on the
+new property. Argus loads the OpenAPI document at both full Git revisions and
+requires the entire operation to be identical after reversing only that
+declaration, property key, and required-list name. The proof records both
+OpenAPI blob SHA-256 values, operation identity, field direction, and names.
+
+```sh
+go run ./cmd/propose-functional-api-field-repair \
+  -impact ./capability-impact.json \
+  -manifest ./execution-manifest.json \
+  -source-checkout ./source-repository \
+  -test-repository-id R_orders_tests_01 \
+  -suite-key orders-api -test-key create-order \
+  -test-revision 0123456789abcdef0123456789abcdef01234567 \
+  -- node ./tools/argus-playwright-adaptation-adapter.mjs propose-field \
+  > field-proposal.json
+```
+
+The reviewed adapter may return one `request-body-key` or
+`response-field-access` edit with exact byte offsets and the complete source
+preimage digest. The reference adapter accepts one direct literal Playwright
+request body key or one direct `expect((await response.json()).field)` access in
+the named test. It abstains for dynamic bodies, computed access, multiple
+references, unsupported syntax, and source that differs from the immutable
+test revision. Expected values, comparison operators, and fixtures remain
+untouched. Run `make api-validate` for its disposable request/response check.
+
+`argus.dev/field-adaptation-proposal/v1` cannot be passed to the endpoint
+validation or publication commands. It is a reviewable candidate for the
+field-specific repeated validation and negative-control workflow in the next
+M06 slice. [ADR-0032](../decisions/0032-propose-compatible-field-renames-from-explicit-contract-identity.md)
+records the proof and compatibility decision.
 
 ## Remaining non-goals
 

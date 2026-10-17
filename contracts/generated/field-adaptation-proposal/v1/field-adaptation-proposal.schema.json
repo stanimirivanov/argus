@@ -1,0 +1,476 @@
+{
+  "$id": "https://argus.dev/contracts/field-adaptation-proposal/v1/schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$ref": "#/$defs/FieldAdaptationProposalV1",
+  "$defs": {
+    "RepositoryReference": {
+      "type": "object",
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": [
+            "github",
+            "gitlab",
+            "azure-devops",
+            "other"
+          ]
+        },
+        "host": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "pattern": "^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$"
+        },
+        "providerRepositoryId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "owner": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        }
+      },
+      "required": [
+        "provider",
+        "host",
+        "providerRepositoryId",
+        "owner",
+        "name"
+      ],
+      "additionalProperties": false,
+      "description": "A repository reference anchored by the provider-assigned identity; owner and name are mutable display coordinates."
+    },
+    "Revision": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "algorithm": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "git-sha1"
+                  ]
+                }
+              ]
+            },
+            "digest": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            }
+          },
+          "required": [
+            "algorithm",
+            "digest"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "algorithm": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "git-sha256"
+                  ]
+                }
+              ]
+            },
+            "digest": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          "required": [
+            "algorithm",
+            "digest"
+          ],
+          "additionalProperties": false
+        }
+      ],
+      "description": "An immutable, normalized Git object revision."
+    },
+    "LocalKey": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 63,
+      "pattern": "^[a-z][a-z0-9._-]*$",
+      "description": "A stable, repository-declared key. It is scoped by its containing repository or parent declaration."
+    },
+    "FieldAdaptationProposalV1": {
+      "type": "object",
+      "properties": {
+        "apiVersion": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "argus.dev/field-adaptation-proposal/v1"
+              ]
+            }
+          ]
+        },
+        "policyVersion": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "argus.dev/adaptation-policy/functional-api-compatible-field-rename/v1"
+              ]
+            }
+          ]
+        },
+        "proposalId": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "sourceImpact": {
+          "type": "object",
+          "properties": {
+            "apiVersion": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "argus.dev/capability-impact/v1"
+                  ]
+                }
+              ]
+            },
+            "analyzerVersion": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 127
+            }
+          },
+          "required": [
+            "apiVersion",
+            "analyzerVersion"
+          ],
+          "additionalProperties": false
+        },
+        "change": {
+          "type": "object",
+          "properties": {
+            "sourceRepository": {
+              "$ref": "#/$defs/RepositoryReference"
+            },
+            "pullRequest": {
+              "type": "object",
+              "properties": {
+                "number": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              },
+              "required": [
+                "number"
+              ],
+              "additionalProperties": false
+            },
+            "baseRevision": {
+              "$ref": "#/$defs/Revision"
+            },
+            "headRevision": {
+              "$ref": "#/$defs/Revision"
+            },
+            "observedAt": {
+              "type": "string"
+            },
+            "trigger": {
+              "type": "object",
+              "properties": {
+                "provider": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "github"
+                      ]
+                    }
+                  ]
+                },
+                "deliveryId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 255
+                },
+                "event": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "pull_request"
+                      ]
+                    }
+                  ]
+                },
+                "action": {
+                  "type": "string",
+                  "enum": [
+                    "opened",
+                    "reopened",
+                    "synchronize",
+                    "ready_for_review"
+                  ]
+                }
+              },
+              "required": [
+                "provider",
+                "deliveryId",
+                "event",
+                "action"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "sourceRepository",
+            "pullRequest",
+            "baseRevision",
+            "headRevision",
+            "observedAt",
+            "trigger"
+          ],
+          "additionalProperties": false
+        },
+        "test": {
+          "type": "object",
+          "properties": {
+            "repository": {
+              "$ref": "#/$defs/RepositoryReference"
+            },
+            "revision": {
+              "$ref": "#/$defs/Revision"
+            },
+            "suiteKey": {
+              "$ref": "#/$defs/LocalKey"
+            },
+            "testKey": {
+              "$ref": "#/$defs/LocalKey"
+            },
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255
+            },
+            "adapter": {
+              "$ref": "#/$defs/LocalKey"
+            },
+            "capabilities": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/LocalKey"
+              },
+              "minItems": 1,
+              "maxItems": 5000
+            }
+          },
+          "required": [
+            "repository",
+            "revision",
+            "suiteKey",
+            "testKey",
+            "name",
+            "adapter",
+            "capabilities"
+          ],
+          "additionalProperties": false
+        },
+        "classification": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "INVALIDATED"
+              ]
+            }
+          ]
+        },
+        "decision": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "PATCH_AND_VALIDATE"
+              ]
+            }
+          ]
+        },
+        "fieldRename": {
+          "type": "object",
+          "properties": {
+            "documentPath": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096,
+              "pattern": "^[^/\\\\][^\\\\]*$"
+            },
+            "baseSha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "headSha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "method": {
+              "type": "string",
+              "enum": [
+                "GET",
+                "PUT",
+                "POST",
+                "DELETE",
+                "PATCH"
+              ]
+            },
+            "path": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2048,
+              "pattern": "^\\/"
+            },
+            "operationId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255
+            },
+            "capabilities": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/LocalKey"
+              },
+              "minItems": 1,
+              "maxItems": 50
+            },
+            "direction": {
+              "type": "string",
+              "enum": [
+                "request",
+                "response"
+              ]
+            },
+            "statusCode": {
+              "type": "string",
+              "maxLength": 3
+            },
+            "previousName": {
+              "type": "string",
+              "pattern": "^[A-Za-z_$][A-Za-z0-9_$]{0,254}$"
+            },
+            "name": {
+              "type": "string",
+              "pattern": "^[A-Za-z_$][A-Za-z0-9_$]{0,254}$"
+            }
+          },
+          "required": [
+            "documentPath",
+            "baseSha256",
+            "headSha256",
+            "method",
+            "path",
+            "operationId",
+            "capabilities",
+            "direction",
+            "statusCode",
+            "previousName",
+            "name"
+          ],
+          "additionalProperties": false
+        },
+        "adapter": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/LocalKey"
+            },
+            "version": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 127
+            }
+          },
+          "required": [
+            "id",
+            "version"
+          ],
+          "additionalProperties": false
+        },
+        "edit": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096,
+              "pattern": "^[^/\\\\][^\\\\]*$"
+            },
+            "beforeSha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "startByte": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "endByte": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "original": {
+              "type": "string",
+              "pattern": "^[A-Za-z_$][A-Za-z0-9_$]{0,254}$"
+            },
+            "replacement": {
+              "type": "string",
+              "pattern": "^[A-Za-z_$][A-Za-z0-9_$]{0,254}$"
+            },
+            "semanticRole": {
+              "type": "string",
+              "enum": [
+                "request-body-key",
+                "response-field-access"
+              ]
+            }
+          },
+          "required": [
+            "path",
+            "beforeSha256",
+            "startByte",
+            "endByte",
+            "original",
+            "replacement",
+            "semanticRole"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "apiVersion",
+        "policyVersion",
+        "proposalId",
+        "sourceImpact",
+        "change",
+        "test",
+        "classification",
+        "decision",
+        "fieldRename",
+        "adapter",
+        "edit"
+      ],
+      "additionalProperties": false,
+      "title": "Argus field adaptation proposal v1",
+      "description": "Reviewable proposal only; field-specific validation is required before publication."
+    }
+  }
+}

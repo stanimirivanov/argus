@@ -194,6 +194,203 @@ async function propose(request) {
   };
 }
 
+function fieldAbstention(request, code, reason) {
+  return {
+    apiVersion: "argus.dev/functional-api-field-adaptation-result/v1",
+    proposalId: request.proposalId,
+    adapter: { id: "playwright", version },
+    outcome: "abstained",
+    reasonCode: code,
+    reason,
+    edit: null,
+  };
+}
+
+function taggedCallback(node, tag) {
+  return (
+    ts.isCallExpression(node) &&
+    ts.isIdentifier(node.expression) &&
+    node.expression.text === "test" &&
+    node.arguments.length === 2 &&
+    ts.isStringLiteral(node.arguments[0]) &&
+    node.arguments[0].text.includes(`[${tag}]`) &&
+    ts.isArrowFunction(node.arguments[1]) &&
+    node.arguments[1].parameters.length === 1 &&
+    ts.isObjectBindingPattern(node.arguments[1].parameters[0].name) &&
+    node.arguments[1].parameters[0].name.elements.some(
+      (element) =>
+        ts.isIdentifier(element.name) && element.name.text === "request" && !element.propertyName,
+    )
+  );
+}
+
+function unwrapParentheses(node) {
+  while (ts.isParenthesizedExpression(node)) node = node.expression;
+  return node;
+}
+
+function requestCall(node, rename) {
+  if (!ts.isCallExpression(node) || !ts.isPropertyAccessExpression(node.expression)) return false;
+  const receiver = node.expression.expression;
+  return (
+    ts.isIdentifier(receiver) &&
+    receiver.text === "request" &&
+    node.expression.name.text.toUpperCase() === rename.method &&
+    node.arguments.length >= 1 &&
+    ts.isStringLiteral(node.arguments[0]) &&
+    node.arguments[0].text === rename.path
+  );
+}
+
+function requestFieldNode(call, previousName) {
+  if (call.arguments.length !== 2 || !ts.isObjectLiteralExpression(call.arguments[1])) return null;
+  const data = call.arguments[1].properties.filter(
+    (property) =>
+      ts.isPropertyAssignment(property) &&
+      ts.isIdentifier(property.name) &&
+      property.name.text === "data",
+  );
+  if (data.length !== 1 || !ts.isObjectLiteralExpression(data[0].initializer)) return null;
+  const properties = data[0].initializer.properties;
+  const matches = properties.filter(
+    (property) =>
+      ts.isPropertyAssignment(property) &&
+      ts.isIdentifier(property.name) &&
+      property.name.text === previousName,
+  );
+  return matches.length === 1 ? matches[0].name : null;
+}
+
+function responseVariable(node, rename) {
+  if (!ts.isVariableDeclaration(node) || !ts.isIdentifier(node.name) || !node.initializer)
+    return null;
+  const initializer = unwrapParentheses(node.initializer);
+  return ts.isAwaitExpression(initializer) && requestCall(initializer.expression, rename)
+    ? node.name.text
+    : null;
+}
+
+function responseFieldNode(node, variable, previousName) {
+  if (
+    !ts.isCallExpression(node) ||
+    !ts.isIdentifier(node.expression) ||
+    node.expression.text !== "expect" ||
+    node.arguments.length !== 1
+  )
+    return null;
+  const access = unwrapParentheses(node.arguments[0]);
+  if (!ts.isPropertyAccessExpression(access) || access.name.text !== previousName) return null;
+  const awaited = unwrapParentheses(access.expression);
+  if (!ts.isAwaitExpression(awaited)) return null;
+  const json = awaited.expression;
+  if (
+    !ts.isCallExpression(json) ||
+    json.arguments.length !== 0 ||
+    !ts.isPropertyAccessExpression(json.expression) ||
+    json.expression.name.text !== "json" ||
+    !ts.isIdentifier(json.expression.expression) ||
+    json.expression.expression.text !== variable
+  )
+    return null;
+  return access.name;
+}
+
+function findField(source, tag, rename) {
+  const tree = ts.createSourceFile(
+    "field.spec.mjs",
+    source,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.JS,
+  );
+  if (tree.parseDiagnostics.length) return null;
+  const tagged = [];
+  function collect(node) {
+    if (taggedCallback(node, tag)) tagged.push(node.arguments[1]);
+    ts.forEachChild(node, collect);
+  }
+  collect(tree);
+  if (tagged.length !== 1) return null;
+  const calls = [];
+  const variables = [];
+  function inspect(node) {
+    if (requestCall(node, rename)) calls.push(node);
+    const variable = responseVariable(node, rename);
+    if (variable) variables.push(variable);
+    ts.forEachChild(node, inspect);
+  }
+  inspect(tagged[0]);
+  if (calls.length !== 1) return null;
+  const matches = [];
+  if (rename.direction === "request") {
+    const node = requestFieldNode(calls[0], rename.previousName);
+    if (node) matches.push(node);
+  } else if (rename.direction === "response" && variables.length === 1) {
+    function inspectExpect(node) {
+      const field = responseFieldNode(node, variables[0], rename.previousName);
+      if (field) matches.push(field);
+      ts.forEachChild(node, inspectExpect);
+    }
+    inspectExpect(tagged[0]);
+  }
+  if (
+    matches.length !== 1 ||
+    source.slice(matches[0].getStart(tree), matches[0].getEnd()) !== rename.previousName
+  )
+    return null;
+  return [matches[0].getStart(tree), matches[0].getEnd()];
+}
+
+async function proposeField(request) {
+  if (
+    request.apiVersion !== "argus.dev/functional-api-field-adaptation-request/v1" ||
+    request.test?.adapter !== "playwright" ||
+    request.test?.revision?.digest !== (await revision()) ||
+    !["request", "response"].includes(request.fieldRename?.direction) ||
+    !/^[A-Za-z_$][A-Za-z0-9_$]{0,254}$/u.test(request.fieldRename.previousName) ||
+    !/^[A-Za-z_$][A-Za-z0-9_$]{0,254}$/u.test(request.fieldRename.name)
+  )
+    fail("invalid field proposal request");
+  const mapped = await mappedTest(request.test);
+  const bytes = await readFile(resolve(cwd, mapped.file));
+  const source = bytes.toString("utf8");
+  if (!Buffer.from(source).equals(bytes))
+    return fieldAbstention(request, "unsupported-source", "source is not UTF-8");
+  const committed = await run("git", ["show", `HEAD:${mapped.file}`]);
+  if (committed.code !== 0 || committed.stdout !== source)
+    return fieldAbstention(
+      request,
+      "stale-source",
+      "test source differs from its immutable revision",
+    );
+  const span = findField(source, mapped.tag, request.fieldRename);
+  if (!span)
+    return fieldAbstention(
+      request,
+      "ambiguous-field",
+      "one supported field reference could not be proven",
+    );
+  const [startByte, endByte] = span.map((offset) => Buffer.byteLength(source.slice(0, offset)));
+  return {
+    apiVersion: "argus.dev/functional-api-field-adaptation-result/v1",
+    proposalId: request.proposalId,
+    adapter: { id: "playwright", version },
+    outcome: "candidate",
+    reasonCode: null,
+    reason: null,
+    edit: {
+      path: mapped.file,
+      beforeSha256: digest(bytes),
+      startByte,
+      endByte,
+      original: request.fieldRename.previousName,
+      replacement: request.fieldRename.name,
+      semanticRole:
+        request.fieldRename.direction === "request" ? "request-body-key" : "response-field-access",
+    },
+  };
+}
+
 function flatten(suites) {
   return (suites ?? []).flatMap((suite) => [...(suite.specs ?? []), ...flatten(suite.suites)]);
 }
@@ -265,9 +462,11 @@ try {
   const result =
     process.argv[2] === "propose"
       ? await propose(request)
-      : process.argv[2] === "validate"
-        ? await validate(request)
-        : fail("usage: playwright-repair-adapter.mjs propose|validate");
+      : process.argv[2] === "propose-field"
+        ? await proposeField(request)
+        : process.argv[2] === "validate"
+          ? await validate(request)
+          : fail("usage: playwright-repair-adapter.mjs propose|validate");
   process.stdout.write(`${JSON.stringify(result)}\n`);
 } catch (error) {
   process.stderr.write(`${error.message}\n`);

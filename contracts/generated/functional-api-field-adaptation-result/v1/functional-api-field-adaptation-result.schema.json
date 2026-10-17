@@ -1,0 +1,147 @@
+{
+  "$id": "https://argus.dev/contracts/functional-api-field-adaptation-result/v1/schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$ref": "#/$defs/FunctionalAPIFieldAdaptationResultV1",
+  "$defs": {
+    "LocalKey": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 63,
+      "pattern": "^[a-z][a-z0-9._-]*$",
+      "description": "A stable, repository-declared key. It is scoped by its containing repository or parent declaration."
+    },
+    "FunctionalAPIFieldAdaptationResultV1": {
+      "type": "object",
+      "properties": {
+        "apiVersion": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "argus.dev/functional-api-field-adaptation-result/v1"
+              ]
+            }
+          ]
+        },
+        "proposalId": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "adapter": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/LocalKey"
+            },
+            "version": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 127
+            }
+          },
+          "required": [
+            "id",
+            "version"
+          ],
+          "additionalProperties": false
+        },
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "candidate",
+            "abstained"
+          ]
+        },
+        "reasonCode": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LocalKey"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "edit": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4096,
+                  "pattern": "^[^/\\\\][^\\\\]*$"
+                },
+                "beforeSha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "startByte": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "endByte": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0
+                },
+                "original": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z_$][A-Za-z0-9_$]{0,254}$"
+                },
+                "replacement": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z_$][A-Za-z0-9_$]{0,254}$"
+                },
+                "semanticRole": {
+                  "type": "string",
+                  "enum": [
+                    "request-body-key",
+                    "response-field-access"
+                  ]
+                }
+              },
+              "required": [
+                "path",
+                "beforeSha256",
+                "startByte",
+                "endByte",
+                "original",
+                "replacement",
+                "semanticRole"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "apiVersion",
+        "proposalId",
+        "adapter",
+        "outcome",
+        "reasonCode",
+        "reason",
+        "edit"
+      ],
+      "additionalProperties": false,
+      "title": "Argus functional API field adaptation result v1",
+      "description": "One byte-addressed field reference edit or explicit abstention."
+    }
+  }
+}

@@ -19,6 +19,11 @@ import { ExecutionManifestV2 } from "../source/execution-manifest-v2.js";
 import { ExecutionManifestV3 } from "../source/execution-manifest-v3.js";
 import { ExecutionManifestV4 } from "../source/execution-manifest-v4.js";
 import {
+  FieldAdaptationProposalV1,
+  FunctionalAPIFieldAdaptationRequestV1,
+  FunctionalAPIFieldAdaptationResultV1,
+} from "../source/field-adaptation-v1.js";
+import {
   FunctionalAPIExecutionBindingsV1,
   FunctionalAPIExecutionPlanV1,
 } from "../source/functional-api-execution-plan-v1.js";
@@ -43,6 +48,39 @@ import { TestCatalogPageV1 } from "../source/test-catalog-page-v1.js";
 import { compileJsonSchema } from "./json-schema.js";
 
 const artifacts = [
+  {
+    name: "field adaptation proposal",
+    outputPath: new URL(
+      "../generated/field-adaptation-proposal/v1/field-adaptation-proposal.schema.json",
+      import.meta.url,
+    ),
+    document: {
+      $id: "https://argus.dev/contracts/field-adaptation-proposal/v1/schema.json",
+      ...compileJsonSchema(FieldAdaptationProposalV1),
+    },
+  },
+  {
+    name: "functional API field adaptation request",
+    outputPath: new URL(
+      "../generated/functional-api-field-adaptation-request/v1/functional-api-field-adaptation-request.schema.json",
+      import.meta.url,
+    ),
+    document: {
+      $id: "https://argus.dev/contracts/functional-api-field-adaptation-request/v1/schema.json",
+      ...compileJsonSchema(FunctionalAPIFieldAdaptationRequestV1),
+    },
+  },
+  {
+    name: "functional API field adaptation result",
+    outputPath: new URL(
+      "../generated/functional-api-field-adaptation-result/v1/functional-api-field-adaptation-result.schema.json",
+      import.meta.url,
+    ),
+    document: {
+      $id: "https://argus.dev/contracts/functional-api-field-adaptation-result/v1/schema.json",
+      ...compileJsonSchema(FunctionalAPIFieldAdaptationResultV1),
+    },
+  },
   {
     name: "maintenance assessment",
     outputPath: new URL(

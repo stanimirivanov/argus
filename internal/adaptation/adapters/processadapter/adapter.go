@@ -11,6 +11,7 @@ import (
 	"github.com/stanimirivanov/argus/internal/adaptation"
 	adaptationcontract "github.com/stanimirivanov/argus/internal/adaptation/adapters/contract"
 	"github.com/stanimirivanov/argus/internal/adaptation/endpointrepair"
+	"github.com/stanimirivanov/argus/internal/adaptation/fieldrepair"
 	"github.com/stanimirivanov/argus/internal/contracts"
 	"github.com/stanimirivanov/argus/internal/processprotocol"
 )
@@ -64,4 +65,35 @@ func (adapter *Adapter) Propose(
 	}
 
 	return adaptationcontract.ImportResultV1(resultDocument)
+}
+
+// ProposeField exchanges one versioned request/result pair for a compatible
+// field rename. It uses the same reviewed process limits as endpoint proposals.
+func (adapter *Adapter) ProposeField(
+	ctx context.Context,
+	request fieldrepair.Request,
+) (fieldrepair.Result, error) {
+	if adapter == nil || len(adapter.command) == 0 {
+		return fieldrepair.Result{}, adaptation.ErrInvalid
+	}
+	document, err := adaptationcontract.ExportFieldRequestV1(request)
+	if err != nil {
+		return fieldrepair.Result{}, err
+	}
+	input, err := json.Marshal(document)
+	if err != nil {
+		return fieldrepair.Result{}, fmt.Errorf("encode field request: %w", err)
+	}
+	output, err := processprotocol.Run(ctx, processprotocol.Options{
+		Command: adapter.command, Input: input, Stderr: adapter.stderr, Timeout: maxAdapterRuntime,
+	})
+	if err != nil {
+		return fieldrepair.Result{}, err
+	}
+	resultDocument, err := contracts.DecodeFieldAdaptationResultV1(output)
+	if err != nil {
+		return fieldrepair.Result{}, fmt.Errorf("decode field adaptation result: %w", err)
+	}
+
+	return adaptationcontract.ImportFieldResultV1(resultDocument)
 }

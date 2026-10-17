@@ -339,8 +339,14 @@ The sixth M06 slice now emits and durably stores trustworthy unsuccessful-
 validation evidence. Original-pass, candidate-fail, and negative-control-pass
 outcomes retain the completed run prefix and verified source restoration under
 a separate rejection contract, while infrastructure and integrity failures
-remain errors rather than learning labels. The compatible field-rename class
-remains.
+remain errors rather than learning labels.
+
+The seventh M06 slice proposes direct compatible request and response field
+renames only when an owner-declared identity survives complete immutable
+OpenAPI operation comparison. It emits a separate field proposal and constrains
+one syntax-aware Playwright source edit. Repeated field-specific validation,
+negative controls, draft publication, and review learning remain the next
+delivery slice; endpoint validation never accepts a field proposal.
 
 ## M07 - UI test intelligence
 
