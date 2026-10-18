@@ -15,5 +15,7 @@ test("checkout shows total [argus:shop:checkout]", async ({ page }) => {
 
 test("receipt shows order [argus:shop:receipt]", async ({ page }) => {
   await page.setContent("<main><h1>Receipt</h1><p>Order 123</p></main>");
-  await expect(page.getByText("Order 123")).toBeVisible();
+  await expect(
+    page.getByText(process.env.ARGUS_BROWSER_FAIL_RECEIPT ? "Order 999" : "Order 123"),
+  ).toBeVisible();
 });

@@ -13,6 +13,12 @@ import {
 } from "../source/adaptation-validation-v1.js";
 import { BrowserDiscoveryV1 } from "../source/browser-discovery-v1.js";
 import {
+  BrowserExecutionBindingsV1,
+  BrowserExecutionPlanV1,
+  BrowserPlanAttemptBindingsV1,
+  BrowserPlanShadowReportV1,
+} from "../source/browser-execution-plan-v1.js";
+import {
   BrowserAdapterRequestV1,
   BrowserAdapterResultV1,
   BrowserExecutionAttemptV1,
@@ -62,6 +68,21 @@ import { TestCatalogPageV1 } from "../source/test-catalog-page-v1.js";
 import { compileJsonSchema } from "./json-schema.js";
 
 const artifacts = [
+  ...(
+    [
+      ["browser-execution-bindings", BrowserExecutionBindingsV1],
+      ["browser-execution-plan", BrowserExecutionPlanV1],
+      ["browser-plan-attempt-bindings", BrowserPlanAttemptBindingsV1],
+      ["browser-plan-shadow-report", BrowserPlanShadowReportV1],
+    ] as const
+  ).map(([name, schema]) => ({
+    name,
+    outputPath: new URL(`../generated/${name}/v1/${name}.schema.json`, import.meta.url),
+    document: {
+      $id: `https://argus.dev/contracts/${name}/v1/schema.json`,
+      ...compileJsonSchema(schema),
+    },
+  })),
   ...(
     [
       ["browser-adapter-request", BrowserAdapterRequestV1],

@@ -314,6 +314,20 @@ jobs:
       - name: Run real browser execution campaign
         run: make ui-validate
 
+      - name: Run browser plan and durable shadow campaign
+        env:
+          ARGUS_DATABASE_URL: ${{ env.ARGUS_TEST_POSTGRES_URL }}
+          ARGUS_BROWSER_CAMPAIGN_DIR: .local/browser-shadow
+        run: node examples/functional-ui/shadow-campaign.mjs
+
+      - name: Retain browser attempts, report, and artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: browser-shadow-evidence
+          path: .local/browser-shadow
+          if-no-files-found: ignore
+
   dbos-webhook:
     name: DBOS webhook integration
     runs-on: ubuntu-24.04
