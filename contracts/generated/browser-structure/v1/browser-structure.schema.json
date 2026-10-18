@@ -1,0 +1,77 @@
+{
+  "$id": "https://argus.dev/contracts/browser-structure/v1/schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$ref": "#/$defs/BrowserStructureV1",
+  "$defs": {
+    "BrowserStructureV1": {
+      "type": "object",
+      "properties": {
+        "apiVersion": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "argus.dev/browser-structure/v1"
+              ]
+            }
+          ]
+        },
+        "capturedAt": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "complete": {
+          "type": "boolean"
+        },
+        "nodes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "role": {
+                "type": "string",
+                "maxLength": 100
+              },
+              "name": {
+                "type": "string",
+                "maxLength": 200
+              },
+              "testId": {
+                "type": "string",
+                "maxLength": 200
+              },
+              "visible": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "role",
+              "name",
+              "testId",
+              "visible"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 10000
+        },
+        "ariaSnapshot": {
+          "type": "string",
+          "maxLength": 1048576
+        }
+      },
+      "required": [
+        "apiVersion",
+        "capturedAt",
+        "url",
+        "complete",
+        "nodes",
+        "ariaSnapshot"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

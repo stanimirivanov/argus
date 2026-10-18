@@ -388,6 +388,13 @@ Acceptance ingredients:
 Completion means Playwright selection and one constrained locator repair class
 operate under the same evidence model as functional API tests.
 
+The proposal slice now labels supported locator-not-found failures, retains a
+structured accessibility artifact in the reference Playwright fixture, and
+emits one exact-preimage locator candidate or a reasoned abstention from
+correlated prior/current attempts. It does not apply or validate a candidate;
+repeated execution, negative controls, and review publication remain the next
+M07 slices.
+
 ## M08 - Predictive optimization
 
 **Message:** Reduce feedback cost using calibrated evidence and safe fallbacks.

@@ -405,6 +405,7 @@ the control plane framework-specific source knowledge or mutation authority:
 | `internal/adaptation` | Shared test references, byte-addressed edit structure, validation/review/outcome evidence, canonical evidence, and stable errors | Endpoint-rename proposal policy, generated contracts, process execution, filesystem access, or provider APIs |
 | `internal/adaptation/endpointrepair` | Functional API endpoint-rename proposal vocabulary, policy versions, adapter request/result invariants, and request-target edit semantics | Framework parsers, JSON, process execution, or source mutation |
 | `internal/adaptation/functionalapi` | Unique endpoint-rename proof, adapter port, proposal identity, result correlation, and constrained edit policy | Framework parsers, JSON, commands, source mutation, or review APIs |
+| `internal/adaptation/browserlocator` | Correlated browser-attempt and structural-snapshot policy for one unapplied locator edit or abstention | Artifact filesystem access, Playwright execution, source mutation, validation, or publication |
 | `internal/adaptation/validation` | Three-phase outcome policy, exact span materialization, negative-control derivation, runner/workspace ports, restoration checks, and evidence assembly | Filesystem APIs, framework commands, JSON, persistence, or review APIs |
 | `internal/adaptation/review` | Proposal/evidence correlation, immutable-source reconstruction, deterministic review identity, review content, and the consumer-owned provider gateway | GitHub HTTP, credentials, JSON, merge policy, or reviewer outcomes |
 | `internal/adaptation/outcome` | Proposal/evidence/publication correlation, provider-state decision derivation, explicit reason validation, deterministic outcome identity, and the consumer-owned immutable evidence port | GitHub HTTP, credentials, SQL, merge authority, or learning policy |
@@ -414,17 +415,28 @@ the control plane framework-specific source knowledge or mutation authority:
 | `internal/adaptation/adapters/validationprocessadapter` | Bounded no-shell phase execution in the disposable checkout | Patch selection, source writes, or outcome policy |
 | `internal/adaptation/adapters/githubreview` | Separate source-reader, publisher, and outcome-observer credentials over private guarded transport; stable repository identity; idempotent draft publication; and bounded terminal diff reads | Repair eligibility, candidate construction, merge, or correctness interpretation |
 | `internal/adaptation/adapters/cli/proposalcli` | Bounded impact/manifest input, exact test selection, provenance correlation, timeout, and proposal JSON output | Concrete process construction or framework parsing |
+| `internal/adaptation/adapters/cli/browserlocatorcli` | Saved attempt input, checkout and artifact containment, revision verification, and versioned diagnosis output | Locator equivalence policy, source mutation, or browser execution |
 | `internal/adaptation/adapters/cli/validationcli` | Bounded proposal input, explicit disposable root, total timeout, and validation-evidence JSON output | Concrete workspace/process construction or validation policy |
 | `internal/adaptation/adapters/cli/reviewcli` | Bounded proposal/evidence input, secret environment configuration, timeout, and review-publication JSON output | Candidate policy, GitHub HTTP, or merge authority |
 | `internal/adaptation/adapters/cli/outcomecli` | Bounded proposal/evidence/publication input, explicit reason capture, secret environment configuration, timeout, and review-outcome JSON output | Provider HTTP, persistence, merge authority, or learning policy |
 | `internal/adaptation/adapters/cli/evidencecli` | Bounded review-outcome ingestion, explicit identity lookup, and versioned JSON output through an injected evidence port | PostgreSQL, provider calls, or learning policy |
 | `internal/postgres` (`AdaptationStore`) | Atomic outcome/edit persistence, one-outcome-per-review conflict detection, and repeatable-read reconstruction | Outcome derivation, provider calls, or learning policy |
 | `cmd/propose-functional-api-repair` | Process-adapter composition and operating-system streams | Adaptation or contract policy |
+| `cmd/propose-browser-locator` | Saved browser-attempt and proposal-contract conversion composition | Locator policy, source mutation, or browser execution |
 | `cmd/assess-functional-api-maintenance` | Validated impact, selection, and execution evidence composition | Adaptation or execution policy |
 | `cmd/validate-functional-api-repair` | Guarded workspace and validation-process composition | Validation, patch, or contract policy |
 | `cmd/open-functional-api-repair-pr` | GitHub review-adapter composition and operating-system streams | Review eligibility, candidate construction, or contract policy |
 | `cmd/capture-functional-api-review-outcome` | GitHub terminal-review composition and operating-system streams | Outcome policy, persistence, merge authority, or contract policy |
 | `cmd/adaptation-evidence` | PostgreSQL evidence composition, lifecycle, and database configuration | Outcome derivation, serialization policy, or direct SQL orchestration |
+
+Browser locator diagnosis consumes the browser execution application model
+through one declared adaptation-to-execution dependency. The reference
+Playwright fixture supplies structural accessibility evidence; the CLI checks
+saved artifact bytes and checkout revision before policy evaluation. Proposal
+generation never executes a candidate or mutates source. The three browser
+proposal contracts remain separate from execution-attempt v1.
+[ADR-0036](../decisions/0036-propose-browser-locator-edits-from-correlated-structure.md)
+records this boundary.
 
 Argus requires complete semantic impact and one contract-declared operation
 identity moving from an old path to a new path. Repository-owned adapters map

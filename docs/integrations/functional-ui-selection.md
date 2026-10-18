@@ -95,7 +95,8 @@ combined. The v3 policy does not parse routes or run Playwright.
 
 The functional API planner and runner accept only v1; they **must not**
 execute these browser manifests. The Playwright checker validates test
-identity locally. Locator repair remains an M07 follow-up.
+identity locally. Browser locator proposal is described below; validation and
+review remain later M07 slices.
 [ADR-0025](../decisions/0025-select-browser-tests-only-for-fully-covered-api-changes.md),
 [ADR-0026](../decisions/0026-check-playwright-inventory-against-declared-tests.md),
 and [ADR-0027](../decisions/0027-opt-in-browser-selection-from-declared-component-roots.md)
@@ -268,5 +269,45 @@ the campaign step fails. This synthetic failure is expected only in the
 reference campaign; a product full-suite failure must still fail its CI gate.
 Set `ARGUS_BROWSER_CAMPAIGN_PLAN_ONLY=1` to validate its manifest and job plan
 without a local PostgreSQL server or Chromium run.
+
+## Diagnose a constrained locator failure
+
+The reference Playwright fixture now attaches `browser-structure/v1` JSON as
+its accessibility artifact. It includes the ARIA snapshot, current page URL,
+capture time, and bounded simple role/name/test-ID observations including
+hidden elements. The runner still retains the existing trace and screenshot.
+Treat all three files as browser evidence with the same access controls.
+
+Given a prior passing and later failed `browser-execution-attempt/v1` for the
+same test, run the proposal command against the immutable test checkout and
+the retained artifact directory:
+
+~~~sh
+go run ./cmd/propose-browser-locator \
+  -baseline browser-baseline.json -failed browser-failed.json \
+  -test-checkout "$PWD" -artifact-root "$PWD/.local/browser-artifacts" \
+  -registry examples/functional-ui/test-repository/argus-tests.json \
+  -source-path examples/functional-ui/test-repository/tests/shop.spec.mjs \
+  -suite-key shop -test-key checkout > browser-locator-diagnosis.json
+~~~
+
+The command verifies the checkout revision, the reviewed test registry's exact
+file and test name, the saved attempt contracts,
+artifact containment and SHA-256, test/project/environment correlation, capture
+time, and source preimage. `browser-locator-diagnosis/v1` either contains one
+`browser-locator-proposal/v1` or a reasoned abstention. The supported proposal
+class is a single literal `page.getByRole(role, { name })` or
+`page.getByTestId(id)` call inside the named test. An unchanged test ID can
+prove a role/name change; an unchanged role/name pair can prove a test-ID
+change. The old locator must be absent in the current structure, and the new
+target must be unique and visible. Positional, chained, ambiguous, hidden,
+cross-page, cross-test, and unsupported selectors abstain. Assertions and
+expected values are never edited.
+
+The command does not apply the proposal or make a failed test authoritative.
+Original failure reproduction, repeated candidate success, a discriminating
+negative control, and draft review publication remain separate M07 work.
+[ADR-0036](../decisions/0036-propose-browser-locator-edits-from-correlated-structure.md)
+records the ownership and evidence boundary.
 The reviewed binding and control decision is recorded in
 [ADR-0035](../decisions/0035-plan-browser-controls-from-reviewed-project-bindings.md).
