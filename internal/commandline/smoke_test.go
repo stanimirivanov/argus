@@ -14,6 +14,7 @@ import (
 var commandNames = []string{
 	"adaptation-evidence",
 	"assess-functional-api-maintenance",
+	"browser-catalog",
 	"capture-functional-api-review-outcome",
 	"capture-functional-api-field-review-outcome",
 	"catalog",
@@ -102,6 +103,7 @@ func testExitCodes(t *testing.T, binDirectory string) {
 		{name: "descriptor", code: 2},
 		{name: "descriptor", args: []string{"--unknown"}, code: 2},
 		{name: "playwright-catalog", code: 2},
+		{name: "browser-catalog", code: 2},
 		{name: "playwright-catalog", args: []string{"--unknown"}, code: 2},
 	} {
 		output, code := runBinary(t, commandBinary(binDirectory, test.name), test.args...)

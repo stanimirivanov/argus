@@ -279,6 +279,30 @@ func TestComponentImpactRejectsCatalogProvenanceMismatch(t *testing.T) {
 	}
 }
 
+func TestBrowserPathProjectionIncludesRenamePredecessorAndTruncation(t *testing.T) {
+	t.Parallel()
+	impact := validImpact()
+	set := validSet(impact)
+	previous := "web/old/page.tsx"
+	set.Files = []change.File{{Path: "web/new/page.tsx", PreviousPath: &previous,
+		Kind: change.KindRenamed, PatchStatus: change.PatchUnavailable}}
+	projection, err := New(stubSource{impact: impact, set: set}).ReadBrowserPaths(
+		t.Context(), catalog.ProviderGitHub, "delivery-42")
+	if err != nil {
+		t.Fatalf("browser paths: %v", err)
+	}
+	if !projection.Complete || len(projection.Paths) != 2 ||
+		projection.Paths[0] != "web/new/page.tsx" || projection.Paths[1] != previous {
+		t.Fatalf("projected paths = %+v", projection)
+	}
+	set.FilesTruncated = true
+	projection, err = New(stubSource{impact: impact, set: set}).ReadBrowserPaths(
+		t.Context(), catalog.ProviderGitHub, "delivery-42")
+	if err != nil || projection.Complete {
+		t.Fatalf("truncated browser paths = %+v, %v", projection, err)
+	}
+}
+
 func (source stubSource) FindCapabilityImpact(context.Context, catalog.Provider, string) (change.CapabilityImpact, error) {
 	return source.impact, nil
 }

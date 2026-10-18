@@ -89,9 +89,72 @@ combined. The v3 policy does not parse routes or run Playwright.
 
 The functional API planner and runner accept only v1; they **must not**
 execute these browser manifests. The Playwright checker validates test
-identity locally but is not yet persisted or joined to selection. UI route
-inference, browser execution evidence, and locator repair remain M07
+identity locally. Browser execution evidence and locator repair remain M07
 follow-ups. [ADR-0025](../decisions/0025-select-browser-tests-only-for-fully-covered-api-changes.md),
 [ADR-0026](../decisions/0026-check-playwright-inventory-against-declared-tests.md),
 and [ADR-0027](../decisions/0027-opt-in-browser-selection-from-declared-component-roots.md)
 define the policy boundaries.
+
+## Persist reviewed discovery and select from source mappings
+
+In a controlled CI checkout, the checker emits a schema-compatible suite
+observation instead of its human summary:
+
+~~~sh
+go run ./cmd/playwright-catalog \
+  -source-revision 0123456789abcdef0123456789abcdef01234567 \
+  -suite checkout-ui -suite-json \
+  -test-revision fedcba9876543210fedcba9876543210fedcba98 \
+  ./descriptor.json ./playwright-list.json > checkout-suite.json
+~~~
+
+CI must check the actual source and test checkout SHAs before invoking this
+command. Its revision flags are assertions, not proof of filesystem state.
+Collect every declared Playwright UI suite at an unfiltered test checkout.
+Compose their suite JSON objects into one `argus.dev/browser-discovery/v1`
+document with a stable `observationId`, catalog snapshot reference, collector
+version, collection and expiry timestamps, and reviewed mappings. Set
+`complete` only after every suite collection succeeds; set `mappingComplete`
+only when every declared test has a reviewed route or component mapping.
+`mappingRevision` names the source revision where the mapping was reviewed and
+must match the catalog revision for targeted selection. The
+[browser discovery schema](../../contracts/generated/browser-discovery/v1/browser-discovery.schema.json)
+defines the document shape.
+
+Each mapping names a stable test key, source root, and route or component key.
+A route also records its reviewed URL pattern. Component mappings must use a
+component key and root from the descriptor. Playwright titles, tags, and owners
+never become selection policy. A route key cannot claim conflicting roots or
+patterns. Incomplete observations may be stored for diagnosis but cannot omit
+tests.
+
+After the source catalog snapshot is ingested, persist and inspect the
+observation with `ARGUS_DATABASE_URL` set:
+
+~~~sh
+go run ./cmd/browser-catalog ingest -file browser-discovery.json
+go run ./cmd/browser-catalog get -observation-id ci-run-123
+~~~
+
+The observation ID is immutable: an exact retry creates no second row and
+changed content conflicts. CI pins each intended test checkout in a reviewed
+`argus.dev/browser-suite-bindings/v1` document. Select from a verified delivery
+and explicit evaluation instant:
+
+~~~sh
+go run ./cmd/select -family functional-ui -ui-impact mappings \
+  -delivery-id 01234567-89ab-cdef-0123-456789abcdef \
+  -ui-observation-id ci-run-123 \
+  -ui-suite-bindings-file browser-suite-bindings.json \
+  -evaluated-at 2026-10-18T07:00:00Z > browser-selection.json
+~~~
+
+This emits `argus.dev/browser-selection-manifest/v1`. Every changed path,
+including a rename or copy predecessor, must fall under a reviewed root.
+Missing, expired, incomplete, or mismatched discovery, incomplete changed-file
+evidence, and unmapped paths require all declared UI tests. A targeted omission
+still carries a full-suite execution obligation. Targeted decisions keep
+project variants; fallback decisions clear project hints and require the full
+suite. The manifest records the changed paths and discovery digest for review.
+The browser executor and CI
+scheduler are subsequent PRs; the functional API runner cannot consume it.

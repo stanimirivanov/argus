@@ -1,0 +1,420 @@
+{
+  "$id": "https://argus.dev/contracts/browser-selection-manifest/v1/schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$ref": "#/$defs/BrowserSelectionManifestV1",
+  "$defs": {
+    "RepositoryReference": {
+      "type": "object",
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": [
+            "github",
+            "gitlab",
+            "azure-devops",
+            "other"
+          ]
+        },
+        "host": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "pattern": "^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$"
+        },
+        "providerRepositoryId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "owner": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        }
+      },
+      "required": [
+        "provider",
+        "host",
+        "providerRepositoryId",
+        "owner",
+        "name"
+      ],
+      "additionalProperties": false,
+      "description": "A repository reference anchored by the provider-assigned identity; owner and name are mutable display coordinates."
+    },
+    "Revision": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "algorithm": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "git-sha1"
+                  ]
+                }
+              ]
+            },
+            "digest": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            }
+          },
+          "required": [
+            "algorithm",
+            "digest"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "algorithm": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "git-sha256"
+                  ]
+                }
+              ]
+            },
+            "digest": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          "required": [
+            "algorithm",
+            "digest"
+          ],
+          "additionalProperties": false
+        }
+      ],
+      "description": "An immutable, normalized Git object revision."
+    },
+    "CatalogSnapshotReference": {
+      "type": "object",
+      "properties": {
+        "sourceRepository": {
+          "$ref": "#/$defs/RepositoryReference"
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "descriptorApiVersion": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "argus.dev/repository-descriptor/v1"
+              ]
+            }
+          ]
+        }
+      },
+      "required": [
+        "sourceRepository",
+        "revision",
+        "descriptorApiVersion"
+      ],
+      "additionalProperties": false,
+      "description": "The immutable repository descriptor observation queried by this result page."
+    },
+    "LocalKey": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 63,
+      "pattern": "^[a-z][a-z0-9._-]*$",
+      "description": "A stable, repository-declared key. It is scoped by its containing repository or parent declaration."
+    },
+    "BrowserSelectionManifestV1": {
+      "type": "object",
+      "properties": {
+        "apiVersion": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "argus.dev/browser-selection-manifest/v1"
+              ]
+            }
+          ]
+        },
+        "policyVersion": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "argus.dev/selection-policy/browser-mapped/v1"
+              ]
+            }
+          ]
+        },
+        "change": {
+          "type": "object",
+          "properties": {
+            "sourceRepository": {
+              "$ref": "#/$defs/RepositoryReference"
+            },
+            "pullRequest": {
+              "type": "object",
+              "properties": {
+                "number": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              },
+              "required": [
+                "number"
+              ],
+              "additionalProperties": false
+            },
+            "baseRevision": {
+              "$ref": "#/$defs/Revision"
+            },
+            "headRevision": {
+              "$ref": "#/$defs/Revision"
+            },
+            "observedAt": {
+              "type": "string"
+            },
+            "trigger": {
+              "type": "object",
+              "properties": {
+                "provider": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "github"
+                      ]
+                    }
+                  ]
+                },
+                "deliveryId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 255
+                },
+                "event": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "pull_request"
+                      ]
+                    }
+                  ]
+                },
+                "action": {
+                  "type": "string",
+                  "enum": [
+                    "opened",
+                    "reopened",
+                    "synchronize",
+                    "ready_for_review"
+                  ]
+                }
+              },
+              "required": [
+                "provider",
+                "deliveryId",
+                "event",
+                "action"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "sourceRepository",
+            "pullRequest",
+            "baseRevision",
+            "headRevision",
+            "observedAt",
+            "trigger"
+          ],
+          "additionalProperties": false
+        },
+        "changedPaths": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "maxItems": 10000
+        },
+        "pathsComplete": {
+          "type": "boolean"
+        },
+        "catalog": {
+          "$ref": "#/$defs/CatalogSnapshotReference"
+        },
+        "evidence": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "observationId": {
+                  "$ref": "#/$defs/LocalKey"
+                },
+                "digest": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "collectorVersion": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 127
+                },
+                "mappingRevision": {
+                  "$ref": "#/$defs/Revision"
+                }
+              },
+              "required": [
+                "observationId",
+                "digest",
+                "collectorVersion",
+                "mappingRevision"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "evaluatedAt": {
+          "type": "string"
+        },
+        "family": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "functional-ui"
+              ]
+            }
+          ]
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "targeted",
+            "fallback"
+          ]
+        },
+        "decisions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "testRepository": {
+                "$ref": "#/$defs/RepositoryReference"
+              },
+              "suiteKey": {
+                "$ref": "#/$defs/LocalKey"
+              },
+              "testKey": {
+                "$ref": "#/$defs/LocalKey"
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 255
+              },
+              "revision": {
+                "$ref": "#/$defs/Revision"
+              },
+              "projects": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 127
+                }
+              },
+              "outcome": {
+                "type": "string",
+                "enum": [
+                  "RUN_REQUIRED",
+                  "SKIP_FOR_NOW"
+                ]
+              },
+              "remainingExecution": {
+                "type": "string",
+                "enum": [
+                  "none",
+                  "full-suite"
+                ]
+              },
+              "reason": {
+                "type": "string",
+                "enum": [
+                  "DIRECT_UI_MAPPING",
+                  "CONSERVATIVE_FALLBACK",
+                  "NOT_AFFECTED_IN_EARLY_STAGE"
+                ]
+              },
+              "mappingKeys": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 127
+                }
+              }
+            },
+            "required": [
+              "testRepository",
+              "suiteKey",
+              "testKey",
+              "name",
+              "revision",
+              "projects",
+              "outcome",
+              "remainingExecution",
+              "reason",
+              "mappingKeys"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 10000
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "maxItems": 100
+        }
+      },
+      "required": [
+        "apiVersion",
+        "policyVersion",
+        "change",
+        "changedPaths",
+        "pathsComplete",
+        "catalog",
+        "evidence",
+        "evaluatedAt",
+        "family",
+        "mode",
+        "decisions",
+        "warnings"
+      ],
+      "additionalProperties": false,
+      "description": "Conservative browser selection bound to immutable discovery and reviewed UI mappings."
+    }
+  }
+}

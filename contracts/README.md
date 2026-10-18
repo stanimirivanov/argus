@@ -293,6 +293,16 @@ per-test durations; they do not represent parallel CI wall-clock time.
 
 ## Structural and domain validation
 
+Browser discovery uses three separate contracts:
+`browser-discovery/v1` for immutable Playwright project variants and reviewed
+source mappings, `browser-suite-bindings/v1` for intended CI checkout pins, and
+`browser-selection-manifest/v1` for conservative browser decisions. The first
+contract's shape is checked at ingress and its suite, project, route, component,
+and mapping completeness claims are checked against the descriptor in Go.
+Neither a Playwright title nor a supplied revision flag grants mapping policy
+authority. The browser manifest is not a functional API execution manifest.
+
+
 Effect Schema and generated JSON Schema enforce wire structure, required
 fields, limits, enumerations, and unknown-field rejection. Go then enforces
 semantic invariants:

@@ -27,6 +27,36 @@ const (
 	componentAnalyzerVersion  = "argus-component-roots/v1"
 )
 
+// ReadBrowserPaths projects every changed path and rename/copy predecessor
+// from the verified delivery without assigning route or component authority.
+func (reader *Reader) ReadBrowserPaths(ctx context.Context, provider catalog.Provider, deliveryID string) (selection.BrowserPathProjection, error) {
+	if reader == nil || reader.source == nil {
+		return selection.BrowserPathProjection{}, selection.ErrUnavailable
+	}
+	stored, err := reader.source.FindDelivery(ctx, provider, deliveryID)
+	if err != nil {
+		return selection.BrowserPathProjection{}, err
+	}
+	set := change.CanonicalSet(stored.ChangeSet)
+	if err := change.ValidateSet(set); err != nil || set.Trigger.Provider != provider || set.Trigger.DeliveryID != deliveryID {
+		return selection.BrowserPathProjection{}, fmt.Errorf("%w: invalid delivery change set", selection.ErrUnavailable)
+	}
+	projection := selection.BrowserPathProjection{Change: set.Reference(), Complete: !set.FilesTruncated && len(set.Files) > 0}
+	for _, file := range set.Files {
+		projection.Paths = append(projection.Paths, file.Path)
+		if file.PreviousPath != nil {
+			projection.Paths = append(projection.Paths, *file.PreviousPath)
+		}
+	}
+	slices.Sort(projection.Paths)
+	projection.Paths = slices.Compact(projection.Paths)
+	if err := selection.ValidateBrowserPathProjection(projection); err != nil {
+		return selection.BrowserPathProjection{}, fmt.Errorf("%w: invalid path projection", selection.ErrUnavailable)
+	}
+
+	return projection, nil
+}
+
 // ReadComponentImpact derives browser capability impact from every observed
 // source path and the matching immutable base catalog. No checkout is read.
 // Unmapped or truncated file evidence cannot authorize an omission.

@@ -46,7 +46,10 @@ func Run(
 	flags.SetOutput(io.Discard)
 	provider := flags.String("provider", string(catalog.ProviderGitHub), "delivery provider")
 	family := flags.String("family", string(catalog.TestFamilyFunctionalAPI), "test family: functional-api or functional-ui")
-	uiImpact := flags.String("ui-impact", "openapi", "UI impact policy: openapi or components")
+	uiImpact := flags.String("ui-impact", "openapi", "UI impact policy: openapi, components, or mappings")
+	uiObservationID := flags.String("ui-observation-id", "", "immutable browser discovery ID for mapped selection")
+	uiBindingsFile := flags.String("ui-suite-bindings-file", "", "reviewed browser checkout bindings")
+	evaluatedAt := flags.String("evaluated-at", "", "UTC evaluation instant for browser discovery freshness")
 	deliveryID := flags.String("delivery-id", "", "verified provider delivery ID")
 	policyFile := flags.String("policy-file", "", "reviewed policy JSON for opt-in functional API v2 selection")
 	inventoryFile := flags.String("head-inventory-file", "", "complete head test inventory JSON")
@@ -58,8 +61,9 @@ func Run(
 	if err := commandline.Parse(flags, arguments); err != nil {
 		return fmt.Errorf("select: %w", err)
 	}
-	if !validSelectionArguments(*deliveryID, *family, *uiImpact, *policyFile, *inventoryFile, flags.NArg()) {
-		return commandline.UsageText("usage: select [-provider github] [-family functional-api|functional-ui] [-ui-impact openapi|components] -delivery-id <id>")
+	if !validSelectionArguments(*deliveryID, *family, *uiImpact, *policyFile, *inventoryFile,
+		*uiObservationID, *uiBindingsFile, *evaluatedAt, flags.NArg()) {
+		return commandline.UsageText("usage: select [-provider github] [-family functional-api|functional-ui] [-ui-impact openapi|components|mappings] -delivery-id <id>")
 	}
 	reviewedInputs, err := loadReviewedInputs(*policyFile, *inventoryFile)
 	if err != nil {
@@ -76,6 +80,10 @@ func Run(
 		return fmt.Errorf("open selection store: %w", err)
 	}
 	defer runtime.Close()
+	if *uiImpact == "mappings" {
+		return runBrowserMapped(ctx, runtime, catalog.Provider(*provider), *deliveryID, *descriptorVersion,
+			*uiObservationID, *uiBindingsFile, *evaluatedAt, output)
+	}
 
 	var mappings capabilitymapped.MappingReader
 	if reviewedInputs != nil {
@@ -125,13 +133,18 @@ func Run(
 	return nil
 }
 
-func validSelectionArguments(deliveryID, family, uiImpact, policyFile, inventoryFile string, extra int) bool {
+func validSelectionArguments(deliveryID, family, uiImpact, policyFile, inventoryFile,
+	uiObservationID, uiBindingsFile, evaluatedAt string, extra int) bool {
+	mapped := uiImpact == "mappings"
+
 	return deliveryID != "" && extra == 0 &&
 		(family == string(catalog.TestFamilyFunctionalAPI) || family == string(catalog.TestFamilyFunctionalUI)) &&
-		(uiImpact == "openapi" || uiImpact == "components") &&
+		(uiImpact == "openapi" || uiImpact == "components" || mapped) &&
 		(family == string(catalog.TestFamilyFunctionalUI) || uiImpact == "openapi") &&
 		(policyFile == "") == (inventoryFile == "") &&
-		(policyFile == "" || family == string(catalog.TestFamilyFunctionalAPI))
+		(policyFile == "" || family == string(catalog.TestFamilyFunctionalAPI)) &&
+		(!mapped || (policyFile == "" && uiObservationID != "" && uiBindingsFile != "" && evaluatedAt != "")) &&
+		(mapped || (uiObservationID == "" && uiBindingsFile == "" && evaluatedAt == ""))
 }
 
 func loadReviewedInputs(policyFile, inventoryFile string) (*selection.ReviewedInputs, error) {

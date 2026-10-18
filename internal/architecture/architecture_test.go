@@ -89,6 +89,7 @@ var productionPackagePolicy = map[string]packagePolicy{
 	modulePath + "/internal/catalog/adapters/cli/playwrightcli":           {adapterLayer, catalogCapability},
 	modulePath + "/internal/catalog/adapters/contract/descriptor":         {adapterLayer, catalogCapability},
 	modulePath + "/internal/catalog/adapters/contract/evidence":           {adapterLayer, catalogCapability},
+	modulePath + "/internal/catalog/adapters/contract/browser":            {adapterLayer, catalogCapability},
 	modulePath + "/internal/contracts":                                    {adapterLayer, productCapability},
 	modulePath + "/internal/postgres":                                     {adapterLayer, productCapability},
 	modulePath + "/internal/change":                                       {domainLayer, changeCapability},
@@ -116,6 +117,7 @@ var productionPackagePolicy = map[string]packagePolicy{
 	modulePath + "/internal/processprotocol":                              {adapterLayer, productCapability},
 	modulePath + "/internal/selection":                                    {domainLayer, selectionCapability},
 	modulePath + "/internal/selection/capabilitymapped":                   {applicationLayer, selectionCapability},
+	modulePath + "/internal/selection/browsermapped":                      {applicationLayer, selectionCapability},
 	modulePath + "/internal/selection/adapters/catalogreader":             {adapterLayer, selectionCapability},
 	modulePath + "/internal/selection/adapters/cli/selectioncli":          {adapterLayer, selectionCapability},
 	modulePath + "/internal/selection/adapters/contract":                  {adapterLayer, selectionCapability},
@@ -130,6 +132,7 @@ var productionPackagePolicy = map[string]packagePolicy{
 	modulePath + "/cmd/control-plane":                                     {compositionRootLayer, productCapability},
 	modulePath + "/cmd/descriptor":                                        {compositionRootLayer, productCapability},
 	modulePath + "/cmd/playwright-catalog":                                {compositionRootLayer, productCapability},
+	modulePath + "/cmd/browser-catalog":                                   {compositionRootLayer, productCapability},
 	modulePath + "/cmd/execution-evidence":                                {compositionRootLayer, productCapability},
 	modulePath + "/cmd/migrate":                                           {compositionRootLayer, productCapability},
 	modulePath + "/cmd/open-functional-api-repair-pr":                     {compositionRootLayer, productCapability},
@@ -164,6 +167,7 @@ var adapterPolicy = map[string]adapterKind{
 	modulePath + "/internal/catalog/adapters/cli/playwrightcli":           drivingAdapter,
 	modulePath + "/internal/catalog/adapters/contract/descriptor":         contractAdapter,
 	modulePath + "/internal/catalog/adapters/contract/evidence":           contractAdapter,
+	modulePath + "/internal/catalog/adapters/contract/browser":            contractAdapter,
 	modulePath + "/internal/contracts":                                    contractAdapter,
 	modulePath + "/internal/postgres":                                     drivenAdapter,
 	modulePath + "/internal/change/adapters/contract":                     contractAdapter,
@@ -208,6 +212,7 @@ var generatedContractImporters = map[string]bool{
 	modulePath + "/internal/catalog/adapters/cli/playwrightcli":           true,
 	modulePath + "/internal/catalog/adapters/contract/descriptor":         true,
 	modulePath + "/internal/catalog/adapters/contract/evidence":           true,
+	modulePath + "/internal/catalog/adapters/contract/browser":            true,
 	modulePath + "/internal/change/adapters/contract":                     true,
 	modulePath + "/internal/execution/adapters/cli/evidencecli":           true,
 	modulePath + "/internal/execution/adapters/cli/planningcli":           true,
@@ -268,6 +273,11 @@ var githubTransportUsers = map[string]bool{
 // Cross-application orchestration is exceptional and explicit. Most use-case
 // packages own one port and must not reach sideways into another use case.
 var allowedApplicationDependencies = map[string]map[string]bool{
+	// Browser selection consumes the catalog-owned immutable discovery proof;
+	// changed-file transport interpretation stays in the impact reader bridge.
+	modulePath + "/internal/selection/browsermapped": {
+		modulePath + "/internal/catalog/discovery": true,
+	},
 	// Field validation, review publication, and outcome capture deliberately
 	// compose the immutable field proposal and proof stages of one workflow.
 	modulePath + "/internal/adaptation/fieldvalidation": {
