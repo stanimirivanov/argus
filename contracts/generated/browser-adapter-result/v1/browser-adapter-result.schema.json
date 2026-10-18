@@ -1,0 +1,190 @@
+{
+  "$id": "https://argus.dev/contracts/browser-adapter-result/v1/schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$ref": "#/$defs/BrowserAdapterResultV1",
+  "$defs": {
+    "LocalKey": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 63,
+      "pattern": "^[a-z][a-z0-9._-]*$",
+      "description": "A stable, repository-declared key. It is scoped by its containing repository or parent declaration."
+    },
+    "BrowserAdapterResultV1": {
+      "type": "object",
+      "properties": {
+        "apiVersion": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "argus.dev/browser-adapter-result/v1"
+              ]
+            }
+          ]
+        },
+        "attemptId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 127,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+        },
+        "adapter": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/LocalKey"
+            },
+            "version": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 127
+            }
+          },
+          "required": [
+            "id",
+            "version"
+          ],
+          "additionalProperties": false
+        },
+        "project": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 63,
+          "pattern": "^[a-z][a-z0-9._-]*$"
+        },
+        "environment": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 63,
+          "pattern": "^[a-z][a-z0-9._-]*$"
+        },
+        "startedAt": {
+          "type": "string"
+        },
+        "completedAt": {
+          "type": "string"
+        },
+        "results": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "suiteKey": {
+                "$ref": "#/$defs/LocalKey"
+              },
+              "testKey": {
+                "$ref": "#/$defs/LocalKey"
+              },
+              "outcome": {
+                "type": "string",
+                "enum": [
+                  "passed",
+                  "failed",
+                  "skipped",
+                  "error"
+                ]
+              },
+              "durationMs": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 86400000
+              },
+              "failure": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "code": {
+                        "$ref": "#/$defs/LocalKey"
+                      },
+                      "message": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 2000
+                      }
+                    },
+                    "required": [
+                      "code",
+                      "message"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "suiteKey",
+              "testKey",
+              "outcome",
+              "durationMs",
+              "failure"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1,
+          "maxItems": 10000
+        },
+        "artifacts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "key": {
+                "$ref": "#/$defs/LocalKey"
+              },
+              "suiteKey": {
+                "$ref": "#/$defs/LocalKey"
+              },
+              "testKey": {
+                "$ref": "#/$defs/LocalKey"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "trace",
+                  "screenshot",
+                  "accessibility"
+                ]
+              },
+              "uri": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2048
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              }
+            },
+            "required": [
+              "key",
+              "suiteKey",
+              "testKey",
+              "kind",
+              "uri",
+              "sha256"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 30000
+        }
+      },
+      "required": [
+        "apiVersion",
+        "attemptId",
+        "adapter",
+        "project",
+        "environment",
+        "startedAt",
+        "completedAt",
+        "results",
+        "artifacts"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

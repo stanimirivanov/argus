@@ -45,6 +45,8 @@ func Run(
 	switch arguments[0] {
 	case "ingest":
 		return runIngest(ctx, arguments[1:], databaseURL, stdin, stdout, open)
+	case "browser-ingest":
+		return runBrowserIngest(ctx, arguments[1:], databaseURL, stdin, stdout, open)
 	case "shadow-report":
 		return runShadowReport(ctx, arguments[1:], databaseURL, stdout, open)
 	case "plan-shadow-report":

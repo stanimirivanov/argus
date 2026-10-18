@@ -34,7 +34,7 @@ TOOL_LICENSE_EXCEPTIONS := \
 	--ignore github.com/leonklingele/grouper \
 	--ignore github.com/xen0n/gosmopolitan
 
-.PHONY: help bootstrap doctor build binaries generate-contracts fmt fmt-check docs-check architecture-check ci-policy-check check test verify api-validate race fuzz-smoke db-validate dbos-evaluate vuln license supply-chain validate
+.PHONY: help bootstrap doctor build binaries generate-contracts fmt fmt-check docs-check architecture-check ci-policy-check check test verify api-validate ui-validate race fuzz-smoke db-validate dbos-evaluate vuln license supply-chain validate
 
 help:
 	@echo Argus engineering-foundation command surface
@@ -52,6 +52,7 @@ help:
 	@echo   make test   Run ordinary tests without cached results
 	@echo   make verify  Run the fast network-independent development feedback loop
 	@echo   make api-validate  Run the disposable Playwright API reference campaign
+	@echo   make ui-validate   Run the real Chromium browser execution campaign
 	@echo   make race   Run all tests with the race detector
 	@echo   make fuzz-smoke  Run bounded native fuzzing of untrusted Go inputs
 	@echo   make db-validate  Run PostgreSQL integration tests against a disposable local server
@@ -110,8 +111,8 @@ check: fmt-check docs-check architecture-check
 	pnpm contracts:check
 	pnpm typecheck
 	$(GOLANGCI_LINT) config verify
-	$(GOLANGCI_LINT) run ./...
-	$(GOLANGCI_LINT) run --build-tags=dbose2e ./cmd/control-plane
+	$(GOLANGCI_LINT) run --timeout=10m ./...
+	$(GOLANGCI_LINT) run --timeout=10m --build-tags=dbose2e ./cmd/control-plane
 	$(ACTIONLINT)
 	go mod tidy -diff
 	go mod verify
@@ -128,6 +129,9 @@ verify: build check test api-validate
 
 api-validate:
 	pnpm api-validate
+
+ui-validate:
+	go test -vet=off -tags=browserintegration -count=1 -timeout=5m ./internal/execution/browser
 
 race:
 	go test -vet=off -race -count=1 ./...

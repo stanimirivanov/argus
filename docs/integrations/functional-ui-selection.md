@@ -89,8 +89,8 @@ combined. The v3 policy does not parse routes or run Playwright.
 
 The functional API planner and runner accept only v1; they **must not**
 execute these browser manifests. The Playwright checker validates test
-identity locally. Browser execution evidence and locator repair remain M07
-follow-ups. [ADR-0025](../decisions/0025-select-browser-tests-only-for-fully-covered-api-changes.md),
+identity locally. Locator repair remains an M07 follow-up.
+[ADR-0025](../decisions/0025-select-browser-tests-only-for-fully-covered-api-changes.md),
 [ADR-0026](../decisions/0026-check-playwright-inventory-against-declared-tests.md),
 and [ADR-0027](../decisions/0027-opt-in-browser-selection-from-declared-component-roots.md)
 define the policy boundaries.
@@ -156,5 +156,48 @@ evidence, and unmapped paths require all declared UI tests. A targeted omission
 still carries a full-suite execution obligation. Targeted decisions keep
 project variants; fallback decisions clear project hints and require the full
 suite. The manifest records the changed paths and discovery digest for review.
-The browser executor and CI
-scheduler are subsequent PRs; the functional API runner cannot consume it.
+The functional API runner cannot consume it. Browser CI scheduling and shadow
+comparison remain the next milestone slice.
+
+## Execute one browser project and retain evidence
+
+Run each selected repository, project, and environment group separately from a
+verified test checkout. The command and artifact directory come from reviewed
+CI configuration; neither comes from the manifest. The example fixture lives
+under `examples/functional-ui/test-repository` and uses the adapter in its
+parent directory. From the Argus root, with `ARGUS_DATABASE_URL` set:
+
+~~~sh
+export ARGUS_BROWSER_TEST_DIR="$PWD/examples/functional-ui/test-repository"
+export ARGUS_BROWSER_ARTIFACT_DIR="$PWD/.local/browser-artifacts"
+export ARGUS_BROWSER_ENVIRONMENT=ci
+go run ./cmd/run-browser \
+  -manifest browser-selection.json -attempt-id ci-browser-123 \
+  -test-repository-id tests-1 -test-revision "$(git rev-parse HEAD)" \
+  -project chromium-desktop -environment ci \
+  -- node examples/functional-ui/playwright-adapter.mjs > browser-attempt.json
+go run ./cmd/execution-evidence browser-ingest -file browser-attempt.json
+~~~
+
+`run-browser` accepts only `argus.dev/browser-selection-manifest/v1`. It checks
+the entire manifest against its schema, binds its SHA-256 to the attempt,
+selects exact stable tests for the requested group, and validates the adapter's
+complete result set. A failed test still emits an attempt document before the
+runner exits nonzero; CI must retain and ingest that output. Empty groups,
+duplicate or extra results, wrong project/environment, malformed output, and
+missing or corrupt local artifacts fail closed. The reference adapter runs
+only when the requested environment matches the CI-owned environment binding;
+the test checkout's Playwright configuration owns the corresponding target URL.
+It runs
+actual Playwright tests, verifies the checkout revision, and registers a trace,
+screenshot, and accessibility snapshot for every test. Each artifact reference
+names its test and SHA-256.
+
+`browser-ingest` stores immutable `argus.dev/browser-execution-attempt/v1`
+evidence. An exact retry is idempotent; reusing the attempt ID with different
+content conflicts. Artifact bytes are checked when the local adapter emits the
+attempt. The stored file URI and digest are reference metadata; database
+registration does not guarantee later file availability or retention. CI must
+publish the artifact directory with the same access controls as test output.
+`make ui-validate` runs a real Chromium campaign and cleans its temporary
+artifact directory.
