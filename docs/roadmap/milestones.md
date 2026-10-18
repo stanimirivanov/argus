@@ -368,7 +368,7 @@ the immutable base descriptor's declared roots and emits a separate v3
 manifest. A separate browser-mapped policy now persists complete project
 inventory and reviewed route/component mappings at pinned revisions, then
 selects from verified changed paths with all-test fallback. Its browser-owned
-manifest is advisory until the browser executor and CI planner are delivered;
+manifest now drives a reviewed browser CI plan and complete shadow comparison;
 the earlier v2/v3 policies keep their original meanings.
 
 Acceptance ingredients:

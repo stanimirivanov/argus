@@ -51,6 +51,8 @@ func Run(
 		return runShadowReport(ctx, arguments[1:], databaseURL, stdout, open)
 	case "plan-shadow-report":
 		return runPlanShadowReport(ctx, arguments[1:], databaseURL, stdin, stdout, open)
+	case "browser-plan-shadow-report":
+		return runBrowserPlanShadowReport(ctx, arguments[1:], databaseURL, stdin, stdout, open)
 	default:
 		return usageError()
 	}
@@ -265,5 +267,5 @@ func encodeJSON(output io.Writer, value any) error {
 }
 
 func usageError() error {
-	return commandline.UsageText("usage: execution-evidence <ingest|shadow-report|plan-shadow-report> [options]")
+	return commandline.UsageText("usage: execution-evidence <ingest|browser-ingest|shadow-report|plan-shadow-report|browser-plan-shadow-report> [options]")
 }

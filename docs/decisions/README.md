@@ -133,3 +133,4 @@ How will the assumptions and consequences be verified?
 | [ADR-0032](0032-propose-compatible-field-renames-from-explicit-contract-identity.md) | Propose compatible field renames from explicit contract identity | Proposed | 2026-10-17 |
 | [ADR-0033](0033-validate-field-repairs-with-repeated-discriminating-runs.md) | Validate field repairs with repeated discriminating runs | Proposed | 2026-10-17 |
 | [ADR-0034](0034-persist-reviewed-browser-discovery-before-targeted-selection.md) | Persist reviewed browser discovery before targeted selection | Proposed | 2026-10-18 |
+| [ADR-0035](0035-plan-browser-controls-from-reviewed-project-bindings.md) | Plan browser controls from reviewed project bindings | Proposed | 2026-10-18 |

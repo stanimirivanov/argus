@@ -34,6 +34,8 @@
 - Execution-plan attempt bindings and selection-plan shadow-report v1 evaluate
   every heterogeneous group, including full-only groups, without implicit
   attempt discovery.
+- Browser execution bindings, plan, attempt bindings, and shadow report v1
+  retain project/environment dimensions and measure complete-plan UI misses.
 - Adaptation-review v1 records the open draft GitHub pull request created from
   one correlated proposal and successful validation proof.
 - Review-outcome v1 records a terminal provider-derived disposition, explicit

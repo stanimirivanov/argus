@@ -106,6 +106,8 @@ var productionPackagePolicy = map[string]packagePolicy{
 	modulePath + "/internal/execution":                                    {domainLayer, executionCapability},
 	modulePath + "/internal/execution/attempts":                           {applicationLayer, executionCapability},
 	modulePath + "/internal/execution/browser":                            {applicationLayer, executionCapability},
+	modulePath + "/internal/execution/browserplanning":                    {applicationLayer, executionCapability},
+	modulePath + "/internal/execution/browsershadow":                      {applicationLayer, executionCapability},
 	modulePath + "/internal/execution/functionalapi":                      {applicationLayer, executionCapability},
 	modulePath + "/internal/execution/planning":                           {applicationLayer, executionCapability},
 	modulePath + "/internal/execution/shadow":                             {applicationLayer, executionCapability},
@@ -140,6 +142,7 @@ var productionPackagePolicy = map[string]packagePolicy{
 	modulePath + "/cmd/open-functional-api-repair-pr":                     {compositionRootLayer, productCapability},
 	modulePath + "/cmd/open-functional-api-field-repair-pr":               {compositionRootLayer, productCapability},
 	modulePath + "/cmd/plan-functional-api":                               {compositionRootLayer, productCapability},
+	modulePath + "/cmd/plan-browser":                                      {compositionRootLayer, productCapability},
 	modulePath + "/cmd/propose-functional-api-repair":                     {compositionRootLayer, productCapability},
 	modulePath + "/cmd/run-functional-api":                                {compositionRootLayer, productCapability},
 	modulePath + "/cmd/run-browser":                                       {compositionRootLayer, productCapability},
@@ -303,6 +306,13 @@ var allowedApplicationDependencies = map[string]map[string]bool{
 	},
 	modulePath + "/internal/execution/shadow": {
 		modulePath + "/internal/execution/planning": true,
+	},
+	modulePath + "/internal/execution/browserplanning": {
+		modulePath + "/internal/execution/browser": true,
+	},
+	modulePath + "/internal/execution/browsershadow": {
+		modulePath + "/internal/execution/browser":         true,
+		modulePath + "/internal/execution/browserplanning": true,
 	},
 }
 

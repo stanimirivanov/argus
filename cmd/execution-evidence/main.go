@@ -14,7 +14,7 @@ import (
 
 var commandSpec = commandline.Spec{
 	Name:     "execution-evidence",
-	Synopsis: "execution-evidence <ingest|browser-ingest|shadow-report|plan-shadow-report> [options]",
+	Synopsis: "execution-evidence <ingest|browser-ingest|shadow-report|plan-shadow-report|browser-plan-shadow-report> [options]",
 	Role:     "transitional direct-database client",
 }
 

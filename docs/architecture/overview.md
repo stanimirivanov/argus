@@ -360,6 +360,8 @@ protocol:
 | `internal/execution/planning` | Deterministic repository/adapter grouping, exact reviewed binding coverage, and flat selected/full-suite job planning | Contracts, process execution, SQL, CI syntax, commands, or credentials |
 | `internal/execution/attempts` | Validated immutable-attempt ingestion use case and consumer-owned persistence port | SQL, JSON, or artifact upload |
 | `internal/execution/shadow` | Explicit pair and complete-plan compatibility checks, aggregate duration/failure recall, and miss classification including full-only groups | Attempt lookup SQL, implicit latest selection, report persistence, or release policy |
+| `internal/execution/browserplanning` | Browser project/environment grouping, reviewed binding coverage, and mandatory full-suite jobs | CI commands, persistence, or browser adapter execution |
+| `internal/execution/browsershadow` | Explicit browser attempt correlation, complete-plan miss classification, and failure recall | Implicit latest attempts, SQL, artifact bytes, or release policy |
 | `internal/execution/adapters/contract` | Adapter request/result and execution-attempt v1 conversion | Execution policy or process lifecycle |
 | `internal/execution/adapters/processadapter` | Bounded stdin/stdout exchange with an explicit executable | Test selection or command discovery |
 | `internal/execution/adapters/cli/executioncli` | Manifest input, explicit group arguments, timeout, and normalized output | Shell evaluation or concrete adapter construction |
@@ -368,6 +370,7 @@ protocol:
 | `internal/postgres` (`ExecutionStore`) | Atomic attempt/result/reference persistence, exact-retry detection, and repeatable-read reconstruction | Shadow comparison policy |
 | `cmd/run-functional-api` | Process-adapter composition and operating-system streams | Execution or contract policy |
 | `cmd/plan-functional-api` | Framework-free planning command composition | CI-provider APIs or adapter execution |
+| `cmd/plan-browser` | Browser manifest and reviewed-binding planning command composition | Adapter execution or command authority |
 | `cmd/execution-evidence` | PostgreSQL composition, lifecycle, and database configuration | Ingestion or comparison policy |
 
 The manifest chooses tests, while reviewed CI configuration chooses the

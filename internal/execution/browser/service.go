@@ -123,3 +123,6 @@ func validateManifest(manifest Manifest) error {
 
 	return nil
 }
+
+// ValidateManifest checks the browser execution projection before CI planning.
+func ValidateManifest(manifest Manifest) error { return validateManifest(manifest) }

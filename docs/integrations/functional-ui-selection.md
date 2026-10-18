@@ -9,6 +9,12 @@
 - Unknown, incomplete, or unmapped impact conservatively requires all cataloged UI tests.
 - `playwright-catalog` checks a declared test inventory against a controlled
   Playwright `--list` result; it does not run tests or write the catalog.
+- `plan-browser` expands reviewed repository/project/environment bindings into
+  selected jobs and mandatory full-suite controls; explicit attempt bindings
+  produce one complete browser shadow report with selection misses.
+- `plan-browser` expands reviewed repository/project/environment bindings into
+  selected jobs and mandatory full-suite controls; explicit attempt bindings
+  produce one complete browser shadow report with selection misses.
 
 ## Check a Playwright UI catalog
 
@@ -201,3 +207,66 @@ registration does not guarantee later file availability or retention. CI must
 publish the artifact directory with the same access controls as test output.
 `make ui-validate` runs a real Chromium campaign and cleans its temporary
 artifact directory.
+
+## Plan and compare every browser group
+
+Keep the selection manifest byte-for-byte unchanged through planning and
+execution. Its digest is the exact file SHA-256 used by `run-browser`. Prepare
+reviewed `argus.dev/browser-execution-bindings/v1` configuration with one
+group per intended test repository, Playwright project, and environment. Each
+group supplies a stable `groupKey`, exact `testRepository`, immutable
+`testRevision`, `adapter: "playwright"`, `project`, and `environment`. Commands,
+secrets, runner labels, and artifact policy stay in CI configuration.
+
+~~~sh
+go run ./cmd/plan-browser -manifest browser-selection.json \
+  -bindings browser-execution-bindings.json > browser-plan.json
+~~~
+
+The `argus.dev/browser-execution-plan/v1` job array is ordered by group key,
+with `selected` before `full-suite`. Every nonempty reviewed group has a
+full-suite job. A selected job appears only if its project has an early-stage
+test. Missing project coverage, duplicate group coordinates, revision
+mismatches, and empty groups fail planning. Fallback decisions without project
+hints apply to every reviewed project for their test repository.
+
+Run each job with `run-browser`, passing its stage, repository, revision,
+adapter, project, and environment from the plan. CI must verify the test
+checkout SHA, supply an adapter command from reviewed configuration, and retain
+stdout even when `run-browser` exits nonzero: a valid failed attempt is still
+evidence. Ingest every emitted attempt with `execution-evidence browser-ingest`.
+Do not let an early selected failure cancel full-suite control jobs. Upload the
+attempt documents and artifact directory on success or failure, with the same
+access controls as other browser test evidence.
+
+After all jobs have run, create an
+`argus.dev/browser-plan-attempt-bindings/v1` document listing each `groupKey`,
+its `selectedAttemptId` (null for a full-only group), and its explicit
+`fullSuiteAttemptId`. Then compare the whole plan:
+
+~~~sh
+go run ./cmd/execution-evidence browser-plan-shadow-report \
+  -plan browser-plan.json -attempt-bindings browser-attempt-bindings.json \
+  > browser-shadow-report.json
+~~~
+
+The `argus.dev/browser-plan-shadow-report/v1` document reports test-duration
+reduction and failure recall across all groups, including full-only groups.
+It lists each full-suite failure the selected stage missed or did not
+reproduce. Comparison refuses missing controls, duplicate attempt IDs,
+cross-project/environment results, mismatched revisions or adapter versions,
+and incomplete group bindings. No attempt is chosen by recency. Full-suite job
+outcomes remain authoritative for CI and release decisions; the shadow report
+measures selection only.
+
+The checked-in
+[`shadow-campaign.mjs`](../../examples/functional-ui/shadow-campaign.mjs)
+is a runnable CI reference. It deliberately fails an omitted receipt test,
+persists all three attempts, and asserts two reported misses. The PostgreSQL
+integration job runs it and uploads the retained evidence directory even if
+the campaign step fails. This synthetic failure is expected only in the
+reference campaign; a product full-suite failure must still fail its CI gate.
+Set `ARGUS_BROWSER_CAMPAIGN_PLAN_ONLY=1` to validate its manifest and job plan
+without a local PostgreSQL server or Chromium run.
+The reviewed binding and control decision is recorded in
+[ADR-0035](../decisions/0035-plan-browser-controls-from-reviewed-project-bindings.md).

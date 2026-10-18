@@ -1,0 +1,72 @@
+{
+  "$id": "https://argus.dev/contracts/browser-plan-attempt-bindings/v1/schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$ref": "#/$defs/BrowserPlanAttemptBindingsV1",
+  "$defs": {
+    "LocalKey": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 63,
+      "pattern": "^[a-z][a-z0-9._-]*$",
+      "description": "A stable, repository-declared key. It is scoped by its containing repository or parent declaration."
+    },
+    "BrowserPlanAttemptBindingsV1": {
+      "type": "object",
+      "properties": {
+        "apiVersion": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "argus.dev/browser-plan-attempt-bindings/v1"
+              ]
+            }
+          ]
+        },
+        "groups": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "groupKey": {
+                "$ref": "#/$defs/LocalKey"
+              },
+              "selectedAttemptId": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 127,
+                    "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "fullSuiteAttemptId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 127,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+              }
+            },
+            "required": [
+              "groupKey",
+              "selectedAttemptId",
+              "fullSuiteAttemptId"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 10000
+        }
+      },
+      "required": [
+        "apiVersion",
+        "groups"
+      ],
+      "additionalProperties": false,
+      "description": "Explicit immutable browser attempt IDs for every planned group."
+    }
+  }
+}
