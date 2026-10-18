@@ -218,11 +218,15 @@ func absoluteRoot(path string) (string, error) {
 }
 
 func containedPath(root, path string) (string, error) {
-	resolved, err := filepath.EvalSymlinks(path)
+	resolvedRoot, err := absoluteRoot(root)
 	if err != nil {
 		return "", err
 	}
-	relative, err := filepath.Rel(root, resolved)
+	resolved, err := absoluteRoot(path)
+	if err != nil {
+		return "", err
+	}
+	relative, err := filepath.Rel(resolvedRoot, resolved)
 	if err != nil || relative == ".." || strings.HasPrefix(relative, ".."+string(filepath.Separator)) || filepath.IsAbs(relative) {
 		return "", fmt.Errorf("%w: path escaped configured root", adaptation.ErrInvalid)
 	}

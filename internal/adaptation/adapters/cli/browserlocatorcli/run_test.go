@@ -40,3 +40,14 @@ func TestRegistryBindsSourcePathAndTestName(t *testing.T) {
 		t.Fatal("accepted duplicate registry entry")
 	}
 }
+
+func TestContainedPathRejectsFileOutsideRoot(t *testing.T) {
+	root := t.TempDir()
+	outside := filepath.Join(t.TempDir(), "argus-tests.json")
+	if err := os.WriteFile(outside, []byte("{}"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := containedPath(root, outside); err == nil {
+		t.Fatal("accepted file outside configured root")
+	}
+}
