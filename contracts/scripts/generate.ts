@@ -11,6 +11,9 @@ import {
   ValidationEvidenceV1,
   ValidationRejectionV1,
 } from "../source/adaptation-validation-v1.js";
+import { BrowserDiscoveryV1 } from "../source/browser-discovery-v1.js";
+import { BrowserSelectionManifestV1 } from "../source/browser-selection-manifest-v1.js";
+import { BrowserSuiteBindingsV1 } from "../source/browser-suite-bindings-v1.js";
 import { CapabilityImpactV1 } from "../source/capability-impact-v1.js";
 import { CapabilityImpactV2 } from "../source/capability-impact-v2.js";
 import { ChangeSetV1 } from "../source/change-set-v1.js";
@@ -54,6 +57,39 @@ import { TestCatalogPageV1 } from "../source/test-catalog-page-v1.js";
 import { compileJsonSchema } from "./json-schema.js";
 
 const artifacts = [
+  {
+    name: "browser suite bindings",
+    outputPath: new URL(
+      "../generated/browser-suite-bindings/v1/browser-suite-bindings.schema.json",
+      import.meta.url,
+    ),
+    document: {
+      $id: "https://argus.dev/contracts/browser-suite-bindings/v1/schema.json",
+      ...compileJsonSchema(BrowserSuiteBindingsV1),
+    },
+  },
+  {
+    name: "browser selection manifest",
+    outputPath: new URL(
+      "../generated/browser-selection-manifest/v1/browser-selection-manifest.schema.json",
+      import.meta.url,
+    ),
+    document: {
+      $id: "https://argus.dev/contracts/browser-selection-manifest/v1/schema.json",
+      ...compileJsonSchema(BrowserSelectionManifestV1),
+    },
+  },
+  {
+    name: "browser discovery",
+    outputPath: new URL(
+      "../generated/browser-discovery/v1/browser-discovery.schema.json",
+      import.meta.url,
+    ),
+    document: {
+      $id: "https://argus.dev/contracts/browser-discovery/v1/schema.json",
+      ...compileJsonSchema(BrowserDiscoveryV1),
+    },
+  },
   ...(
     [
       ["field-validation-evidence", FieldValidationEvidenceV1],

@@ -444,7 +444,9 @@ filtering, empty/missing distinction, upgrade with representative data,
 evidence retry/conflict and reference validation, temporal edge states,
 concurrent evidence ingestion, delivery retry/conflict, concurrent delivery
 claiming, review-outcome retry/conflict/concurrency/constraints, and read-after-
-restart. Ordinary `make validate` remains
+restart. Browser discovery integration additionally checks the additive
+migration, immutable observation retry/conflict, and read-after-restart.
+Ordinary `make validate` remains
 database-independent; CI runs `make db-validate` in a separate Ubuntu job with
 an isolated PostgreSQL 17.11 service.
 

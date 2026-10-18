@@ -365,8 +365,11 @@ changed file is outside the analyzed OpenAPI documents. A local Playwright
 JSON-list checker verifies declared test keys, projects, tags, and owners.
 An opt-in component-root policy now maps complete source-file changes through
 the immutable base descriptor's declared roots and emits a separate v3
-manifest. Neither policy persists Playwright discovery evidence, executes
-browser tests, infers UI routes, or authorizes a UI subset as a release gate.
+manifest. A separate browser-mapped policy now persists complete project
+inventory and reviewed route/component mappings at pinned revisions, then
+selects from verified changed paths with all-test fallback. Its browser-owned
+manifest is advisory until the browser executor and CI planner are delivered;
+the earlier v2/v3 policies keep their original meanings.
 
 Acceptance ingredients:
 
