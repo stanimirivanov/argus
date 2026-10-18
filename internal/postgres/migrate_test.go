@@ -13,8 +13,8 @@ func TestEmbeddedMigrationChainLoadsInFilenameOrder(t *testing.T) {
 	if err != nil {
 		t.Fatalf("load embedded migrations: %v", err)
 	}
-	if len(migrations) != 10 {
-		t.Fatalf("migration count = %d, want 10", len(migrations))
+	if len(migrations) != 11 {
+		t.Fatalf("migration count = %d, want 11", len(migrations))
 	}
 	wantNames := []string{
 		"20260917052718_create_catalog.sql",
@@ -27,6 +27,7 @@ func TestEmbeddedMigrationChainLoadsInFilenameOrder(t *testing.T) {
 		"20261015120000_add_composite_file_impact.sql",
 		"20261016141106_allow_reviewed_execution_manifest.sql",
 		"20261018063250_add_browser_discovery.sql",
+		"20261018094119_add_browser_attempts.sql",
 	}
 	for index, migration := range migrations {
 		if migration.name != wantNames[index] {

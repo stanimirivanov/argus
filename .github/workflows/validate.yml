@@ -308,6 +308,12 @@ jobs:
           ARGUS_DATABASE_URL: ${{ env.ARGUS_TEST_POSTGRES_URL }}
         run: make api-validate
 
+      - name: Install Chromium for browser execution campaign
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run real browser execution campaign
+        run: make ui-validate
+
   dbos-webhook:
     name: DBOS webhook integration
     runs-on: ubuntu-24.04

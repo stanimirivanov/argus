@@ -1,0 +1,17 @@
+{
+  "apiVersion": "argus.dev/reference-browser-test-map/v1",
+  "tests": [
+    {
+      "suiteKey": "shop",
+      "testKey": "checkout",
+      "name": "checkout shows total [argus:shop:checkout]",
+      "file": "tests/shop.spec.mjs"
+    },
+    {
+      "suiteKey": "shop",
+      "testKey": "receipt",
+      "name": "receipt shows order [argus:shop:receipt]",
+      "file": "tests/shop.spec.mjs"
+    }
+  ]
+}

@@ -29,6 +29,7 @@ var commandNames = []string{
 	"propose-functional-api-repair",
 	"propose-functional-api-field-repair",
 	"run-functional-api",
+	"run-browser",
 	"select",
 	"validate-functional-api-repair",
 	"validate-functional-api-field-repair",
