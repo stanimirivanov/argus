@@ -99,6 +99,7 @@ actually fetched.
 | `source/adaptation-review-v1.ts` | Authoritative review-first publication contract. |
 | `source/review-outcome-v1.ts` | Authoritative terminal review-outcome and reviewer-edit contract. |
 | `source/browser-locator-v1.ts` | Authoritative structural accessibility, locator diagnosis, and proposal contracts. |
+| `source/browser-validation-v1.ts` | Browser locator validation proof and trustworthy rejection contract, with artifact-bound browser attempts. |
 | `source/repository-descriptor-v1.test.ts` | Structural fixture tests through Effect Schema. |
 | `source/test-catalog-page-v1.test.ts` | Test-catalog result compatibility tests through Effect Schema. |
 | `scripts/generate.ts` | Deterministic JSON Schema compiler and drift check. |

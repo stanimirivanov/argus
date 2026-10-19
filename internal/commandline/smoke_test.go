@@ -35,6 +35,7 @@ var commandNames = []string{
 	"select",
 	"validate-functional-api-repair",
 	"validate-functional-api-field-repair",
+	"validate-browser-locator",
 }
 
 // TestExecutableMetadataAndExitCodes exercises actual command roots, including
@@ -109,6 +110,7 @@ func testExitCodes(t *testing.T, binDirectory string) {
 		{name: "browser-catalog", code: 2},
 		{name: "plan-browser", code: 2},
 		{name: "propose-browser-locator", code: 2},
+		{name: "validate-browser-locator", code: 2},
 		{name: "playwright-catalog", args: []string{"--unknown"}, code: 2},
 	} {
 		output, code := runBinary(t, commandBinary(binDirectory, test.name), test.args...)

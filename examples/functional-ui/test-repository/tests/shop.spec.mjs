@@ -46,7 +46,16 @@ test("checkout shows total [argus:shop:checkout]", async ({ page }) => {
   await page.setContent(
     `<main><button data-testid="checkout-action">${actionName}</button><p aria-label="Total">€42.00</p></main>`,
   );
-  await expect(page.getByRole("button", { name: "Checkout" })).toBeVisible();
+  const action = page.getByRole("button", { name: "Checkout" });
+  if (
+    process.env.ARGUS_BROWSER_FALSE_HEAL &&
+    action.toString().includes("__argus_negative_locator_")
+  ) {
+    // Deliberately flawed fixture: an impossible locator falls back to the live element.
+    await expect(page.getByRole("button", { name: actionName })).toBeVisible();
+  } else {
+    await expect(action).toBeVisible();
+  }
   await expect(page.getByLabel("Total")).toHaveText("€42.00");
 });
 
