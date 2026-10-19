@@ -95,8 +95,8 @@ combined. The v3 policy does not parse routes or run Playwright.
 
 The functional API planner and runner accept only v1; they **must not**
 execute these browser manifests. The Playwright checker validates test
-identity locally. Browser locator proposal is described below; validation and
-review remain later M07 slices.
+identity locally. Browser locator proposal and validation are described below;
+review publication remains a later M07 slice.
 [ADR-0025](../decisions/0025-select-browser-tests-only-for-fully-covered-api-changes.md),
 [ADR-0026](../decisions/0026-check-playwright-inventory-against-declared-tests.md),
 and [ADR-0027](../decisions/0027-opt-in-browser-selection-from-declared-component-roots.md)
@@ -304,10 +304,43 @@ target must be unique and visible. Positional, chained, ambiguous, hidden,
 cross-page, cross-test, and unsupported selectors abstain. Assertions and
 expected values are never edited.
 
-The command does not apply the proposal or make a failed test authoritative.
-Original failure reproduction, repeated candidate success, a discriminating
-negative control, and draft review publication remain separate M07 work.
+The proposal command does not apply the edit or make a failed test authoritative.
 [ADR-0036](../decisions/0036-propose-browser-locator-edits-from-correlated-structure.md)
 records the ownership and evidence boundary.
 The reviewed binding and control decision is recorded in
 [ADR-0035](../decisions/0035-plan-browser-controls-from-reviewed-project-bindings.md).
+
+## Validate a browser locator candidate
+
+Use a disposable test checkout at the failed attempt's immutable revision. The
+adapter environment must name that checkout, the retained artifact directory,
+and the failed attempt's environment. Set `ARGUS_DATABASE_URL` for the migrated
+PostgreSQL catalog before invoking the command:
+
+~~~sh
+jq '.proposal' browser-locator-diagnosis.json > browser-locator-proposal.json
+export ARGUS_BROWSER_TEST_DIR="$PWD/disposable-test-checkout"
+export ARGUS_BROWSER_ARTIFACT_DIR="$PWD/.local/browser-artifacts"
+export ARGUS_BROWSER_ENVIRONMENT=ci
+export ARGUS_DATABASE_URL='postgres://...'
+go run ./cmd/validate-browser-locator \
+  -proposal browser-locator-proposal.json \
+  -baseline browser-baseline.json -failed browser-failed.json \
+  -disposable-workspace "$ARGUS_BROWSER_TEST_DIR" \
+  -artifact-root "$ARGUS_BROWSER_ARTIFACT_DIR" \
+  -registry argus-tests.json -- \
+  node "$PWD/examples/functional-ui/playwright-adapter.mjs" \
+  > browser-locator-validation.json
+~~~
+
+The command executes the unchanged test twice, the exact candidate twice, and
+an Argus-derived impossible locator twice. It checks result correlation and
+artifact bytes, restores the original source after every run, persists one
+immutable validation or trustworthy rejection, and emits
+`browser-locator-validation/v1`. A trustworthy rejection is emitted with a
+nonzero exit code; infrastructure and inconsistent runs emit no policy evidence.
+Keep the trace, screenshot, and accessibility bytes accessible to authorized
+reviewers because the database retains only checked references. An interrupted
+validation may leave the disposable checkout dirty; discard it. Validation
+does not publish or merge a repair. [ADR-0037](../decisions/0037-validate-browser-locator-repairs-with-artifact-bound-runs.md)
+defines the policy and recovery behavior.

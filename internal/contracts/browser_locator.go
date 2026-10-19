@@ -76,3 +76,14 @@ func ValidateBrowserLocatorProposalV1(value BrowserLocatorProposalV1) error {
 
 	return validateDocument(data, loadBrowserLocatorProposalSchema, "browser locator proposal")
 }
+
+// DecodeBrowserLocatorProposalV1 rejects unknown or malformed proposal fields.
+func DecodeBrowserLocatorProposalV1(data []byte) (BrowserLocatorProposalV1, error) {
+	var value BrowserLocatorProposalV1
+	if err := validateDocument(data, loadBrowserLocatorProposalSchema, "browser locator proposal"); err != nil {
+		return value, err
+	}
+	err := json.Unmarshal(data, &value)
+
+	return value, err
+}

@@ -1,0 +1,692 @@
+{
+  "$id": "https://argus.dev/contracts/browser-locator-validation/v1/schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$ref": "#/$defs/BrowserLocatorValidationV1",
+  "$defs": {
+    "LocalKey": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 63,
+      "pattern": "^[a-z][a-z0-9._-]*$",
+      "description": "A stable, repository-declared key. It is scoped by its containing repository or parent declaration."
+    },
+    "BrowserLocatorProposalV1": {
+      "type": "object",
+      "properties": {
+        "apiVersion": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "argus.dev/browser-locator-proposal/v1"
+              ]
+            }
+          ]
+        },
+        "policyVersion": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "argus.dev/adaptation-policy/browser-stable-locator/v1"
+              ]
+            }
+          ]
+        },
+        "proposalId": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "baselineAttemptId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 127
+        },
+        "failedAttemptId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 127
+        },
+        "baselineSnapshotSha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "failedSnapshotSha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "suiteKey": {
+          "$ref": "#/$defs/LocalKey"
+        },
+        "testKey": {
+          "$ref": "#/$defs/LocalKey"
+        },
+        "originalTarget": {
+          "type": "object",
+          "properties": {
+            "role": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "name": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "testId": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "visible": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "role",
+            "name",
+            "testId",
+            "visible"
+          ],
+          "additionalProperties": false
+        },
+        "currentTarget": {
+          "type": "object",
+          "properties": {
+            "role": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "name": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "testId": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "visible": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "role",
+            "name",
+            "testId",
+            "visible"
+          ],
+          "additionalProperties": false
+        },
+        "edit": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096,
+              "pattern": "^[^/\\\\][^\\\\]*$"
+            },
+            "beforeSha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "startByte": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "endByte": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "original": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 500
+            },
+            "replacement": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 500
+            },
+            "semanticRole": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "browser-locator"
+                  ]
+                }
+              ]
+            }
+          },
+          "required": [
+            "path",
+            "beforeSha256",
+            "startByte",
+            "endByte",
+            "original",
+            "replacement",
+            "semanticRole"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "apiVersion",
+        "policyVersion",
+        "proposalId",
+        "baselineAttemptId",
+        "failedAttemptId",
+        "baselineSnapshotSha256",
+        "failedSnapshotSha256",
+        "suiteKey",
+        "testKey",
+        "originalTarget",
+        "currentTarget",
+        "edit"
+      ],
+      "additionalProperties": false
+    },
+    "RepositoryReference": {
+      "type": "object",
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": [
+            "github",
+            "gitlab",
+            "azure-devops",
+            "other"
+          ]
+        },
+        "host": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "pattern": "^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$"
+        },
+        "providerRepositoryId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "owner": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        }
+      },
+      "required": [
+        "provider",
+        "host",
+        "providerRepositoryId",
+        "owner",
+        "name"
+      ],
+      "additionalProperties": false,
+      "description": "A repository reference anchored by the provider-assigned identity; owner and name are mutable display coordinates."
+    },
+    "Revision": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "algorithm": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "git-sha1"
+                  ]
+                }
+              ]
+            },
+            "digest": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            }
+          },
+          "required": [
+            "algorithm",
+            "digest"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "algorithm": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "git-sha256"
+                  ]
+                }
+              ]
+            },
+            "digest": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          "required": [
+            "algorithm",
+            "digest"
+          ],
+          "additionalProperties": false
+        }
+      ],
+      "description": "An immutable, normalized Git object revision."
+    },
+    "BrowserExecutionAttemptV1": {
+      "type": "object",
+      "properties": {
+        "apiVersion": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "argus.dev/browser-execution-attempt/v1"
+              ]
+            }
+          ]
+        },
+        "attemptId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 127,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+        },
+        "manifest": {
+          "type": "object",
+          "properties": {
+            "apiVersion": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "argus.dev/browser-selection-manifest/v1"
+                  ]
+                }
+              ]
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          "required": [
+            "apiVersion",
+            "sha256"
+          ],
+          "additionalProperties": false
+        },
+        "stage": {
+          "type": "string",
+          "enum": [
+            "selected",
+            "full-suite"
+          ]
+        },
+        "testRepository": {
+          "$ref": "#/$defs/RepositoryReference"
+        },
+        "testRevision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "adapter": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/LocalKey"
+            },
+            "version": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 127
+            }
+          },
+          "required": [
+            "id",
+            "version"
+          ],
+          "additionalProperties": false
+        },
+        "tests": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "suiteKey": {
+                "$ref": "#/$defs/LocalKey"
+              },
+              "testKey": {
+                "$ref": "#/$defs/LocalKey"
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 255
+              }
+            },
+            "required": [
+              "suiteKey",
+              "testKey",
+              "name"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1,
+          "maxItems": 10000
+        },
+        "project": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 63,
+          "pattern": "^[a-z][a-z0-9._-]*$"
+        },
+        "environment": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 63,
+          "pattern": "^[a-z][a-z0-9._-]*$"
+        },
+        "startedAt": {
+          "type": "string"
+        },
+        "completedAt": {
+          "type": "string"
+        },
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "passed",
+            "failed",
+            "incomplete",
+            "error"
+          ]
+        },
+        "results": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "suiteKey": {
+                "$ref": "#/$defs/LocalKey"
+              },
+              "testKey": {
+                "$ref": "#/$defs/LocalKey"
+              },
+              "outcome": {
+                "type": "string",
+                "enum": [
+                  "passed",
+                  "failed",
+                  "skipped",
+                  "error"
+                ]
+              },
+              "durationMs": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 86400000
+              },
+              "failure": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "code": {
+                        "$ref": "#/$defs/LocalKey"
+                      },
+                      "message": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 2000
+                      }
+                    },
+                    "required": [
+                      "code",
+                      "message"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "suiteKey",
+              "testKey",
+              "outcome",
+              "durationMs",
+              "failure"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1,
+          "maxItems": 10000
+        },
+        "artifacts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "key": {
+                "$ref": "#/$defs/LocalKey"
+              },
+              "suiteKey": {
+                "$ref": "#/$defs/LocalKey"
+              },
+              "testKey": {
+                "$ref": "#/$defs/LocalKey"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "trace",
+                  "screenshot",
+                  "accessibility"
+                ]
+              },
+              "uri": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2048
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              }
+            },
+            "required": [
+              "key",
+              "suiteKey",
+              "testKey",
+              "kind",
+              "uri",
+              "sha256"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 30000
+        }
+      },
+      "required": [
+        "apiVersion",
+        "attemptId",
+        "manifest",
+        "stage",
+        "testRepository",
+        "testRevision",
+        "adapter",
+        "tests",
+        "project",
+        "environment",
+        "startedAt",
+        "completedAt",
+        "outcome",
+        "results",
+        "artifacts"
+      ],
+      "additionalProperties": false
+    },
+    "BrowserLocatorValidationV1": {
+      "type": "object",
+      "properties": {
+        "apiVersion": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "argus.dev/browser-locator-validation/v1"
+              ]
+            }
+          ]
+        },
+        "policyVersion": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "argus.dev/validation-policy/browser-stable-locator/v1"
+              ]
+            }
+          ]
+        },
+        "validationId": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "validated",
+            "rejected"
+          ]
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "original-passed",
+                "candidate-locator-failed",
+                "negative-control-passed"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "proposal": {
+          "$ref": "#/$defs/BrowserLocatorProposalV1"
+        },
+        "baseline": {
+          "$ref": "#/$defs/BrowserExecutionAttemptV1"
+        },
+        "failed": {
+          "$ref": "#/$defs/BrowserExecutionAttemptV1"
+        },
+        "source": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096
+            },
+            "originalSha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "candidateSha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "negativeSha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "restoredSha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "negativeLocator": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 500
+            }
+          },
+          "required": [
+            "path",
+            "originalSha256",
+            "candidateSha256",
+            "negativeSha256",
+            "restoredSha256",
+            "negativeLocator"
+          ],
+          "additionalProperties": false
+        },
+        "runs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "phase": {
+                "type": "string",
+                "enum": [
+                  "original",
+                  "candidate",
+                  "negative-control"
+                ]
+              },
+              "repeat": {
+                "type": "number",
+                "enum": [
+                  1,
+                  2
+                ]
+              },
+              "sourceSha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "attempt": {
+                "$ref": "#/$defs/BrowserExecutionAttemptV1"
+              }
+            },
+            "required": [
+              "phase",
+              "repeat",
+              "sourceSha256",
+              "attempt"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 2,
+          "maxItems": 6
+        }
+      },
+      "required": [
+        "apiVersion",
+        "policyVersion",
+        "validationId",
+        "status",
+        "proposal",
+        "baseline",
+        "failed",
+        "source",
+        "runs"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

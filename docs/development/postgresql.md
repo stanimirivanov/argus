@@ -16,6 +16,9 @@
   normalized change evidence with atomic exact-retry behavior.
 - Terminal adaptation review outcomes and their complete bounded reviewer
   patches are stored atomically with one immutable outcome per review.
+- Browser locator validation stores one immutable six-run proof or trustworthy
+  rejection, including attempt-bound artifact checksums; external artifact
+  bytes remain under the CI worker's retention and access policy.
 - Database-changing work runs `make db-validate` against a disposable loopback
   PostgreSQL server configured by `ARGUS_TEST_POSTGRES_URL`.
 - Migration files are immutable after merge. A checksum mismatch, unknown

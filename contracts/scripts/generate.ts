@@ -30,6 +30,7 @@ import {
 } from "../source/browser-locator-v1.js";
 import { BrowserSelectionManifestV1 } from "../source/browser-selection-manifest-v1.js";
 import { BrowserSuiteBindingsV1 } from "../source/browser-suite-bindings-v1.js";
+import { BrowserLocatorValidationV1 } from "../source/browser-validation-v1.js";
 import { CapabilityImpactV1 } from "../source/capability-impact-v1.js";
 import { CapabilityImpactV2 } from "../source/capability-impact-v2.js";
 import { ChangeSetV1 } from "../source/change-set-v1.js";
@@ -78,6 +79,7 @@ const artifacts = [
       ["browser-structure", BrowserStructureV1],
       ["browser-locator-diagnosis", BrowserLocatorDiagnosisV1],
       ["browser-locator-proposal", BrowserLocatorProposalV1],
+      ["browser-locator-validation", BrowserLocatorValidationV1],
     ] as const
   ).map(([name, schema]) => ({
     name,

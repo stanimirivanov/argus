@@ -240,6 +240,30 @@ func exactLocator(text string) (locator, bool) {
 	return locator{}, false
 }
 
+// NegativeControlLocator changes only the proposed locator's target to an
+// Argus-derived identifier that is absent from the proposal's current target.
+func NegativeControlLocator(proposal Proposal) (string, error) {
+	if err := ValidateProposal(proposal); err != nil {
+		return "", err
+	}
+	call, ok := exactLocator(proposal.Edit.Replacement)
+	if !ok {
+		return "", adaptation.ErrInvalid
+	}
+	control := "__argus_negative_locator_" + proposal.ProposalID[:12]
+	if call.kind == "role" {
+		if proposal.CurrentTarget.Name == control {
+			return "", adaptation.ErrInvalid
+		}
+		return "getByRole(" + call.quote + call.role + call.quote + ", { name: " + call.quote + control + call.quote + " })", nil
+	}
+	if proposal.CurrentTarget.TestID == control {
+		return "", adaptation.ErrInvalid
+	}
+
+	return "getByTestId(" + call.quote + control + call.quote + ")", nil
+}
+
 func failureNamesLocator(message string, value locator) bool {
 	if value.kind == "role" {
 		for _, match := range roleCall.FindAllStringSubmatch(message, -1) {

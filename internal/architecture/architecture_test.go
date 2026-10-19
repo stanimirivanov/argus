@@ -60,6 +60,7 @@ const (
 var productionPackagePolicy = map[string]packagePolicy{
 	modulePath + "/internal/adaptation":                                   {domainLayer, adaptationCapability},
 	modulePath + "/internal/adaptation/browserlocator":                    {applicationLayer, adaptationCapability},
+	modulePath + "/internal/adaptation/browservalidation":                 {applicationLayer, adaptationCapability},
 	modulePath + "/internal/adaptation/endpointrepair":                    {domainLayer, adaptationCapability},
 	modulePath + "/internal/adaptation/fieldrepair":                       {applicationLayer, adaptationCapability},
 	modulePath + "/internal/adaptation/fieldvalidation":                   {applicationLayer, adaptationCapability},
@@ -69,6 +70,7 @@ var productionPackagePolicy = map[string]packagePolicy{
 	modulePath + "/internal/adaptation/validation":                        {applicationLayer, adaptationCapability},
 	modulePath + "/internal/adaptation/adapters/cli/evidencecli":          {adapterLayer, adaptationCapability},
 	modulePath + "/internal/adaptation/adapters/cli/browserlocatorcli":    {adapterLayer, adaptationCapability},
+	modulePath + "/internal/adaptation/adapters/cli/browservalidationcli": {adapterLayer, adaptationCapability},
 	modulePath + "/internal/adaptation/adapters/cli/fieldreviewcli":       {adapterLayer, adaptationCapability},
 	modulePath + "/internal/adaptation/adapters/cli/fieldvalidationcli":   {adapterLayer, adaptationCapability},
 	modulePath + "/internal/adaptation/adapters/cli/outcomecli":           {adapterLayer, adaptationCapability},
@@ -152,6 +154,7 @@ var productionPackagePolicy = map[string]packagePolicy{
 	modulePath + "/cmd/select":                                            {compositionRootLayer, productCapability},
 	modulePath + "/cmd/validate-functional-api-repair":                    {compositionRootLayer, productCapability},
 	modulePath + "/cmd/validate-functional-api-field-repair":              {compositionRootLayer, productCapability},
+	modulePath + "/cmd/validate-browser-locator":                          {compositionRootLayer, productCapability},
 }
 
 // adapterPolicy distinguishes driving adapters from infrastructure selected by
@@ -159,6 +162,7 @@ var productionPackagePolicy = map[string]packagePolicy{
 // the only adapters a driving adapter may compose directly.
 var adapterPolicy = map[string]adapterKind{
 	modulePath + "/internal/adaptation/adapters/cli/browserlocatorcli":    drivingAdapter,
+	modulePath + "/internal/adaptation/adapters/cli/browservalidationcli": drivingAdapter,
 	modulePath + "/internal/adaptation/adapters/cli/evidencecli":          drivingAdapter,
 	modulePath + "/internal/adaptation/adapters/cli/fieldreviewcli":       drivingAdapter,
 	modulePath + "/internal/adaptation/adapters/cli/fieldvalidationcli":   drivingAdapter,
@@ -208,10 +212,12 @@ var adapterPolicy = map[string]adapterKind{
 // values and application-owned ports instead.
 var generatedContractImporters = map[string]bool{
 	modulePath + "/cmd/propose-browser-locator":                           true,
+	modulePath + "/cmd/validate-browser-locator":                          true,
 	modulePath + "/cmd/assess-functional-api-maintenance":                 true,
 	modulePath + "/internal/adaptation/adapters/cli/evidencecli":          true,
 	modulePath + "/internal/adaptation/adapters/cli/fieldreviewcli":       true,
 	modulePath + "/internal/adaptation/adapters/cli/fieldvalidationcli":   true,
+	modulePath + "/internal/adaptation/adapters/cli/browservalidationcli": true,
 	modulePath + "/internal/adaptation/adapters/cli/outcomecli":           true,
 	modulePath + "/internal/adaptation/adapters/cli/proposalcli":          true,
 	modulePath + "/internal/adaptation/adapters/cli/reviewcli":            true,
@@ -262,22 +268,23 @@ var processProtocolUsers = map[string]bool{
 // command protocol classification. Domain and persistence code cannot acquire
 // a dependency on executable behavior through this shared adapter utility.
 var commandlineUsers = map[string]bool{
-	modulePath + "/internal/adaptation/adapters/cli/browserlocatorcli":  true,
-	modulePath + "/internal/execution/adapters/cli/browsercli":          true,
-	modulePath + "/internal/adaptation/adapters/cli/evidencecli":        true,
-	modulePath + "/internal/adaptation/adapters/cli/fieldreviewcli":     true,
-	modulePath + "/internal/adaptation/adapters/cli/fieldvalidationcli": true,
-	modulePath + "/internal/adaptation/adapters/cli/outcomecli":         true,
-	modulePath + "/internal/adaptation/adapters/cli/proposalcli":        true,
-	modulePath + "/internal/adaptation/adapters/cli/reviewcli":          true,
-	modulePath + "/internal/adaptation/adapters/cli/validationcli":      true,
-	modulePath + "/internal/catalog/adapters/cli/catalogcli":            true,
-	modulePath + "/internal/catalog/adapters/cli/descriptorcli":         true,
-	modulePath + "/internal/catalog/adapters/cli/playwrightcli":         true,
-	modulePath + "/internal/execution/adapters/cli/evidencecli":         true,
-	modulePath + "/internal/execution/adapters/cli/executioncli":        true,
-	modulePath + "/internal/execution/adapters/cli/planningcli":         true,
-	modulePath + "/internal/selection/adapters/cli/selectioncli":        true,
+	modulePath + "/internal/adaptation/adapters/cli/browserlocatorcli":    true,
+	modulePath + "/internal/adaptation/adapters/cli/browservalidationcli": true,
+	modulePath + "/internal/execution/adapters/cli/browsercli":            true,
+	modulePath + "/internal/adaptation/adapters/cli/evidencecli":          true,
+	modulePath + "/internal/adaptation/adapters/cli/fieldreviewcli":       true,
+	modulePath + "/internal/adaptation/adapters/cli/fieldvalidationcli":   true,
+	modulePath + "/internal/adaptation/adapters/cli/outcomecli":           true,
+	modulePath + "/internal/adaptation/adapters/cli/proposalcli":          true,
+	modulePath + "/internal/adaptation/adapters/cli/reviewcli":            true,
+	modulePath + "/internal/adaptation/adapters/cli/validationcli":        true,
+	modulePath + "/internal/catalog/adapters/cli/catalogcli":              true,
+	modulePath + "/internal/catalog/adapters/cli/descriptorcli":           true,
+	modulePath + "/internal/catalog/adapters/cli/playwrightcli":           true,
+	modulePath + "/internal/execution/adapters/cli/evidencecli":           true,
+	modulePath + "/internal/execution/adapters/cli/executioncli":          true,
+	modulePath + "/internal/execution/adapters/cli/planningcli":           true,
+	modulePath + "/internal/selection/adapters/cli/selectioncli":          true,
 }
 
 var githubTransportUsers = map[string]bool{
@@ -290,6 +297,10 @@ var githubTransportUsers = map[string]bool{
 var allowedApplicationDependencies = map[string]map[string]bool{
 	modulePath + "/internal/adaptation/browserlocator": {
 		modulePath + "/internal/execution/browser": true,
+	},
+	modulePath + "/internal/adaptation/browservalidation": {
+		modulePath + "/internal/adaptation/browserlocator": true,
+		modulePath + "/internal/execution/browser":         true,
 	},
 	// Browser selection consumes the catalog-owned immutable discovery proof;
 	// changed-file transport interpretation stays in the impact reader bridge.
