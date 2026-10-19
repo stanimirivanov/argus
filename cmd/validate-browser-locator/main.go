@@ -81,6 +81,10 @@ type scopedAdapter struct {
 }
 
 func (adapter *scopedAdapter) VerifyArtifacts(ctx context.Context, result browser.Result) error {
+	root, err := filepath.EvalSymlinks(adapter.root)
+	if err != nil {
+		return err
+	}
 	for _, artifact := range result.Artifacts {
 		uri, err := url.Parse(artifact.URI)
 		if err != nil || uri.Scheme != "file" || uri.Host != "" || uri.RawQuery != "" || uri.Fragment != "" {
@@ -97,7 +101,7 @@ func (adapter *scopedAdapter) VerifyArtifacts(ctx context.Context, result browse
 		if err != nil {
 			return err
 		}
-		relative, err := filepath.Rel(adapter.root, resolved)
+		relative, err := filepath.Rel(root, resolved)
 		if err != nil || relative == ".." || strings.HasPrefix(relative, ".."+string(filepath.Separator)) || filepath.IsAbs(relative) {
 			return fmt.Errorf("%w: artifact escaped trusted root", browser.ErrInvalid)
 		}
