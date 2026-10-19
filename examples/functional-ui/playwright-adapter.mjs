@@ -129,11 +129,20 @@ async function oneTest(request, test, registry, root) {
           : "error";
   if ((runResult.code === 0) !== (outcome === "passed" || outcome === "skipped"))
     fail("Playwright exit/result mismatch");
+  const failureMessage = String(result.error?.message ?? `Playwright ${result.status}`);
+  const locatorNotFound =
+    outcome === "failed" &&
+    failureMessage.includes("element(s) not found") &&
+    /getBy(?:Role|TestId)\(/u.test(failureMessage);
   const failure =
     outcome === "failed" || outcome === "error"
       ? {
-          code: outcome === "failed" ? "assertion" : "execution",
-          message: String(result.error?.message ?? `Playwright ${result.status}`).slice(0, 2000),
+          code: locatorNotFound
+            ? "locator-not-found"
+            : outcome === "failed"
+              ? "assertion"
+              : "execution",
+          message: failureMessage.slice(0, 2000),
         }
       : null;
   const normalized = {

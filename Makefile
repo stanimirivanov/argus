@@ -131,7 +131,7 @@ api-validate:
 	pnpm api-validate
 
 ui-validate:
-	go test -vet=off -tags=browserintegration -count=1 -timeout=5m ./internal/execution/browser
+	go test -vet=off -tags=browserintegration -count=1 -timeout=5m ./internal/execution/browser ./internal/adaptation/browserlocator
 
 race:
 	go test -vet=off -race -count=1 ./...

@@ -1,0 +1,256 @@
+{
+  "$id": "https://argus.dev/contracts/browser-locator-diagnosis/v1/schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$ref": "#/$defs/BrowserLocatorDiagnosisV1",
+  "$defs": {
+    "LocalKey": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 63,
+      "pattern": "^[a-z][a-z0-9._-]*$",
+      "description": "A stable, repository-declared key. It is scoped by its containing repository or parent declaration."
+    },
+    "BrowserLocatorProposalV1": {
+      "type": "object",
+      "properties": {
+        "apiVersion": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "argus.dev/browser-locator-proposal/v1"
+              ]
+            }
+          ]
+        },
+        "policyVersion": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "argus.dev/adaptation-policy/browser-stable-locator/v1"
+              ]
+            }
+          ]
+        },
+        "proposalId": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "baselineAttemptId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 127
+        },
+        "failedAttemptId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 127
+        },
+        "baselineSnapshotSha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "failedSnapshotSha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "suiteKey": {
+          "$ref": "#/$defs/LocalKey"
+        },
+        "testKey": {
+          "$ref": "#/$defs/LocalKey"
+        },
+        "originalTarget": {
+          "type": "object",
+          "properties": {
+            "role": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "name": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "testId": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "visible": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "role",
+            "name",
+            "testId",
+            "visible"
+          ],
+          "additionalProperties": false
+        },
+        "currentTarget": {
+          "type": "object",
+          "properties": {
+            "role": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "name": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "testId": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "visible": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "role",
+            "name",
+            "testId",
+            "visible"
+          ],
+          "additionalProperties": false
+        },
+        "edit": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096,
+              "pattern": "^[^/\\\\][^\\\\]*$"
+            },
+            "beforeSha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "startByte": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "endByte": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "original": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 500
+            },
+            "replacement": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 500
+            },
+            "semanticRole": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "browser-locator"
+                  ]
+                }
+              ]
+            }
+          },
+          "required": [
+            "path",
+            "beforeSha256",
+            "startByte",
+            "endByte",
+            "original",
+            "replacement",
+            "semanticRole"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "apiVersion",
+        "policyVersion",
+        "proposalId",
+        "baselineAttemptId",
+        "failedAttemptId",
+        "baselineSnapshotSha256",
+        "failedSnapshotSha256",
+        "suiteKey",
+        "testKey",
+        "originalTarget",
+        "currentTarget",
+        "edit"
+      ],
+      "additionalProperties": false
+    },
+    "BrowserLocatorDiagnosisV1": {
+      "type": "object",
+      "properties": {
+        "apiVersion": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "argus.dev/browser-locator-diagnosis/v1"
+              ]
+            }
+          ]
+        },
+        "reasonCode": {
+          "type": "string",
+          "enum": [
+            "candidate",
+            "non-locator-failure",
+            "incomplete-structure",
+            "positional-locator",
+            "unproved-original-target",
+            "ambiguous-or-hidden-target",
+            "unsupported-replacement",
+            "failure-source-mismatch",
+            "ambiguous-or-unsupported-source",
+            "cross-flow-source",
+            "cross-flow-navigation"
+          ]
+        },
+        "baselineAttemptId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 127
+        },
+        "failedAttemptId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 127
+        },
+        "suiteKey": {
+          "$ref": "#/$defs/LocalKey"
+        },
+        "testKey": {
+          "$ref": "#/$defs/LocalKey"
+        },
+        "proposal": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BrowserLocatorProposalV1"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "apiVersion",
+        "reasonCode",
+        "baselineAttemptId",
+        "failedAttemptId",
+        "suiteKey",
+        "testKey",
+        "proposal"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

@@ -59,6 +59,7 @@ const (
 // That makes an otherwise invisible new boundary a reviewable policy change.
 var productionPackagePolicy = map[string]packagePolicy{
 	modulePath + "/internal/adaptation":                                   {domainLayer, adaptationCapability},
+	modulePath + "/internal/adaptation/browserlocator":                    {applicationLayer, adaptationCapability},
 	modulePath + "/internal/adaptation/endpointrepair":                    {domainLayer, adaptationCapability},
 	modulePath + "/internal/adaptation/fieldrepair":                       {applicationLayer, adaptationCapability},
 	modulePath + "/internal/adaptation/fieldvalidation":                   {applicationLayer, adaptationCapability},
@@ -67,6 +68,7 @@ var productionPackagePolicy = map[string]packagePolicy{
 	modulePath + "/internal/adaptation/review":                            {applicationLayer, adaptationCapability},
 	modulePath + "/internal/adaptation/validation":                        {applicationLayer, adaptationCapability},
 	modulePath + "/internal/adaptation/adapters/cli/evidencecli":          {adapterLayer, adaptationCapability},
+	modulePath + "/internal/adaptation/adapters/cli/browserlocatorcli":    {adapterLayer, adaptationCapability},
 	modulePath + "/internal/adaptation/adapters/cli/fieldreviewcli":       {adapterLayer, adaptationCapability},
 	modulePath + "/internal/adaptation/adapters/cli/fieldvalidationcli":   {adapterLayer, adaptationCapability},
 	modulePath + "/internal/adaptation/adapters/cli/outcomecli":           {adapterLayer, adaptationCapability},
@@ -143,6 +145,7 @@ var productionPackagePolicy = map[string]packagePolicy{
 	modulePath + "/cmd/open-functional-api-field-repair-pr":               {compositionRootLayer, productCapability},
 	modulePath + "/cmd/plan-functional-api":                               {compositionRootLayer, productCapability},
 	modulePath + "/cmd/plan-browser":                                      {compositionRootLayer, productCapability},
+	modulePath + "/cmd/propose-browser-locator":                           {compositionRootLayer, productCapability},
 	modulePath + "/cmd/propose-functional-api-repair":                     {compositionRootLayer, productCapability},
 	modulePath + "/cmd/run-functional-api":                                {compositionRootLayer, productCapability},
 	modulePath + "/cmd/run-browser":                                       {compositionRootLayer, productCapability},
@@ -155,6 +158,7 @@ var productionPackagePolicy = map[string]packagePolicy{
 // composition roots. Contract converters and narrow application bridges are
 // the only adapters a driving adapter may compose directly.
 var adapterPolicy = map[string]adapterKind{
+	modulePath + "/internal/adaptation/adapters/cli/browserlocatorcli":    drivingAdapter,
 	modulePath + "/internal/adaptation/adapters/cli/evidencecli":          drivingAdapter,
 	modulePath + "/internal/adaptation/adapters/cli/fieldreviewcli":       drivingAdapter,
 	modulePath + "/internal/adaptation/adapters/cli/fieldvalidationcli":   drivingAdapter,
@@ -203,6 +207,7 @@ var adapterPolicy = map[string]adapterKind{
 // see generated wire DTOs; provider and persistence adapters must use domain
 // values and application-owned ports instead.
 var generatedContractImporters = map[string]bool{
+	modulePath + "/cmd/propose-browser-locator":                           true,
 	modulePath + "/cmd/assess-functional-api-maintenance":                 true,
 	modulePath + "/internal/adaptation/adapters/cli/evidencecli":          true,
 	modulePath + "/internal/adaptation/adapters/cli/fieldreviewcli":       true,
@@ -257,6 +262,7 @@ var processProtocolUsers = map[string]bool{
 // command protocol classification. Domain and persistence code cannot acquire
 // a dependency on executable behavior through this shared adapter utility.
 var commandlineUsers = map[string]bool{
+	modulePath + "/internal/adaptation/adapters/cli/browserlocatorcli":  true,
 	modulePath + "/internal/execution/adapters/cli/browsercli":          true,
 	modulePath + "/internal/adaptation/adapters/cli/evidencecli":        true,
 	modulePath + "/internal/adaptation/adapters/cli/fieldreviewcli":     true,
@@ -282,6 +288,9 @@ var githubTransportUsers = map[string]bool{
 // Cross-application orchestration is exceptional and explicit. Most use-case
 // packages own one port and must not reach sideways into another use case.
 var allowedApplicationDependencies = map[string]map[string]bool{
+	modulePath + "/internal/adaptation/browserlocator": {
+		modulePath + "/internal/execution/browser": true,
+	},
 	// Browser selection consumes the catalog-owned immutable discovery proof;
 	// changed-file transport interpretation stays in the impact reader bridge.
 	modulePath + "/internal/selection/browsermapped": {
@@ -363,6 +372,7 @@ var allowedCapabilityDependencies = map[capability]map[capability]bool{
 		adaptationCapability: true,
 		catalogCapability:    true,
 		changeCapability:     true,
+		executionCapability:  true,
 		selectionCapability:  true,
 	},
 	productCapability: {
