@@ -71,6 +71,7 @@ var productionPackagePolicy = map[string]packagePolicy{
 	modulePath + "/internal/adaptation/adapters/cli/evidencecli":          {adapterLayer, adaptationCapability},
 	modulePath + "/internal/adaptation/adapters/cli/browserlocatorcli":    {adapterLayer, adaptationCapability},
 	modulePath + "/internal/adaptation/adapters/cli/browservalidationcli": {adapterLayer, adaptationCapability},
+	modulePath + "/internal/adaptation/adapters/cli/browserreviewcli":     {adapterLayer, adaptationCapability},
 	modulePath + "/internal/adaptation/adapters/cli/fieldreviewcli":       {adapterLayer, adaptationCapability},
 	modulePath + "/internal/adaptation/adapters/cli/fieldvalidationcli":   {adapterLayer, adaptationCapability},
 	modulePath + "/internal/adaptation/adapters/cli/outcomecli":           {adapterLayer, adaptationCapability},
@@ -136,6 +137,7 @@ var productionPackagePolicy = map[string]packagePolicy{
 	modulePath + "/cmd/propose-functional-api-field-repair":               {compositionRootLayer, productCapability},
 	modulePath + "/cmd/capture-functional-api-review-outcome":             {compositionRootLayer, productCapability},
 	modulePath + "/cmd/capture-functional-api-field-review-outcome":       {compositionRootLayer, productCapability},
+	modulePath + "/cmd/capture-browser-locator-review-outcome":            {compositionRootLayer, productCapability},
 	modulePath + "/cmd/catalog":                                           {compositionRootLayer, productCapability},
 	modulePath + "/cmd/control-plane":                                     {compositionRootLayer, productCapability},
 	modulePath + "/cmd/descriptor":                                        {compositionRootLayer, productCapability},
@@ -145,6 +147,7 @@ var productionPackagePolicy = map[string]packagePolicy{
 	modulePath + "/cmd/migrate":                                           {compositionRootLayer, productCapability},
 	modulePath + "/cmd/open-functional-api-repair-pr":                     {compositionRootLayer, productCapability},
 	modulePath + "/cmd/open-functional-api-field-repair-pr":               {compositionRootLayer, productCapability},
+	modulePath + "/cmd/open-browser-locator-repair-pr":                    {compositionRootLayer, productCapability},
 	modulePath + "/cmd/plan-functional-api":                               {compositionRootLayer, productCapability},
 	modulePath + "/cmd/plan-browser":                                      {compositionRootLayer, productCapability},
 	modulePath + "/cmd/propose-browser-locator":                           {compositionRootLayer, productCapability},
@@ -163,6 +166,7 @@ var productionPackagePolicy = map[string]packagePolicy{
 var adapterPolicy = map[string]adapterKind{
 	modulePath + "/internal/adaptation/adapters/cli/browserlocatorcli":    drivingAdapter,
 	modulePath + "/internal/adaptation/adapters/cli/browservalidationcli": drivingAdapter,
+	modulePath + "/internal/adaptation/adapters/cli/browserreviewcli":     drivingAdapter,
 	modulePath + "/internal/adaptation/adapters/cli/evidencecli":          drivingAdapter,
 	modulePath + "/internal/adaptation/adapters/cli/fieldreviewcli":       drivingAdapter,
 	modulePath + "/internal/adaptation/adapters/cli/fieldvalidationcli":   drivingAdapter,
@@ -218,6 +222,7 @@ var generatedContractImporters = map[string]bool{
 	modulePath + "/internal/adaptation/adapters/cli/fieldreviewcli":       true,
 	modulePath + "/internal/adaptation/adapters/cli/fieldvalidationcli":   true,
 	modulePath + "/internal/adaptation/adapters/cli/browservalidationcli": true,
+	modulePath + "/internal/adaptation/adapters/cli/browserreviewcli":     true,
 	modulePath + "/internal/adaptation/adapters/cli/outcomecli":           true,
 	modulePath + "/internal/adaptation/adapters/cli/proposalcli":          true,
 	modulePath + "/internal/adaptation/adapters/cli/reviewcli":            true,
@@ -270,6 +275,7 @@ var processProtocolUsers = map[string]bool{
 var commandlineUsers = map[string]bool{
 	modulePath + "/internal/adaptation/adapters/cli/browserlocatorcli":    true,
 	modulePath + "/internal/adaptation/adapters/cli/browservalidationcli": true,
+	modulePath + "/internal/adaptation/adapters/cli/browserreviewcli":     true,
 	modulePath + "/internal/execution/adapters/cli/browsercli":            true,
 	modulePath + "/internal/adaptation/adapters/cli/evidencecli":          true,
 	modulePath + "/internal/adaptation/adapters/cli/fieldreviewcli":       true,
@@ -307,18 +313,22 @@ var allowedApplicationDependencies = map[string]map[string]bool{
 	modulePath + "/internal/selection/browsermapped": {
 		modulePath + "/internal/catalog/discovery": true,
 	},
-	// Field validation, review publication, and outcome capture deliberately
-	// compose the immutable field proposal and proof stages of one workflow.
+	// Field and browser review deliberately compose their immutable proposal and
+	// proof stages; browser outcome also checks the final locator source.
 	modulePath + "/internal/adaptation/fieldvalidation": {
 		modulePath + "/internal/adaptation/fieldrepair": true,
 	},
 	modulePath + "/internal/adaptation/review": {
-		modulePath + "/internal/adaptation/fieldrepair":     true,
-		modulePath + "/internal/adaptation/fieldvalidation": true,
+		modulePath + "/internal/adaptation/fieldrepair":       true,
+		modulePath + "/internal/adaptation/fieldvalidation":   true,
+		modulePath + "/internal/adaptation/browservalidation": true,
 	},
 	modulePath + "/internal/adaptation/outcome": {
-		modulePath + "/internal/adaptation/fieldrepair":     true,
-		modulePath + "/internal/adaptation/fieldvalidation": true,
+		modulePath + "/internal/adaptation/fieldrepair":       true,
+		modulePath + "/internal/adaptation/fieldvalidation":   true,
+		modulePath + "/internal/adaptation/browserlocator":    true,
+		modulePath + "/internal/adaptation/browservalidation": true,
+		modulePath + "/internal/adaptation/review":            true,
 	},
 	modulePath + "/internal/change/workflow": {
 		modulePath + "/internal/change/impact": true,

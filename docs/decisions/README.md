@@ -136,3 +136,4 @@ How will the assumptions and consequences be verified?
 | [ADR-0035](0035-plan-browser-controls-from-reviewed-project-bindings.md) | Plan browser controls from reviewed project bindings | Proposed | 2026-10-18 |
 | [ADR-0036](0036-propose-browser-locator-edits-from-correlated-structure.md) | Propose browser locator edits from correlated structure | Proposed | 2026-10-18 |
 | [ADR-0037](0037-validate-browser-locator-repairs-with-artifact-bound-runs.md) | Validate browser locator repairs with artifact-bound runs | Proposed | 2026-10-19 |
+| [ADR-0038](0038-publish-browser-locator-repairs-for-human-review.md) | Publish validated browser locator repairs for human review | Proposed | 2026-10-19 |
