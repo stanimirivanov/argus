@@ -128,7 +128,9 @@ var productionPackagePolicy = map[string]packagePolicy{
 	modulePath + "/internal/selection":                                    {domainLayer, selectionCapability},
 	modulePath + "/internal/predictive":                                   {domainLayer, predictiveCapability},
 	modulePath + "/internal/predictive/adapters/cli":                      {adapterLayer, predictiveCapability},
+	modulePath + "/internal/predictive/adapters/replaycli":                {adapterLayer, predictiveCapability},
 	modulePath + "/cmd/predictive-evidence":                               {compositionRootLayer, productCapability},
+	modulePath + "/cmd/predictive-replay":                                 {compositionRootLayer, productCapability},
 	modulePath + "/internal/selection/capabilitymapped":                   {applicationLayer, selectionCapability},
 	modulePath + "/internal/selection/browsermapped":                      {applicationLayer, selectionCapability},
 	modulePath + "/internal/selection/adapters/catalogreader":             {adapterLayer, selectionCapability},
@@ -210,6 +212,7 @@ var adapterPolicy = map[string]adapterKind{
 	modulePath + "/internal/selection/adapters/catalogreader":             bridgeAdapter,
 	modulePath + "/internal/selection/adapters/cli/selectioncli":          drivingAdapter,
 	modulePath + "/internal/predictive/adapters/cli":                      drivingAdapter,
+	modulePath + "/internal/predictive/adapters/replaycli":                drivingAdapter,
 	modulePath + "/internal/selection/adapters/contract":                  contractAdapter,
 	modulePath + "/internal/selection/adapters/edgereader":                bridgeAdapter,
 	modulePath + "/internal/selection/adapters/impactreader":              bridgeAdapter,
@@ -250,6 +253,7 @@ var generatedContractImporters = map[string]bool{
 	modulePath + "/internal/selection/adapters/cli/selectioncli":          true,
 	modulePath + "/internal/selection/adapters/contract":                  true,
 	modulePath + "/internal/predictive/adapters/cli":                      true,
+	modulePath + "/internal/predictive/adapters/replaycli":                true,
 }
 
 var allowedAdapterDependencies = map[adapterKind]map[adapterKind]bool{
@@ -298,6 +302,7 @@ var commandlineUsers = map[string]bool{
 	modulePath + "/internal/execution/adapters/cli/planningcli":           true,
 	modulePath + "/internal/selection/adapters/cli/selectioncli":          true,
 	modulePath + "/internal/predictive/adapters/cli":                      true,
+	modulePath + "/internal/predictive/adapters/replaycli":                true,
 }
 
 var githubTransportUsers = map[string]bool{

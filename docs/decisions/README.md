@@ -138,3 +138,4 @@ How will the assumptions and consequences be verified?
 | [ADR-0037](0037-validate-browser-locator-repairs-with-artifact-bound-runs.md) | Validate browser locator repairs with artifact-bound runs | Proposed | 2026-10-19 |
 | [ADR-0038](0038-publish-browser-locator-repairs-for-human-review.md) | Publish validated browser locator repairs for human review | Proposed | 2026-10-19 |
 | [ADR-0039](0039-capture-explicit-predictive-observations.md) | Capture explicit predictive observations for offline evaluation | Proposed | 2026-10-20 |
+| [ADR-0040](0040-replay-predictive-evidence-with-a-fixed-temporal-cutoff.md) | Replay predictive evidence with a fixed temporal cutoff | Proposed | 2026-10-20 |

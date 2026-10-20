@@ -367,5 +367,8 @@ not a replacement for the future control-plane API.
 
 The representation decision and compatibility rules are recorded in
 [ADR-0003](../docs/decisions/0003-use-effect-schema-at-contract-boundaries.md).
+Predictive dataset indexes and temporal replay results use additive v1 schemas;
+their split semantics are recorded in
+[ADR-0040](../docs/decisions/0040-replay-predictive-evidence-with-a-fixed-temporal-cutoff.md).
 The stable version migration, regex-export constraints and Node 24 retention
 are recorded in [ADR-0029](../docs/decisions/0029-migrate-stable-contract-toolchain-without-wire-changes.md).

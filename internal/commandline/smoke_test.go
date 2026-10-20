@@ -29,6 +29,7 @@ var commandNames = []string{
 	"plan-functional-api",
 	"plan-browser",
 	"predictive-evidence",
+	"predictive-replay",
 	"propose-browser-locator",
 	"playwright-catalog",
 	"propose-functional-api-repair",
