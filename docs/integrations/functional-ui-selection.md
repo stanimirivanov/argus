@@ -96,7 +96,7 @@ combined. The v3 policy does not parse routes or run Playwright.
 The functional API planner and runner accept only v1; they **must not**
 execute these browser manifests. The Playwright checker validates test
 identity locally. Browser locator proposal and validation are described below;
-review publication remains a later M07 slice.
+review publication is described below.
 [ADR-0025](../decisions/0025-select-browser-tests-only-for-fully-covered-api-changes.md),
 [ADR-0026](../decisions/0026-check-playwright-inventory-against-declared-tests.md),
 and [ADR-0027](../decisions/0027-opt-in-browser-selection-from-declared-component-roots.md)
@@ -344,3 +344,47 @@ reviewers because the database retains only checked references. An interrupted
 validation may leave the disposable checkout dirty; discard it. Validation
 does not publish or merge a repair. [ADR-0037](../decisions/0037-validate-browser-locator-repairs-with-artifact-bound-runs.md)
 defines the policy and recovery behavior.
+
+## Publish and review a validated locator edit
+
+Only a `validated` browser proof can be published. Supply separate GitHub
+source-read and PR-write credentials; both must be scoped to the test repository.
+The command reloads the original file at the failed attempt's immutable test
+revision, checks its preimage and the exact candidate digest, then opens or
+recovers one deterministic draft PR:
+
+~~~sh
+export ARGUS_GITHUB_READ_TOKEN='...'
+export ARGUS_GITHUB_WRITE_TOKEN='...'
+go run ./cmd/open-browser-locator-repair-pr \
+  -validation-evidence browser-locator-validation.json \
+  -base-branch main > browser-locator-review.json
+~~~
+
+The output uses `adaptation-review/v1`, bound to the browser proposal and
+validation IDs. The draft body includes bounded identifiers and the six-run
+summary, but no raw accessibility, trace, screenshot, locator target, or
+credential data. Human reviewers inspect the retained artifacts through their
+authorized evidence store. Argus does not mark the PR ready, merge it, or
+approve a visual baseline.
+
+After a human closes the PR, capture the terminal disposition with a read-only
+token. `approved` applies to an unchanged merge; `corrected` applies to a
+merged locator correction. Rejections require a rejection reason code.
+
+~~~sh
+go run ./cmd/capture-browser-locator-review-outcome \
+  -validation-evidence browser-locator-validation.json \
+  -review browser-locator-review.json \
+  -reason-code corrected > browser-locator-review-outcome.json
+~~~
+
+The output uses `review-outcome/v1` and can be saved with the existing immutable
+review outcome store. For a merged PR with edits, capture verifies that the
+complete provider comparison changes one file and that immutable final source
+changes only the selected locator call. Edits to assertions, test flow, other
+files, or unsupported locator syntax fail capture rather than becoming safe
+training evidence. Reviewer edits are human decisions and do not inherit the
+candidate's six-run validation proof.
+[ADR-0038](../decisions/0038-publish-browser-locator-repairs-for-human-review.md)
+records the publication and terminal review boundary.

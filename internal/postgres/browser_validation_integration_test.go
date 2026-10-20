@@ -3,6 +3,7 @@
 package postgres
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -14,12 +15,106 @@ import (
 	"time"
 
 	"github.com/stanimirivanov/argus/internal/adaptation"
+	adaptationcontract "github.com/stanimirivanov/argus/internal/adaptation/adapters/contract"
 	"github.com/stanimirivanov/argus/internal/adaptation/browserlocator"
 	"github.com/stanimirivanov/argus/internal/adaptation/browservalidation"
+	"github.com/stanimirivanov/argus/internal/adaptation/outcome"
+	"github.com/stanimirivanov/argus/internal/adaptation/review"
 	"github.com/stanimirivanov/argus/internal/catalog"
 	"github.com/stanimirivanov/argus/internal/execution"
+	executioncontract "github.com/stanimirivanov/argus/internal/execution/adapters/contract"
 	"github.com/stanimirivanov/argus/internal/execution/browser"
 )
+
+type browserReviewGateway struct {
+	sources  map[string][]byte
+	request  review.PublicationRequest
+	terminal outcome.TerminalReview
+	writes   int
+}
+
+func (gateway *browserReviewGateway) LoadSource(_ context.Context, _ catalog.Repository, revision catalog.Revision, _ string) ([]byte, error) {
+	return append([]byte{}, gateway.sources[revision.Digest]...), nil
+}
+func (gateway *browserReviewGateway) Publish(_ context.Context, request review.PublicationRequest) (review.PublishedPullRequest, error) {
+	gateway.request = request
+	gateway.writes++
+	return review.PublishedPullRequest{Number: 17, URL: "https://github.com/example/browser-tests/pull/17",
+		HeadRevision: catalog.Revision{Algorithm: catalog.RevisionGitSHA1, Digest: strings.Repeat("f", 40)},
+		Draft:        true, State: "open", CreatedAt: time.Date(2026, 10, 19, 13, 0, 0, 0, time.UTC)}, nil
+}
+func (gateway *browserReviewGateway) ObserveOutcome(_ context.Context, _ adaptation.ReviewPublication) (outcome.TerminalReview, error) {
+	return gateway.terminal, nil
+}
+
+func TestBrowserReviewPublishesValidatedCandidateAndCapturesBoundedCorrection(t *testing.T) {
+	evidence := browserValidationFixture(t)
+	document, err := adaptationcontract.ExportBrowserLocatorValidationV1(evidence, executioncontract.ExportBrowserAttempt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	evidence, err = adaptationcontract.ImportBrowserLocatorValidationV1(document, executioncontract.ImportBrowserAttempt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	proposal := evidence.Proposal
+	source := []byte(`test("checkout [argus:shop:checkout]", async () => { await expect(page.getByRole("button", { name: "Checkout" })).toBeVisible(); });`)
+	baseSHA := evidence.Failed.Request.TestRevision.Digest
+	generatedSHA := strings.Repeat("f", 40)
+	finalSHA := strings.Repeat("1", 40)
+	gateway := &browserReviewGateway{sources: map[string][]byte{baseSHA: source}}
+	stale := &browserReviewGateway{sources: map[string][]byte{baseSHA: []byte("changed test source")}}
+	if _, err := review.NewService(stale, stale).PublishBrowser(t.Context(), evidence, "main"); !errors.Is(err, adaptation.ErrInvalid) || stale.writes != 0 {
+		t.Fatalf("stale source published: %v writes=%d", err, stale.writes)
+	}
+	publication, err := review.NewService(gateway, gateway).PublishBrowser(t.Context(), evidence, "main")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if gateway.writes != 1 || !publication.Draft || digestBrowserFixture(gateway.request.Candidate) != evidence.Source.CandidateSHA256 ||
+		strings.Contains(gateway.request.Body, "file:///tmp/") || strings.Contains(gateway.request.Body, "Place order") {
+		t.Fatalf("unsafe browser publication: %+v", gateway.request)
+	}
+	gateway.sources[generatedSHA] = gateway.request.Candidate
+	final := strings.Replace(string(gateway.request.Candidate), proposal.Edit.Replacement,
+		`getByRole("button", { name: "Confirm order" })`, 1)
+	gateway.sources[finalSHA] = []byte(final)
+	merged := time.Date(2026, 10, 19, 13, 20, 0, 0, time.UTC)
+	gateway.terminal = outcome.TerminalReview{FinalRevision: catalog.Revision{Algorithm: catalog.RevisionGitSHA1, Digest: finalSHA},
+		ClosedAt: merged, MergedAt: &merged, ObservedAt: merged.Add(time.Minute), ReviewerEdits: []adaptation.ReviewFileEdit{{
+			Path: proposal.Edit.Path, Kind: adaptation.ReviewFileModified, Additions: 1, Deletions: 1,
+			Patch: "@@ -1 +1 @@\n-old locator\n+corrected locator"}}}
+	result, err := outcome.NewService(gateway).CaptureBrowser(t.Context(), evidence, publication, gateway, adaptation.ReviewReasonCorrected, "")
+	if err != nil || result.Decision != adaptation.ReviewAcceptedWithEdits {
+		t.Fatalf("capture corrected browser review: %v %+v", err, result)
+	}
+	outcomeDocument, err := adaptationcontract.ExportReviewOutcomeV1(result)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := adaptationcontract.ImportReviewOutcomeV1(outcomeDocument); err != nil {
+		t.Fatal(err)
+	}
+	gateway.sources[finalSHA] = []byte(strings.Replace(final, "toBeVisible()", "toBeHidden()", 1))
+	if _, err := outcome.NewService(gateway).CaptureBrowser(t.Context(), evidence, publication, gateway, adaptation.ReviewReasonCorrected, ""); !errors.Is(err, adaptation.ErrInvalid) {
+		t.Fatalf("oracle-changing review accepted: %v", err)
+	}
+	rejected := evidence
+	rejected.Status, rejected.Reason = browservalidation.Rejected, "original-passed"
+	rejected.Runs = append([]browservalidation.Run{}, rejected.Runs[:2]...)
+	for i := range rejected.Runs {
+		rejected.Runs[i].Attempt.Result.Results = append([]execution.TestResult{}, rejected.Runs[i].Attempt.Result.Results...)
+		rejected.Runs[i].Attempt.Result.Results[0].Outcome = execution.TestPassed
+		rejected.Runs[i].Attempt.Result.Results[0].Failure = nil
+		rejected.Runs[i].Attempt.Outcome = execution.DeriveAttemptOutcome(rejected.Runs[i].Attempt.Result.Results)
+	}
+	if err := browservalidation.ValidateEvidence(rejected); err != nil {
+		t.Fatalf("trustworthy browser rejection fixture: %v", err)
+	}
+	if _, err := review.NewService(gateway, gateway).PublishBrowser(t.Context(), rejected, "main"); !errors.Is(err, adaptation.ErrInvalid) || gateway.writes != 1 {
+		t.Fatalf("rejected proof published: %v writes=%d", err, gateway.writes)
+	}
+}
 
 func TestBrowserValidationRoundTripRetryConflictAndRestart(t *testing.T) {
 	databaseURL := newTestDatabase(t)

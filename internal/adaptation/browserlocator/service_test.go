@@ -208,3 +208,30 @@ func snapshotFor(t *testing.T, at time.Time, nodes []Node) []byte {
 	return marshalFor(t, Snapshot{APIVersion: SnapshotVersion, CapturedAt: at, URL: "https://example.test/checkout", Complete: true, Nodes: nodes})
 }
 func bindFailed(r *Request) { r.Failed.Result.Artifacts[2].SHA256 = digest(r.FailedData) }
+
+func TestReviewerLocatorEditKeepsOracleAndSourceBoundary(t *testing.T) {
+	request := fixture(t)
+	diagnosis, err := Diagnose(request)
+	if err != nil || diagnosis.Proposal == nil {
+		t.Fatalf("diagnose: %v %+v", err, diagnosis)
+	}
+	proposal := *diagnosis.Proposal
+	generated := []byte(string(request.Source[:proposal.Edit.StartByte]) + proposal.Edit.Replacement +
+		string(request.Source[proposal.Edit.EndByte:]))
+	corrected := []byte(strings.Replace(string(generated), proposal.Edit.Replacement,
+		`getByRole("button", { name: "Confirm order" })`, 1))
+	if err := ValidateReviewerLocatorEdit(generated, corrected, proposal); err != nil {
+		t.Fatal(err)
+	}
+	for name, final := range map[string][]byte{
+		"assertion":      []byte(strings.Replace(string(corrected), "toBeVisible()", "toBeHidden()", 1)),
+		"different kind": []byte(strings.Replace(string(generated), proposal.Edit.Replacement, `getByTestId("other")`, 1)),
+		"unchanged":      generated,
+	} {
+		t.Run(name, func(t *testing.T) {
+			if err := ValidateReviewerLocatorEdit(generated, final, proposal); err == nil {
+				t.Fatal("unsafe review edit accepted")
+			}
+		})
+	}
+}

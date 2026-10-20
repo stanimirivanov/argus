@@ -240,6 +240,35 @@ func exactLocator(text string) (locator, bool) {
 	return locator{}, false
 }
 
+// ValidateReviewerLocatorEdit permits one further locator correction at the
+// validated edit site. All bytes outside that call must remain unchanged.
+func ValidateReviewerLocatorEdit(generated, final []byte, proposal Proposal) error {
+	if ValidateProposal(proposal) != nil {
+		return adaptation.ErrInvalid
+	}
+	start := proposal.Edit.StartByte
+	end := start + len(proposal.Edit.Replacement)
+	if start < 0 || end > len(generated) ||
+		string(generated[start:end]) != proposal.Edit.Replacement ||
+		len(final) < start+len(generated[end:]) ||
+		string(generated[:start]) != string(final[:start]) ||
+		string(generated[end:]) != string(final[len(final)-len(generated[end:]):]) {
+		return adaptation.ErrInvalid
+	}
+	replacement := string(final[start : len(final)-len(generated[end:])])
+	old, ok := exactLocator(proposal.Edit.Replacement)
+	if !ok || replacement == old.text || len(replacement) > 500 {
+		return adaptation.ErrInvalid
+	}
+	updated, ok := exactLocator(replacement)
+	if !ok || updated.kind != old.kind || updated.quote != old.quote ||
+		(old.kind == "role" && updated.role != old.role) {
+		return adaptation.ErrInvalid
+	}
+
+	return nil
+}
+
 // NegativeControlLocator changes only the proposed locator's target to an
 // Argus-derived identifier that is absent from the proposal's current target.
 func NegativeControlLocator(proposal Proposal) (string, error) {

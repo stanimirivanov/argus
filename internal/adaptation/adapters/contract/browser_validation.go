@@ -55,3 +55,49 @@ func ExportBrowserLocatorValidationV1(evidence browservalidation.Evidence,
 
 	return document, nil
 }
+
+// ImportBrowserLocatorValidationV1 checks uploaded proof before review access.
+func ImportBrowserLocatorValidationV1(document contracts.BrowserLocatorValidationV1,
+	importAttempt func(contracts.BrowserExecutionAttemptV1) (browser.Attempt, error)) (browservalidation.Evidence, error) {
+	data, err := json.Marshal(document)
+	if err != nil {
+		return browservalidation.Evidence{}, err
+	}
+	if err := contracts.ValidateBrowserLocatorValidationV1(data); err != nil {
+		return browservalidation.Evidence{}, err
+	}
+	if importAttempt == nil {
+		return browservalidation.Evidence{}, browser.ErrInvalid
+	}
+	proposal, err := ImportBrowserLocatorProposalV1(document.Proposal)
+	if err != nil {
+		return browservalidation.Evidence{}, err
+	}
+	baseline, err := importAttempt(document.Baseline)
+	if err != nil {
+		return browservalidation.Evidence{}, err
+	}
+	failed, err := importAttempt(document.Failed)
+	if err != nil {
+		return browservalidation.Evidence{}, err
+	}
+	evidence := browservalidation.Evidence{APIVersion: document.APIVersion, PolicyVersion: document.PolicyVersion,
+		ValidationID: document.ValidationID, Status: browservalidation.Status(document.Status), Reason: document.Reason,
+		Proposal: proposal, Baseline: baseline, Failed: failed,
+		Source: browservalidation.Source{Path: document.Source.Path, OriginalSHA256: document.Source.OriginalSHA256,
+			CandidateSHA256: document.Source.CandidateSHA256, NegativeSHA256: document.Source.NegativeSHA256,
+			RestoredSHA256: document.Source.RestoredSHA256, NegativeLocator: document.Source.NegativeLocator}}
+	for _, run := range document.Runs {
+		attempt, err := importAttempt(run.Attempt)
+		if err != nil {
+			return browservalidation.Evidence{}, err
+		}
+		evidence.Runs = append(evidence.Runs, browservalidation.Run{Phase: browservalidation.Phase(run.Phase),
+			Repeat: run.Repeat, SourceSHA256: run.SourceSHA256, Attempt: attempt})
+	}
+	if err := browservalidation.ValidateEvidence(evidence); err != nil {
+		return browservalidation.Evidence{}, err
+	}
+
+	return evidence, nil
+}

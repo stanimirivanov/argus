@@ -15,6 +15,7 @@ var commandNames = []string{
 	"adaptation-evidence",
 	"assess-functional-api-maintenance",
 	"browser-catalog",
+	"capture-browser-locator-review-outcome",
 	"capture-functional-api-review-outcome",
 	"capture-functional-api-field-review-outcome",
 	"catalog",
@@ -23,6 +24,7 @@ var commandNames = []string{
 	"execution-evidence",
 	"migrate",
 	"open-functional-api-repair-pr",
+	"open-browser-locator-repair-pr",
 	"open-functional-api-field-repair-pr",
 	"plan-functional-api",
 	"plan-browser",
@@ -111,6 +113,8 @@ func testExitCodes(t *testing.T, binDirectory string) {
 		{name: "plan-browser", code: 2},
 		{name: "propose-browser-locator", code: 2},
 		{name: "validate-browser-locator", code: 2},
+		{name: "open-browser-locator-repair-pr", code: 2},
+		{name: "capture-browser-locator-review-outcome", code: 2},
 		{name: "playwright-catalog", args: []string{"--unknown"}, code: 2},
 	} {
 		output, code := runBinary(t, commandBinary(binDirectory, test.name), test.args...)
