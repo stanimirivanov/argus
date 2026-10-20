@@ -36,6 +36,7 @@ const (
 	changeCapability     capability = "change"
 	executionCapability  capability = "execution"
 	selectionCapability  capability = "selection"
+	predictiveCapability capability = "predictive"
 	productCapability    capability = "product-composition"
 )
 
@@ -125,6 +126,9 @@ var productionPackagePolicy = map[string]packagePolicy{
 	modulePath + "/internal/githubtransport":                              {adapterLayer, productCapability},
 	modulePath + "/internal/processprotocol":                              {adapterLayer, productCapability},
 	modulePath + "/internal/selection":                                    {domainLayer, selectionCapability},
+	modulePath + "/internal/predictive":                                   {domainLayer, predictiveCapability},
+	modulePath + "/internal/predictive/adapters/cli":                      {adapterLayer, predictiveCapability},
+	modulePath + "/cmd/predictive-evidence":                               {compositionRootLayer, productCapability},
 	modulePath + "/internal/selection/capabilitymapped":                   {applicationLayer, selectionCapability},
 	modulePath + "/internal/selection/browsermapped":                      {applicationLayer, selectionCapability},
 	modulePath + "/internal/selection/adapters/catalogreader":             {adapterLayer, selectionCapability},
@@ -205,6 +209,7 @@ var adapterPolicy = map[string]adapterKind{
 	modulePath + "/internal/processprotocol":                              platformAdapter,
 	modulePath + "/internal/selection/adapters/catalogreader":             bridgeAdapter,
 	modulePath + "/internal/selection/adapters/cli/selectioncli":          drivingAdapter,
+	modulePath + "/internal/predictive/adapters/cli":                      drivingAdapter,
 	modulePath + "/internal/selection/adapters/contract":                  contractAdapter,
 	modulePath + "/internal/selection/adapters/edgereader":                bridgeAdapter,
 	modulePath + "/internal/selection/adapters/impactreader":              bridgeAdapter,
@@ -244,6 +249,7 @@ var generatedContractImporters = map[string]bool{
 	modulePath + "/internal/execution/adapters/processadapter":            true,
 	modulePath + "/internal/selection/adapters/cli/selectioncli":          true,
 	modulePath + "/internal/selection/adapters/contract":                  true,
+	modulePath + "/internal/predictive/adapters/cli":                      true,
 }
 
 var allowedAdapterDependencies = map[adapterKind]map[adapterKind]bool{
@@ -291,6 +297,7 @@ var commandlineUsers = map[string]bool{
 	modulePath + "/internal/execution/adapters/cli/executioncli":          true,
 	modulePath + "/internal/execution/adapters/cli/planningcli":           true,
 	modulePath + "/internal/selection/adapters/cli/selectioncli":          true,
+	modulePath + "/internal/predictive/adapters/cli":                      true,
 }
 
 var githubTransportUsers = map[string]bool{
@@ -384,6 +391,13 @@ var allowedCapabilityDependencies = map[capability]map[capability]bool{
 		changeCapability:    true,
 		selectionCapability: true,
 	},
+	predictiveCapability: {
+		catalogCapability:    true,
+		changeCapability:     true,
+		executionCapability:  true,
+		selectionCapability:  true,
+		predictiveCapability: true,
+	},
 	executionCapability: {
 		catalogCapability:   true,
 		executionCapability: true,
@@ -402,6 +416,7 @@ var allowedCapabilityDependencies = map[capability]map[capability]bool{
 		changeCapability:     true,
 		executionCapability:  true,
 		selectionCapability:  true,
+		predictiveCapability: true,
 		productCapability:    true,
 	},
 }

@@ -28,6 +28,7 @@ var commandNames = []string{
 	"open-functional-api-field-repair-pr",
 	"plan-functional-api",
 	"plan-browser",
+	"predictive-evidence",
 	"propose-browser-locator",
 	"playwright-catalog",
 	"propose-functional-api-repair",

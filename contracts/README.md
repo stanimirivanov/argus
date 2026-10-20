@@ -36,6 +36,8 @@
   attempt discovery.
 - Browser execution bindings, plan, attempt bindings, and shadow report v1
   retain project/environment dimensions and measure complete-plan UI misses.
+- Predictive-observation v1 binds a change, exact decision manifest, and one
+  full-suite control group for leakage-safe offline evaluation without raw patches.
 - Browser structure, locator diagnosis, and locator proposal v1 bind one
   constrained candidate to exact prior/current browser evidence and source bytes.
 - Adaptation-review v1 records the open draft GitHub pull request created from
@@ -100,6 +102,7 @@ actually fetched.
 | `source/review-outcome-v1.ts` | Authoritative terminal review-outcome and reviewer-edit contract. |
 | `source/browser-locator-v1.ts` | Authoritative structural accessibility, locator diagnosis, and proposal contracts. |
 | `source/browser-validation-v1.ts` | Browser locator validation proof and trustworthy rejection contract, with artifact-bound browser attempts. |
+| `source/predictive-observation-v1.ts` | Immutable decision-time features and full-control labels for one executable group. |
 | `source/repository-descriptor-v1.test.ts` | Structural fixture tests through Effect Schema. |
 | `source/test-catalog-page-v1.test.ts` | Test-catalog result compatibility tests through Effect Schema. |
 | `scripts/generate.ts` | Deterministic JSON Schema compiler and drift check. |

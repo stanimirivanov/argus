@@ -1,0 +1,449 @@
+{
+  "$id": "https://argus.dev/contracts/predictive-observation/v1/schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$ref": "#/$defs/PredictiveObservationEnvelopeV1",
+  "$defs": {
+    "RepositoryReference": {
+      "type": "object",
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": [
+            "github",
+            "gitlab",
+            "azure-devops",
+            "other"
+          ]
+        },
+        "host": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "pattern": "^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$"
+        },
+        "providerRepositoryId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "owner": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        }
+      },
+      "required": [
+        "provider",
+        "host",
+        "providerRepositoryId",
+        "owner",
+        "name"
+      ],
+      "additionalProperties": false,
+      "description": "A repository reference anchored by the provider-assigned identity; owner and name are mutable display coordinates."
+    },
+    "Revision": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "algorithm": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "git-sha1"
+                  ]
+                }
+              ]
+            },
+            "digest": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            }
+          },
+          "required": [
+            "algorithm",
+            "digest"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "algorithm": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "git-sha256"
+                  ]
+                }
+              ]
+            },
+            "digest": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          "required": [
+            "algorithm",
+            "digest"
+          ],
+          "additionalProperties": false
+        }
+      ],
+      "description": "An immutable, normalized Git object revision."
+    },
+    "LocalKey": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 63,
+      "pattern": "^[a-z][a-z0-9._-]*$",
+      "description": "A stable, repository-declared key. It is scoped by its containing repository or parent declaration."
+    },
+    "PredictiveObservationV1": {
+      "type": "object",
+      "properties": {
+        "apiVersion": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "argus.dev/predictive-observation/v1"
+              ]
+            }
+          ]
+        },
+        "change": {
+          "type": "object",
+          "properties": {
+            "sourceRepository": {
+              "$ref": "#/$defs/RepositoryReference"
+            },
+            "pullRequest": {
+              "type": "object",
+              "properties": {
+                "number": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "number"
+              ],
+              "additionalProperties": false
+            },
+            "baseRevision": {
+              "$ref": "#/$defs/Revision"
+            },
+            "headRevision": {
+              "$ref": "#/$defs/Revision"
+            },
+            "observedAt": {
+              "type": "string"
+            },
+            "trigger": {
+              "type": "object",
+              "properties": {
+                "provider": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "github"
+                      ]
+                    }
+                  ]
+                },
+                "deliveryId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 255
+                },
+                "event": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "pull_request"
+                      ]
+                    }
+                  ]
+                },
+                "action": {
+                  "type": "string",
+                  "enum": [
+                    "opened",
+                    "reopened",
+                    "synchronize",
+                    "ready_for_review"
+                  ]
+                }
+              },
+              "required": [
+                "provider",
+                "deliveryId",
+                "event",
+                "action"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "sourceRepository",
+            "pullRequest",
+            "baseRevision",
+            "headRevision",
+            "observedAt",
+            "trigger"
+          ],
+          "additionalProperties": false
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4096
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "added",
+                  "modified",
+                  "deleted",
+                  "renamed",
+                  "copied"
+                ]
+              },
+              "additions": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "deletions": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "patchStatus": {
+                "type": "string",
+                "enum": [
+                  "complete",
+                  "unavailable",
+                  "truncated",
+                  "budget-exhausted"
+                ]
+              }
+            },
+            "required": [
+              "path",
+              "kind",
+              "additions",
+              "deletions",
+              "patchStatus"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 1000
+        },
+        "filesTruncated": {
+          "type": "boolean"
+        },
+        "manifest": {
+          "type": "object",
+          "properties": {
+            "apiVersion": {
+              "type": "string",
+              "enum": [
+                "argus.dev/execution-manifest/v1",
+                "argus.dev/execution-manifest/v4",
+                "argus.dev/browser-selection-manifest/v1"
+              ]
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          "required": [
+            "apiVersion",
+            "sha256"
+          ],
+          "additionalProperties": false
+        },
+        "featureCutoffAt": {
+          "type": "string"
+        },
+        "family": {
+          "type": "string",
+          "enum": [
+            "functional-api",
+            "functional-ui"
+          ]
+        },
+        "testRepository": {
+          "$ref": "#/$defs/RepositoryReference"
+        },
+        "testRevision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "adapter": {
+          "$ref": "#/$defs/LocalKey"
+        },
+        "project": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LocalKey"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "environment": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LocalKey"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "controlAttemptId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 127
+        },
+        "controlStartedAt": {
+          "type": "string"
+        },
+        "controlCompletedAt": {
+          "type": "string"
+        },
+        "tests": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "suiteKey": {
+                "$ref": "#/$defs/LocalKey"
+              },
+              "testKey": {
+                "$ref": "#/$defs/LocalKey"
+              },
+              "decision": {
+                "type": "string",
+                "enum": [
+                  "RUN_REQUIRED",
+                  "SKIP_FOR_NOW"
+                ]
+              },
+              "reasons": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 127
+                },
+                "maxItems": 100
+              },
+              "capabilities": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/LocalKey"
+                },
+                "maxItems": 5000
+              },
+              "mappingKeys": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 127
+                },
+                "maxItems": 5000
+              },
+              "outcome": {
+                "type": "string",
+                "enum": [
+                  "passed",
+                  "failed"
+                ]
+              },
+              "durationMs": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 86400000
+              }
+            },
+            "required": [
+              "suiteKey",
+              "testKey",
+              "decision",
+              "reasons",
+              "capabilities",
+              "mappingKeys",
+              "outcome",
+              "durationMs"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1,
+          "maxItems": 10000
+        }
+      },
+      "required": [
+        "apiVersion",
+        "change",
+        "files",
+        "filesTruncated",
+        "manifest",
+        "featureCutoffAt",
+        "family",
+        "testRepository",
+        "testRevision",
+        "adapter",
+        "project",
+        "environment",
+        "controlAttemptId",
+        "controlStartedAt",
+        "controlCompletedAt",
+        "tests"
+      ],
+      "additionalProperties": false,
+      "title": "Argus predictive observation v1",
+      "description": "Immutable decision-time features and full-suite labels for one execution group."
+    },
+    "PredictiveObservationEnvelopeV1": {
+      "type": "object",
+      "properties": {
+        "observation": {
+          "$ref": "#/$defs/PredictiveObservationV1"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "observation",
+        "sha256"
+      ],
+      "additionalProperties": false,
+      "title": "Argus predictive observation envelope v1",
+      "description": "Canonical observation with SHA-256 of its JSON payload, excluding this envelope field."
+    }
+  }
+}
