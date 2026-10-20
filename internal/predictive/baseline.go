@@ -25,6 +25,9 @@ type EvaluationTest struct {
 	Decision   selection.Outcome
 	Outcome    execution.TestOutcome
 	DurationMS int64
+	// ControlCompletedAt makes earlier labels eligible only after the full
+	// control group finished. Baseline policies do not use this timestamp.
+	ControlCompletedAt time.Time
 }
 
 // BaselineComparison reports one policy against an authoritative full suite.

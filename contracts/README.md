@@ -372,5 +372,8 @@ their split semantics are recorded in
 [ADR-0040](../docs/decisions/0040-replay-predictive-evidence-with-a-fixed-temporal-cutoff.md).
 Deterministic baseline reports use an additive v1 schema and the training-only
 semantics in [ADR-0041](../docs/decisions/0041-compare-predictive-baselines-with-training-only-signals.md).
+The additive ranking report records frozen interpretable coefficients and
+holdout comparisons under
+[ADR-0042](../docs/decisions/0042-train-a-causal-interpretable-ranking-baseline.md).
 The stable version migration, regex-export constraints and Node 24 retention
 are recorded in [ADR-0029](../docs/decisions/0029-migrate-stable-contract-toolchain-without-wire-changes.md).

@@ -121,7 +121,7 @@ func loadEpisode(root string, declaration contracts.PredictiveIndexEpisode, incl
 		}
 		episode.Groups = append(episode.Groups, group)
 		if includeTests {
-			tests, err = appendEvaluationTests(tests, envelope.Observation)
+			tests, err = appendEvaluationTests(tests, envelope.Observation, group.ControlCompletedAt)
 			if err != nil {
 				return predictive.Episode{}, nil, err
 			}
@@ -144,7 +144,7 @@ func readObservation(root, name string) (contracts.PredictiveObservationEnvelope
 	return contracts.DecodePredictiveObservationEnvelopeV1(data)
 }
 
-func appendEvaluationTests(tests []predictive.EvaluationTest, observation contracts.PredictiveObservationV1) ([]predictive.EvaluationTest, error) {
+func appendEvaluationTests(tests []predictive.EvaluationTest, observation contracts.PredictiveObservationV1, completedAt time.Time) ([]predictive.EvaluationTest, error) {
 	for _, test := range observation.Tests {
 		if len(tests) >= 10000 {
 			return nil, fmt.Errorf("baseline episode exceeds 10000 tests")
@@ -154,7 +154,7 @@ func appendEvaluationTests(tests []predictive.EvaluationTest, observation contra
 			return nil, err
 		}
 		tests = append(tests, predictive.EvaluationTest{ID: identity, Decision: selection.Outcome(test.Decision),
-			Outcome: execution.TestOutcome(test.Outcome), DurationMS: test.DurationMS})
+			Outcome: execution.TestOutcome(test.Outcome), DurationMS: test.DurationMS, ControlCompletedAt: completedAt})
 	}
 
 	return tests, nil
