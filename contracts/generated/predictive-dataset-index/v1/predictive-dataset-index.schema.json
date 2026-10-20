@@ -1,0 +1,71 @@
+{
+  "$id": "https://argus.dev/contracts/predictive-dataset-index/v1/schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$ref": "#/$defs/PredictiveDatasetIndexV1",
+  "$defs": {
+    "LocalKey": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 63,
+      "pattern": "^[a-z][a-z0-9._-]*$",
+      "description": "A stable, repository-declared key. It is scoped by its containing repository or parent declaration."
+    },
+    "PredictiveDatasetIndexV1": {
+      "type": "object",
+      "properties": {
+        "apiVersion": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "argus.dev/predictive-dataset-index/v1"
+              ]
+            }
+          ]
+        },
+        "holdoutStart": {
+          "type": "string"
+        },
+        "holdoutEnd": {
+          "type": "string"
+        },
+        "episodes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/LocalKey"
+              },
+              "observations": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4096
+                },
+                "minItems": 1,
+                "maxItems": 100
+              }
+            },
+            "required": [
+              "id",
+              "observations"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1,
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "apiVersion",
+        "holdoutStart",
+        "holdoutEnd",
+        "episodes"
+      ],
+      "additionalProperties": false,
+      "title": "Argus predictive dataset index v1"
+    }
+  }
+}
