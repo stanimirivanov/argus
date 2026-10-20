@@ -62,6 +62,7 @@ import { HeadTestInventoryV1 } from "../source/head-test-inventory-v1.js";
 import { ImpactEdgePageV1 } from "../source/impact-edge-page-v1.js";
 import { ImpactEvidenceBundleV1 } from "../source/impact-evidence-bundle-v1.js";
 import { MaintenanceAssessmentV1 } from "../source/maintenance-assessment-v1.js";
+import { PredictiveBaselinesV1 } from "../source/predictive-baselines-v1.js";
 import { PredictiveObservationEnvelopeV1 } from "../source/predictive-observation-v1.js";
 import { PredictiveDatasetIndexV1, PredictiveReplayV1 } from "../source/predictive-replay-v1.js";
 import { RepositoryDescriptorV1 } from "../source/repository-descriptor-v1.js";
@@ -76,6 +77,17 @@ import { TestCatalogPageV1 } from "../source/test-catalog-page-v1.js";
 import { compileJsonSchema } from "./json-schema.js";
 
 const artifacts = [
+  {
+    name: "predictive-baselines",
+    outputPath: new URL(
+      "../generated/predictive-baselines/v1/predictive-baselines.schema.json",
+      import.meta.url,
+    ),
+    document: {
+      $id: "https://argus.dev/contracts/predictive-baselines/v1/schema.json",
+      ...compileJsonSchema(PredictiveBaselinesV1),
+    },
+  },
   {
     name: "predictive-dataset-index",
     outputPath: new URL(

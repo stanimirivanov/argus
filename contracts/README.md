@@ -370,5 +370,7 @@ The representation decision and compatibility rules are recorded in
 Predictive dataset indexes and temporal replay results use additive v1 schemas;
 their split semantics are recorded in
 [ADR-0040](../docs/decisions/0040-replay-predictive-evidence-with-a-fixed-temporal-cutoff.md).
+Deterministic baseline reports use an additive v1 schema and the training-only
+semantics in [ADR-0041](../docs/decisions/0041-compare-predictive-baselines-with-training-only-signals.md).
 The stable version migration, regex-export constraints and Node 24 retention
 are recorded in [ADR-0029](../docs/decisions/0029-migrate-stable-contract-toolchain-without-wire-changes.md).

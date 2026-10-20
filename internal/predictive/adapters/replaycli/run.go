@@ -14,7 +14,9 @@ import (
 
 	"github.com/stanimirivanov/argus/internal/commandline"
 	"github.com/stanimirivanov/argus/internal/contracts"
+	"github.com/stanimirivanov/argus/internal/execution"
 	"github.com/stanimirivanov/argus/internal/predictive"
+	"github.com/stanimirivanov/argus/internal/selection"
 )
 
 const maxIndexBytes = 1 << 20
@@ -32,40 +34,7 @@ func Run(args []string, stdout io.Writer) error {
 	if *indexPath == "" || flags.NArg() != 0 {
 		return commandline.UsageText("usage: predictive-replay -index <path>")
 	}
-	data, err := readBounded(*indexPath, maxIndexBytes)
-	if err != nil {
-		return fmt.Errorf("read dataset index: %w", err)
-	}
-	index, err := contracts.DecodePredictiveDatasetIndexV1(data)
-	if err != nil {
-		return err
-	}
-	start, err := time.Parse(time.RFC3339Nano, index.HoldoutStart)
-	if err != nil {
-		return err
-	}
-	end, err := time.Parse(time.RFC3339Nano, index.HoldoutEnd)
-	if err != nil {
-		return err
-	}
-	root, err := filepath.EvalSymlinks(filepath.Dir(*indexPath))
-	if err != nil {
-		return err
-	}
-	episodes := make([]predictive.Episode, 0, len(index.Episodes))
-	count := 0
-	for _, declaration := range index.Episodes {
-		count += len(declaration.Observations)
-		if count > maxObservations {
-			return fmt.Errorf("dataset exceeds %d observations", maxObservations)
-		}
-		episode, err := loadEpisode(root, declaration)
-		if err != nil {
-			return fmt.Errorf("episode %s: %w", declaration.ID, err)
-		}
-		episodes = append(episodes, episode)
-	}
-	replay, err := predictive.BuildReplay(episodes, start, end)
+	replay, _, err := loadDataset(*indexPath, false)
 	if err != nil {
 		return err
 	}
@@ -82,36 +51,128 @@ func Run(args []string, stdout io.Writer) error {
 	return err
 }
 
-func loadEpisode(root string, declaration contracts.PredictiveIndexEpisode) (predictive.Episode, error) {
+func loadDataset(indexPath string, includeTests bool) (predictive.Replay, map[string][]predictive.EvaluationTest, error) {
+	data, err := readBounded(indexPath, maxIndexBytes)
+	if err != nil {
+		return predictive.Replay{}, nil, fmt.Errorf("read dataset index: %w", err)
+	}
+	index, err := contracts.DecodePredictiveDatasetIndexV1(data)
+	if err != nil {
+		return predictive.Replay{}, nil, err
+	}
+	start, err := time.Parse(time.RFC3339Nano, index.HoldoutStart)
+	if err != nil {
+		return predictive.Replay{}, nil, err
+	}
+	end, err := time.Parse(time.RFC3339Nano, index.HoldoutEnd)
+	if err != nil {
+		return predictive.Replay{}, nil, err
+	}
+	root, err := filepath.EvalSymlinks(filepath.Dir(indexPath))
+	if err != nil {
+		return predictive.Replay{}, nil, err
+	}
+	episodes := make([]predictive.Episode, 0, len(index.Episodes))
+	archive := make(map[string][]predictive.EvaluationTest, len(index.Episodes))
+	count := 0
+	testCount := 0
+	for _, declaration := range index.Episodes {
+		count += len(declaration.Observations)
+		if count > maxObservations {
+			return predictive.Replay{}, nil, fmt.Errorf("dataset exceeds %d observations", maxObservations)
+		}
+		episode, tests, err := loadEpisode(root, declaration, includeTests)
+		if err != nil {
+			return predictive.Replay{}, nil, fmt.Errorf("episode %s: %w", declaration.ID, err)
+		}
+		testCount += len(tests)
+		if includeTests && (testCount > 100000 || len(tests) > 10000) {
+			return predictive.Replay{}, nil, fmt.Errorf("dataset exceeds baseline test limit")
+		}
+		episodes = append(episodes, episode)
+		archive[declaration.ID] = tests
+	}
+	replay, err := predictive.BuildReplay(episodes, start, end)
+	if err != nil {
+		return predictive.Replay{}, nil, err
+	}
+
+	return replay, archive, nil
+}
+
+func loadEpisode(root string, declaration contracts.PredictiveIndexEpisode, includeTests bool) (predictive.Episode, []predictive.EvaluationTest, error) {
 	episode := predictive.Episode{ID: declaration.ID, Groups: make([]predictive.GroupReference, 0, len(declaration.Observations))}
+	var tests []predictive.EvaluationTest
 	for _, name := range declaration.Observations {
-		path, err := containedPath(root, name)
+		envelope, err := readObservation(root, name)
 		if err != nil {
-			return predictive.Episode{}, err
-		}
-		data, err := readBounded(path, maxObservationBytes)
-		if err != nil {
-			return predictive.Episode{}, err
-		}
-		envelope, err := contracts.DecodePredictiveObservationEnvelopeV1(data)
-		if err != nil {
-			return predictive.Episode{}, err
+			return predictive.Episode{}, nil, err
 		}
 		current, group, err := importObservation(envelope)
 		if err != nil {
-			return predictive.Episode{}, err
+			return predictive.Episode{}, nil, err
 		}
 		if len(episode.Groups) == 0 {
 			episode.ChangeKey, episode.SourcePullKey, episode.ManifestKey = current.ChangeKey, current.SourcePullKey, current.ManifestKey
 			episode.FilesKey, episode.Family, episode.FeatureCutoffAt = current.FilesKey, current.Family, current.FeatureCutoffAt
 		} else if episode.ChangeKey != current.ChangeKey || episode.ManifestKey != current.ManifestKey ||
 			episode.FilesKey != current.FilesKey || episode.Family != current.Family || !episode.FeatureCutoffAt.Equal(current.FeatureCutoffAt) {
-			return predictive.Episode{}, fmt.Errorf("%w: inconsistent decision groups", predictive.ErrInvalid)
+			return predictive.Episode{}, nil, fmt.Errorf("%w: inconsistent decision groups", predictive.ErrInvalid)
 		}
 		episode.Groups = append(episode.Groups, group)
+		if includeTests {
+			tests, err = appendEvaluationTests(tests, envelope.Observation)
+			if err != nil {
+				return predictive.Episode{}, nil, err
+			}
+		}
 	}
 
-	return episode, nil
+	return episode, tests, nil
+}
+
+func readObservation(root, name string) (contracts.PredictiveObservationEnvelopeV1, error) {
+	path, err := containedPath(root, name)
+	if err != nil {
+		return contracts.PredictiveObservationEnvelopeV1{}, err
+	}
+	data, err := readBounded(path, maxObservationBytes)
+	if err != nil {
+		return contracts.PredictiveObservationEnvelopeV1{}, err
+	}
+
+	return contracts.DecodePredictiveObservationEnvelopeV1(data)
+}
+
+func appendEvaluationTests(tests []predictive.EvaluationTest, observation contracts.PredictiveObservationV1) ([]predictive.EvaluationTest, error) {
+	for _, test := range observation.Tests {
+		if len(tests) >= 10000 {
+			return nil, fmt.Errorf("baseline episode exceeds 10000 tests")
+		}
+		identity, err := testIdentity(observation, test)
+		if err != nil {
+			return nil, err
+		}
+		tests = append(tests, predictive.EvaluationTest{ID: identity, Decision: selection.Outcome(test.Decision),
+			Outcome: execution.TestOutcome(test.Outcome), DurationMS: test.DurationMS})
+	}
+
+	return tests, nil
+}
+
+func testIdentity(observation contracts.PredictiveObservationV1, test contracts.PredictiveTestV1) (string, error) {
+	return digest(struct {
+		Provider             string
+		Host                 string
+		ProviderRepositoryID string
+		Family               string
+		Adapter              string
+		Project              *string
+		Environment          *string
+		SuiteKey             string
+		TestKey              string
+	}{observation.TestRepository.Provider, observation.TestRepository.Host, observation.TestRepository.ProviderRepositoryID,
+		observation.Family, observation.Adapter, observation.Project, observation.Environment, test.SuiteKey, test.TestKey})
 }
 
 func importObservation(envelope contracts.PredictiveObservationEnvelopeV1) (predictive.Episode, predictive.GroupReference, error) {
