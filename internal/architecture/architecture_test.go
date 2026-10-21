@@ -230,6 +230,7 @@ var adapterPolicy = map[string]adapterKind{
 // see generated wire DTOs; provider and persistence adapters must use domain
 // values and application-owned ports instead.
 var generatedContractImporters = map[string]bool{
+	modulePath + "/internal/execution/adapters/cli/executioncli":          true,
 	modulePath + "/cmd/propose-browser-locator":                           true,
 	modulePath + "/cmd/validate-browser-locator":                          true,
 	modulePath + "/cmd/assess-functional-api-maintenance":                 true,
@@ -320,6 +321,7 @@ var githubTransportUsers = map[string]bool{
 // Cross-application orchestration is exceptional and explicit. Most use-case
 // packages own one port and must not reach sideways into another use case.
 var allowedApplicationDependencies = map[string]map[string]bool{
+	modulePath + "/internal/execution/functionalapi": {modulePath + "/internal/execution/scheduledplan": true},
 	modulePath + "/internal/adaptation/browserlocator": {
 		modulePath + "/internal/execution/browser": true,
 	},

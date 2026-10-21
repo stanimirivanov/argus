@@ -679,3 +679,14 @@ accepted:
 No implementation SHOULD introduce one of these foundations merely because it
 appeared in the original proposal. The current vertical slice and quality
 attributes must justify it.
+
+## Functional API staged execution
+
+The [opt-in staged API protocol](../integrations/functional-api-staged.md) consumes
+verified portfolio bytes plus independent manifest and reviewed bindings through
+the existing execution adapters. Shared staged partitions remain domain values;
+wire DTOs stay at contract/CLI boundaries. Functional API execution normalizes
+exact v2 stage evidence; the existing attempt ingestion/store accepts explicit
+v1/v2 versions. Legacy selected/full-suite validators remain strict. The forward
+metadata migration and [ADR-0048](../decisions/0048-opt-in-functional-api-staged-execution.md)
+define rollout, rollback and the external CI pass/capacity obligations.

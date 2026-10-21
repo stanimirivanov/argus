@@ -215,3 +215,9 @@ for focused diagnosis.
 
 The shared fixtures under `contracts/fixtures/functional-api-adapter-*` are the
 starting conformance corpus for adapter implementations.
+
+## Opt-in predictive stages
+
+The [staged API guide](functional-api-staged.md) documents explicit v2 planning,
+relevant-now/remaining-later or full shadow controls, adapter compatibility and
+immutable staged evidence. Existing v1 invocations stay selected/full-suite.

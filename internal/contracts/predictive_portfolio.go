@@ -43,6 +43,20 @@ var loadPredictivePortfolioSchema = sync.OnceValues(func() (*jsonschema.Schema, 
 		"https://argus.dev/contracts/predictive-portfolio/v1/schema.json", "predictive portfolio")
 })
 
+// DecodePredictivePortfolioV1 preserves strict raw-wire validation before
+// semantic validation; unknown fields cannot disappear during typed decoding.
+func DecodePredictivePortfolioV1(data []byte) (PredictivePortfolioV1, error) {
+	var report PredictivePortfolioV1
+	if err := validateDocument(data, loadPredictivePortfolioSchema, "predictive portfolio"); err != nil {
+		return report, err
+	}
+	if err := json.Unmarshal(data, &report); err != nil {
+		return report, err
+	}
+
+	return report, ValidatePredictivePortfolioV1(report)
+}
+
 // ValidatePredictivePortfolioV1 checks shape, partition, serial timing, dependency
 // and resource feasibility. It cannot authenticate reviews or predict real runtime.
 func ValidatePredictivePortfolioV1(report PredictivePortfolioV1) error {

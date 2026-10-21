@@ -38,7 +38,11 @@ const testRepositories = [
   },
 ];
 
-async function command(executable, args, { cwd = root, env = {}, acceptFailure = false } = {}) {
+async function command(
+  executable,
+  args,
+  { cwd = root, env = {}, acceptFailure = false, input } = {},
+) {
   const pnpmScript = executable === "pnpm" ? process.env.npm_execpath : undefined;
   const child = spawn(
     pnpmScript ? process.execPath : executable,
@@ -50,6 +54,7 @@ async function command(executable, args, { cwd = root, env = {}, acceptFailure =
       shell: executable === "pnpm" && !pnpmScript && process.platform === "win32",
     },
   );
+  if (input !== undefined) child.stdin.end(input);
   const stdout = [];
   const stderr = [];
   child.stdout.on("data", (chunk) => stdout.push(chunk));
@@ -242,6 +247,41 @@ async function campaign(temp, service) {
     throw new Error("plan omitted a selected or full-only control group");
   }
   await writeFile(planPath, JSON.stringify(plan));
+  const probe = tests[0];
+  const stagedProbe = {
+    apiVersion: "argus.dev/functional-api-adapter-request/v2",
+    attemptId: "staged-protocol-probe",
+    manifest: plan.manifest,
+    stage: "shadow-control",
+    testRepository: probe.repository,
+    testRevision: { algorithm: "git-sha1", digest: probe.revision },
+    adapter: "playwright",
+    staging: {
+      schedule: { apiVersion: "argus.dev/predictive-portfolio/v1", sha256: "a".repeat(64) },
+      episodeId: "probe",
+      groupKey: probe.groupKey,
+      environment: "ci",
+      mode: "shadow",
+    },
+    tests: manifest.decisions
+      .filter(
+        (d) => d.testRepository.providerRepositoryId === probe.repository.providerRepositoryId,
+      )
+      .map((d) => ({ suiteKey: d.suite.key, testKey: d.test.key, name: d.test.name })),
+  };
+  const probeResult = parse(
+    await command(process.execPath, [adapter, "execute"], {
+      cwd: probe.directory,
+      env: { ARGUS_FIXTURE_URL: service.url },
+      input: JSON.stringify(stagedProbe),
+    }),
+    "staged adapter probe",
+  );
+  if (
+    probeResult.attemptId !== stagedProbe.attemptId ||
+    probeResult.results.length !== stagedProbe.tests.length
+  )
+    throw new Error("staged adapter probe lost exact tests");
   const attemptBindings = new Map();
   const attemptFiles = [];
   for (const job of plan.jobs) {

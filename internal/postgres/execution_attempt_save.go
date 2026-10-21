@@ -14,7 +14,7 @@ import (
 // returns execution.ErrConflict.
 func (store *ExecutionStore) SaveExecutionAttempt(ctx context.Context, attempt execution.Attempt) (bool, error) {
 	attempt = execution.CanonicalAttempt(attempt)
-	if err := execution.ValidateAttempt(attempt); err != nil {
+	if err := execution.ValidateRecordedAttempt(attempt); err != nil {
 		return false, err
 	}
 	fingerprint, err := executionAttemptFingerprint(attempt)
@@ -59,6 +59,11 @@ func claimExecutionAttempt(
 	fingerprint string,
 ) (int64, bool, error) {
 	var attemptKey int64
+	var scheduleSHA, episode, group, environment, mode any
+	if attempt.Staging != nil {
+		v := attempt.Staging
+		scheduleSHA, episode, group, environment, mode = v.Schedule.SHA256, v.EpisodeID, v.GroupKey, v.Environment, v.Mode
+	}
 	err := tx.QueryRow(ctx, `
 		INSERT INTO argus_catalog.execution_attempts (
 			attempt_id,
@@ -76,10 +81,10 @@ func claimExecutionAttempt(
 			started_at,
 			completed_at,
 			attempt_outcome,
-			attempt_sha256
+			attempt_sha256, schedule_sha256, episode_id, group_key, environment_key, execution_mode
 		) VALUES (
 			$1, $2, $3, $4, $5, $6, $7, $8,
-			$9, $10, $11, $12, $13, $14, $15, $16
+			$9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21
 		)
 		ON CONFLICT (attempt_id) DO NOTHING
 		RETURNING execution_attempt_id
@@ -99,7 +104,7 @@ func claimExecutionAttempt(
 		attempt.StartedAt,
 		attempt.CompletedAt,
 		attempt.Outcome,
-		fingerprint,
+		fingerprint, scheduleSHA, episode, group, environment, mode,
 	).Scan(&attemptKey)
 	if err == nil {
 		return attemptKey, true, nil

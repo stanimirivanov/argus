@@ -9,9 +9,18 @@ import (
 	"github.com/stanimirivanov/argus/internal/execution"
 )
 
+type fingerprintStaging struct {
+	ScheduleSHA256 string `json:"scheduleSha256"`
+	EpisodeID      string `json:"episodeId"`
+	GroupKey       string `json:"groupKey"`
+	Environment    string `json:"environment"`
+	Mode           string `json:"mode"`
+}
+
 // fingerprintExecutionAttempt is a private persistence encoding. Explicit
 // fields keep stored retry identity stable if domain structs are reorganized.
 type fingerprintExecutionAttempt struct {
+	Staging        *fingerprintStaging            `json:"staging,omitempty"`
 	APIVersion     string                         `json:"apiVersion"`
 	AttemptID      string                         `json:"attemptId"`
 	Manifest       fingerprintExecutionManifest   `json:"manifest"`
@@ -64,6 +73,10 @@ func executionAttemptFingerprint(attempt execution.Attempt) (string, error) {
 		CompletedAt: attempt.CompletedAt.Format(time.RFC3339Nano), Outcome: attempt.Outcome,
 		Results:   make([]fingerprintExecutionResult, 0, len(attempt.Results)),
 		Artifacts: make([]fingerprintExecutionArtifact, 0, len(attempt.Artifacts)),
+	}
+	if attempt.Staging != nil {
+		v := attempt.Staging
+		document.Staging = &fingerprintStaging{v.Schedule.SHA256, v.EpisodeID, v.GroupKey, v.Environment, v.Mode}
 	}
 	for _, result := range attempt.Results {
 		item := fingerprintExecutionResult{

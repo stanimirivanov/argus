@@ -52,6 +52,24 @@ func TestAdapterExchangesValidatedProtocolDocuments(t *testing.T) {
 	}
 }
 
+func TestAdapterExchangesStagedProtocol(t *testing.T) {
+	t.Setenv(helperEnvironment, "1")
+	adapter, err := New([]string{os.Args[0], "-test.run=^TestProcessAdapterHelper$"}, io.Discard)
+	if err != nil {
+		t.Fatal(err)
+	}
+	request := functionalapi.Request{APIVersion: functionalapi.StagedRequestAPIVersion, AttemptID: "staged-process",
+		Manifest: execution.ManifestReference{APIVersion: "argus.dev/execution-manifest/v1", SHA256: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}, Stage: execution.StageRelevantNow,
+		TestRepository: catalog.Repository{Identity: catalog.RepositoryIdentity{Provider: catalog.ProviderGitHub, Host: "github.com", ProviderRepositoryID: "tests-1"}, Owner: "example", Name: "orders-tests"},
+		TestRevision:   catalog.Revision{Algorithm: catalog.RevisionGitSHA1, Digest: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}, Adapter: "playwright",
+		Tests:   []functionalapi.Test{{SuiteKey: "orders-api", TestKey: "create-order", Name: "Create order"}},
+		Staging: &execution.Staging{Schedule: execution.ScheduleReference{APIVersion: execution.ScheduleAPIVersion, SHA256: "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"}, EpisodeID: "episode", GroupKey: "orders", Environment: "ci", Mode: "shadow"}}
+	result, err := adapter.Execute(t.Context(), request)
+	if err != nil || result.AttemptID != request.AttemptID || len(result.Results) != 1 {
+		t.Fatalf("v2 process: %+v %v", result, err)
+	}
+}
+
 func TestProcessAdapterHelper(t *testing.T) {
 	if os.Getenv(helperEnvironment) != "1" {
 		return
@@ -61,8 +79,16 @@ func TestProcessAdapterHelper(t *testing.T) {
 		os.Exit(2)
 	}
 	var request contracts.FunctionalAPIAdapterRequestV1
-	if json.Unmarshal(data, &request) != nil ||
-		contracts.ValidateFunctionalAPIAdapterRequestV1(request) != nil {
+	if json.Unmarshal(data, &request) != nil {
+		os.Exit(3)
+	}
+	if request.APIVersion == functionalapi.StagedRequestAPIVersion {
+		var staged contracts.FunctionalAPIAdapterRequestV2
+		if contracts.DecodeStagedDocument(data, "functional-api-adapter-request", &staged) != nil {
+			os.Exit(3)
+		}
+		request = staged.FunctionalAPIAdapterRequestV1
+	} else if contracts.ValidateFunctionalAPIAdapterRequestV1(request) != nil {
 		os.Exit(3)
 	}
 	results := make([]contracts.NormalizedFunctionalAPITestResult, 0, len(request.Tests))

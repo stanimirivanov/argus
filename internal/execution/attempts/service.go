@@ -33,7 +33,7 @@ func (service *Service) Ingest(
 		return false, execution.ErrInvalid
 	}
 	attempt = execution.CanonicalAttempt(attempt)
-	if err := execution.ValidateAttempt(attempt); err != nil {
+	if err := execution.ValidateRecordedAttempt(attempt); err != nil {
 		return false, err
 	}
 
@@ -50,7 +50,7 @@ func (service *Service) Get(ctx context.Context, attemptID string) (execution.At
 		return execution.Attempt{}, err
 	}
 	attempt = execution.CanonicalAttempt(attempt)
-	if err := execution.ValidateAttempt(attempt); err != nil {
+	if err := execution.ValidateRecordedAttempt(attempt); err != nil {
 		return execution.Attempt{}, execution.ErrUnavailable
 	}
 

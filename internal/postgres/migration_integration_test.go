@@ -64,8 +64,8 @@ func TestMigrateEmptyDatabaseAndRepeat(t *testing.T) {
 	).Scan(&count); err != nil {
 		t.Fatalf("count migration ledger: %v", err)
 	}
-	if count != 12 {
-		t.Fatalf("migration ledger count = %d, want 12", count)
+	if count != 13 {
+		t.Fatalf("migration ledger count = %d, want 13", count)
 	}
 }
 
@@ -105,8 +105,8 @@ func TestMigrationUpgradesReleasedCatalogWithRepresentativeData(t *testing.T) {
 	).Scan(&migrationCount); err != nil {
 		t.Fatalf("count upgraded migration ledger: %v", err)
 	}
-	if migrationCount != 12 {
-		t.Fatalf("upgraded migration count = %d, want 12", migrationCount)
+	if migrationCount != 13 {
+		t.Fatalf("upgraded migration count = %d, want 13", migrationCount)
 	}
 }
 

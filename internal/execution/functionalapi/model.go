@@ -32,6 +32,7 @@ func (test Test) Identity(repository catalog.RepositoryIdentity) catalog.TestIde
 
 // Request is the exact input passed to one functional API adapter process.
 type Request struct {
+	Staging        *execution.Staging
 	APIVersion     string
 	AttemptID      string
 	Manifest       execution.ManifestReference
@@ -57,7 +58,14 @@ type AdapterResult struct {
 // CanonicalRequest deep-copies and orders requested tests.
 func CanonicalRequest(request Request) Request {
 	canonical := request
+	if request.Staging != nil {
+		staging := *request.Staging
+		canonical.Staging = &staging
+	}
 	canonical.Tests = append([]Test{}, request.Tests...)
+	if request.APIVersion == StagedRequestAPIVersion {
+		return canonical
+	}
 	slices.SortFunc(canonical.Tests, func(left, right Test) int {
 		if compared := cmp.Compare(left.SuiteKey, right.SuiteKey); compared != 0 {
 			return compared
@@ -81,7 +89,7 @@ func CanonicalAdapterResult(result AdapterResult) AdapterResult {
 
 // ValidateRequest rejects ambiguous, unbounded, or mutable adapter input.
 func ValidateRequest(request Request) error {
-	if request.APIVersion != AdapterRequestAPIVersion ||
+	if request.APIVersion != AdapterRequestAPIVersion || request.Staging != nil ||
 		execution.ValidateAttemptID(request.AttemptID) != nil ||
 		(request.Stage != execution.StageSelected && request.Stage != execution.StageFullSuite) ||
 		!catalog.IsLocalKey(request.Adapter) || len(request.Tests) == 0 ||

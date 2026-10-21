@@ -58,6 +58,12 @@
   corpus.
 - Generate language stubs only when a real producer or consumer needs them.
 
+The opt-in functional API staged protocol adds v2 bindings/plans/adapter requests
+and execution attempts in `source/functional-api-execution-v2.ts`. Result v1 is
+unchanged. V1 validators remain strict; see the
+[staged API guide](../docs/integrations/functional-api-staged.md) for independent
+source validation, complete-pass obligations and rollout.
+
 ## Delivered boundary
 
 `repository-descriptor/v1` lets one source repository declare:

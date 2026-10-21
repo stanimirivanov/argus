@@ -116,6 +116,7 @@ type ArtifactReference struct {
 
 // Attempt is normalized evidence correlated with one exact request.
 type Attempt struct {
+	Staging        *Staging
 	APIVersion     string
 	AttemptID      string
 	Manifest       ManifestReference
@@ -154,6 +155,10 @@ func CanonicalEvidence(results []TestResult, artifacts []ArtifactReference) ([]T
 // CanonicalAttempt deep-copies and orders normalized attempt evidence.
 func CanonicalAttempt(attempt Attempt) Attempt {
 	canonical := attempt
+	if attempt.Staging != nil {
+		staging := *attempt.Staging
+		canonical.Staging = &staging
+	}
 	canonical.StartedAt = attempt.StartedAt.UTC()
 	canonical.CompletedAt = attempt.CompletedAt.UTC()
 	canonical.Results, canonical.Artifacts = CanonicalEvidence(attempt.Results, attempt.Artifacts)
@@ -203,7 +208,7 @@ func ValidateResultEvidence(startedAt, completedAt time.Time, results []TestResu
 
 // ValidateAttempt verifies normalized evidence independently of an adapter.
 func ValidateAttempt(attempt Attempt) error {
-	if attempt.APIVersion != AttemptAPIVersion {
+	if attempt.APIVersion != AttemptAPIVersion || attempt.Staging != nil {
 		return fmt.Errorf("%w: attempt version", ErrInvalid)
 	}
 	if ValidateAttemptID(attempt.AttemptID) != nil ||
