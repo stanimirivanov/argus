@@ -42,7 +42,7 @@ var (
 	hexSHA256Pattern = regexp.MustCompile(`^[0-9a-f]{64}$`)
 )
 
-// Stage identifies the selected or full-suite execution pass.
+// Stage identifies an execution pass; each protocol restricts its allowed values.
 type Stage string
 
 const (

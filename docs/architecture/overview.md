@@ -358,6 +358,7 @@ protocol:
 | `internal/execution` | Framework-neutral attempt vocabulary, result semantics, bounds, canonical order, and evidence invariants | Functional-API adapter request/result types, process execution, JSON, CI configuration, or persistence |
 | `internal/execution/functionalapi` | Functional-API adapter request/result vocabulary and validation, stage planning, adapter port, exact correlation, and attempt assembly | Framework commands, generated contracts, or artifact upload |
 | `internal/execution/planning` | Deterministic repository/adapter grouping, exact reviewed binding coverage, and flat selected/full-suite job planning | Contracts, process execution, SQL, CI syntax, commands, or credentials |
+| `internal/execution/scheduledplan` | Runner-neutral staged partitions, immutable schedule/scope correlation, and full shadow-control membership | Artifact loading, runner dispatch, persistence, or promotion authority |
 | `internal/execution/attempts` | Validated immutable-attempt ingestion use case and consumer-owned persistence port | SQL, JSON, or artifact upload |
 | `internal/execution/shadow` | Explicit pair and complete-plan compatibility checks, aggregate duration/failure recall, and miss classification including full-only groups | Attempt lookup SQL, implicit latest selection, report persistence, or release policy |
 | `internal/execution/browserplanning` | Browser project/environment grouping, reviewed binding coverage, and mandatory full-suite jobs | CI commands, persistence, or browser adapter execution |

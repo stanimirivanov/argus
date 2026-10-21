@@ -116,6 +116,7 @@ var productionPackagePolicy = map[string]packagePolicy{
 	modulePath + "/internal/execution/browsershadow":                      {applicationLayer, executionCapability},
 	modulePath + "/internal/execution/functionalapi":                      {applicationLayer, executionCapability},
 	modulePath + "/internal/execution/planning":                           {applicationLayer, executionCapability},
+	modulePath + "/internal/execution/scheduledplan":                      {applicationLayer, executionCapability},
 	modulePath + "/internal/execution/shadow":                             {applicationLayer, executionCapability},
 	modulePath + "/internal/execution/adapters/cli/evidencecli":           {adapterLayer, executionCapability},
 	modulePath + "/internal/execution/adapters/cli/browsercli":            {adapterLayer, executionCapability},
