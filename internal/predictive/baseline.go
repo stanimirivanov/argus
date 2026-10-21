@@ -21,10 +21,14 @@ const ColdStartDurationMS int64 = 1000
 // EvaluationTest binds a stable test identity to pre-control decision data and
 // a control label. The evaluator reads labels only after ordering selections.
 type EvaluationTest struct {
-	ID         string
-	Decision   selection.Outcome
-	Outcome    execution.TestOutcome
-	DurationMS int64
+	ID string
+	// RepositoryKey and Family identify the calibration cohort without
+	// exposing mutable display names or changing the stable test identity.
+	RepositoryKey string
+	Family        string
+	Decision      selection.Outcome
+	Outcome       execution.TestOutcome
+	DurationMS    int64
 	// ControlCompletedAt makes earlier labels eligible only after the full
 	// control group finished. Baseline policies do not use this timestamp.
 	ControlCompletedAt time.Time

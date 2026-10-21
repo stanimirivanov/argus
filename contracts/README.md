@@ -375,5 +375,8 @@ semantics in [ADR-0041](../docs/decisions/0041-compare-predictive-baselines-with
 The additive ranking report records frozen interpretable coefficients and
 holdout comparisons under
 [ADR-0042](../docs/decisions/0042-train-a-causal-interpretable-ranking-baseline.md).
+The additive calibration report records frozen repository/family curves, explicit
+global fallback, and holdout reliability under
+[ADR-0043](../docs/decisions/0043-calibrate-predictive-risk-by-repository-and-family.md).
 The stable version migration, regex-export constraints and Node 24 retention
 are recorded in [ADR-0029](../docs/decisions/0029-migrate-stable-contract-toolchain-without-wire-changes.md).

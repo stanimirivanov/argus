@@ -133,6 +133,7 @@ var productionPackagePolicy = map[string]packagePolicy{
 	modulePath + "/cmd/predictive-replay":                                 {compositionRootLayer, productCapability},
 	modulePath + "/cmd/predictive-baselines":                              {compositionRootLayer, productCapability},
 	modulePath + "/cmd/predictive-ranking":                                {compositionRootLayer, productCapability},
+	modulePath + "/cmd/predictive-calibration":                            {compositionRootLayer, productCapability},
 	modulePath + "/internal/selection/capabilitymapped":                   {applicationLayer, selectionCapability},
 	modulePath + "/internal/selection/browsermapped":                      {applicationLayer, selectionCapability},
 	modulePath + "/internal/selection/adapters/catalogreader":             {adapterLayer, selectionCapability},
