@@ -142,3 +142,4 @@ How will the assumptions and consequences be verified?
 | [ADR-0041](0041-compare-predictive-baselines-with-training-only-signals.md) | Compare predictive baselines with training-only signals | Proposed | 2026-10-20 |
 | [ADR-0042](0042-train-a-causal-interpretable-ranking-baseline.md) | Train a causal interpretable ranking baseline | Proposed | 2026-10-20 |
 | [ADR-0043](0043-calibrate-predictive-risk-by-repository-and-family.md) | Calibrate predictive risk by repository and family | Proposed | 2026-10-21 |
+| [ADR-0044](0044-abstain-on-weak-predictive-evidence.md) | Abstain on weak predictive evidence | Proposed | 2026-10-21 |

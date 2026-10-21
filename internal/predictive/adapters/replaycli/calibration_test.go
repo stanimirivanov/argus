@@ -11,8 +11,8 @@ import (
 	"github.com/stanimirivanov/argus/internal/predictive/adapters/replaycli"
 )
 
-func TestCalibrationReportIsPortableAndOrderIndependent(t *testing.T) {
-	directory := t.TempDir()
+func calibrationArchive(t *testing.T, directory string) contracts.PredictiveDatasetIndexV1 {
+	t.Helper()
 	index := rankingArchive(t, directory)
 	calibration := observation(t, 45, "tests-a", "full-d", "2026-10-20T09:45:00Z")
 	calibration.Observation.Tests = make([]contracts.PredictiveTestV1, 0, 22)
@@ -34,6 +34,13 @@ func TestCalibrationReportIsPortableAndOrderIndependent(t *testing.T) {
 	save(t, directory, "calibration.json", calibration)
 	index.Episodes = append(index.Episodes, contracts.PredictiveIndexEpisode{
 		ID: "calibration", Observations: []string{"calibration.json"}})
+
+	return index
+}
+
+func TestCalibrationReportIsPortableAndOrderIndependent(t *testing.T) {
+	directory := t.TempDir()
+	index := calibrationArchive(t, directory)
 	run := func() ([]byte, contracts.PredictiveCalibrationV1) {
 		t.Helper()
 		save(t, directory, "index.json", index)

@@ -62,6 +62,7 @@ import { HeadTestInventoryV1 } from "../source/head-test-inventory-v1.js";
 import { ImpactEdgePageV1 } from "../source/impact-edge-page-v1.js";
 import { ImpactEvidenceBundleV1 } from "../source/impact-evidence-bundle-v1.js";
 import { MaintenanceAssessmentV1 } from "../source/maintenance-assessment-v1.js";
+import { PredictiveAbstentionV1 } from "../source/predictive-abstention-v1.js";
 import { PredictiveBaselinesV1 } from "../source/predictive-baselines-v1.js";
 import { PredictiveCalibrationV1 } from "../source/predictive-calibration-v1.js";
 import { PredictiveObservationEnvelopeV1 } from "../source/predictive-observation-v1.js";
@@ -79,6 +80,17 @@ import { TestCatalogPageV1 } from "../source/test-catalog-page-v1.js";
 import { compileJsonSchema } from "./json-schema.js";
 
 const artifacts = [
+  {
+    name: "predictive-abstention",
+    outputPath: new URL(
+      "../generated/predictive-abstention/v1/predictive-abstention.schema.json",
+      import.meta.url,
+    ),
+    document: {
+      $id: "https://argus.dev/contracts/predictive-abstention/v1/schema.json",
+      ...compileJsonSchema(PredictiveAbstentionV1),
+    },
+  },
   {
     name: "predictive-calibration",
     outputPath: new URL(
