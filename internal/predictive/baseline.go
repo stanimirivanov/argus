@@ -24,11 +24,13 @@ type EvaluationTest struct {
 	ID string
 	// RepositoryKey and Family identify the calibration cohort without
 	// exposing mutable display names or changing the stable test identity.
-	RepositoryKey string
-	Family        string
-	Decision      selection.Outcome
-	Outcome       execution.TestOutcome
-	DurationMS    int64
+	RepositoryKey  string
+	Family         string
+	Environment    string
+	ManifestSHA256 string
+	Decision       selection.Outcome
+	Outcome        execution.TestOutcome
+	DurationMS     int64
 	// ControlCompletedAt makes earlier labels eligible only after the full
 	// control group finished. Baseline policies do not use this timestamp.
 	ControlCompletedAt time.Time

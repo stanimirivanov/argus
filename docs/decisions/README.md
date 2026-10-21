@@ -143,3 +143,4 @@ How will the assumptions and consequences be verified?
 | [ADR-0042](0042-train-a-causal-interpretable-ranking-baseline.md) | Train a causal interpretable ranking baseline | Proposed | 2026-10-20 |
 | [ADR-0043](0043-calibrate-predictive-risk-by-repository-and-family.md) | Calibrate predictive risk by repository and family | Proposed | 2026-10-21 |
 | [ADR-0044](0044-abstain-on-weak-predictive-evidence.md) | Abstain on weak predictive evidence | Proposed | 2026-10-21 |
+| [ADR-0045](0045-estimate-stage-cost-from-reviewed-constraints.md) | Estimate stage cost from reviewed constraints | Proposed | 2026-10-21 |

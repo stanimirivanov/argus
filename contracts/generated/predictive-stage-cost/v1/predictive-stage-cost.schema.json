@@ -1,0 +1,204 @@
+{
+  "$id": "https://argus.dev/contracts/predictive-stage-cost/v1/schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$ref": "#/$defs/PredictiveStageCostV1",
+  "$defs": {
+    "LocalKey": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 63,
+      "pattern": "^[a-z][a-z0-9._-]*$",
+      "description": "A stable, repository-declared key. It is scoped by its containing repository or parent declaration."
+    },
+    "PredictiveStageCostV1": {
+      "type": "object",
+      "properties": {
+        "apiVersion": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "argus.dev/predictive-stage-cost/v1"
+              ]
+            }
+          ]
+        },
+        "constraintsSha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "episodes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/LocalKey"
+              },
+              "reviewId": {
+                "$ref": "#/$defs/LocalKey"
+              },
+              "reviewedBy": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 127
+              },
+              "reviewedAt": {
+                "type": "string"
+              },
+              "featureCutoffAt": {
+                "type": "string"
+              },
+              "manifestSha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "environments": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "$ref": "#/$defs/LocalKey"
+                    },
+                    "capacityUnits": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 10000
+                    },
+                    "setupDurationMs": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 86400000
+                    },
+                    "workUnitMs": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 8640000000000000
+                    },
+                    "resourceLowerBoundMs": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 8640000000000000
+                    }
+                  },
+                  "required": [
+                    "key",
+                    "capacityUnits",
+                    "setupDurationMs",
+                    "workUnitMs",
+                    "resourceLowerBoundMs"
+                  ],
+                  "additionalProperties": false
+                },
+                "minItems": 1,
+                "maxItems": 100
+              },
+              "tests": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "environment": {
+                      "$ref": "#/$defs/LocalKey"
+                    },
+                    "resourceUnits": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 10000
+                    },
+                    "coldStartDurationMs": {
+                      "type": "integer",
+                      "maximum": 86400000,
+                      "exclusiveMinimum": 0
+                    },
+                    "dependencies": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "pattern": "^[0-9a-f]{64}$"
+                      },
+                      "maxItems": 100
+                    },
+                    "durationMs": {
+                      "type": "integer",
+                      "maximum": 86400000,
+                      "exclusiveMinimum": 0
+                    },
+                    "samples": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000
+                    },
+                    "source": {
+                      "type": "string",
+                      "enum": [
+                        "training-p90",
+                        "reviewed-cold-start"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "environment",
+                    "resourceUnits",
+                    "coldStartDurationMs",
+                    "dependencies",
+                    "durationMs",
+                    "samples",
+                    "source"
+                  ],
+                  "additionalProperties": false
+                },
+                "minItems": 1,
+                "maxItems": 10000
+              },
+              "serialDurationMs": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 8640000000000000
+              },
+              "dependencyLowerBoundMs": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 8640000000000000
+              },
+              "lowerBoundMs": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 8640000000000000
+              }
+            },
+            "required": [
+              "id",
+              "reviewId",
+              "reviewedBy",
+              "reviewedAt",
+              "featureCutoffAt",
+              "manifestSha256",
+              "environments",
+              "tests",
+              "serialDurationMs",
+              "dependencyLowerBoundMs",
+              "lowerBoundMs"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1,
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "apiVersion",
+        "constraintsSha256",
+        "episodes"
+      ],
+      "additionalProperties": false,
+      "title": "Argus predictive stage cost v1"
+    }
+  }
+}
