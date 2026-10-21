@@ -21,7 +21,8 @@ const ColdStartDurationMS int64 = 1000
 // EvaluationTest binds a stable test identity to pre-control decision data and
 // a control label. The evaluator reads labels only after ordering selections.
 type EvaluationTest struct {
-	ID string
+	Capabilities []string
+	ID           string
 	// RepositoryKey and Family identify the calibration cohort without
 	// exposing mutable display names or changing the stable test identity.
 	RepositoryKey  string

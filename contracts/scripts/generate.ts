@@ -70,6 +70,7 @@ import {
   PredictiveStageCostV1,
 } from "../source/predictive-cost-v1.js";
 import { PredictiveObservationEnvelopeV1 } from "../source/predictive-observation-v1.js";
+import { PredictivePortfolioV1 } from "../source/predictive-portfolio-v1.js";
 import { PredictiveRankingV1 } from "../source/predictive-ranking-v1.js";
 import { PredictiveDatasetIndexV1, PredictiveReplayV1 } from "../source/predictive-replay-v1.js";
 import { RepositoryDescriptorV1 } from "../source/repository-descriptor-v1.js";
@@ -84,6 +85,17 @@ import { TestCatalogPageV1 } from "../source/test-catalog-page-v1.js";
 import { compileJsonSchema } from "./json-schema.js";
 
 const artifacts = [
+  {
+    name: "predictive-portfolio",
+    outputPath: new URL(
+      "../generated/predictive-portfolio/v1/predictive-portfolio.schema.json",
+      import.meta.url,
+    ),
+    document: {
+      $id: "https://argus.dev/contracts/predictive-portfolio/v1/schema.json",
+      ...compileJsonSchema(PredictivePortfolioV1),
+    },
+  },
   {
     name: "predictive-stage-constraints",
     outputPath: new URL(

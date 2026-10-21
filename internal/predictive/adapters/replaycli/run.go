@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"time"
 
 	"github.com/stanimirivanov/argus/internal/commandline"
@@ -167,6 +168,7 @@ func appendEvaluationTests(tests []predictive.EvaluationTest, observation contra
 		}
 		tests = append(tests, predictive.EvaluationTest{ID: identity, RepositoryKey: repositoryKey, Family: observation.Family, Environment: environment,
 			ManifestSHA256: observation.Manifest.SHA256,
+			Capabilities:   slices.Clone(test.Capabilities),
 			Decision:       selection.Outcome(test.Decision),
 			Outcome:        execution.TestOutcome(test.Outcome), DurationMS: test.DurationMS, ControlCompletedAt: completedAt})
 	}
