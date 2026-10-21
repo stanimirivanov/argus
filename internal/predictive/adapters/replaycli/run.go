@@ -145,6 +145,14 @@ func readObservation(root, name string) (contracts.PredictiveObservationEnvelope
 }
 
 func appendEvaluationTests(tests []predictive.EvaluationTest, observation contracts.PredictiveObservationV1, completedAt time.Time) ([]predictive.EvaluationTest, error) {
+	repositoryKey, err := digest(struct {
+		Provider             string
+		Host                 string
+		ProviderRepositoryID string
+	}{observation.TestRepository.Provider, observation.TestRepository.Host, observation.TestRepository.ProviderRepositoryID})
+	if err != nil {
+		return nil, err
+	}
 	for _, test := range observation.Tests {
 		if len(tests) >= 10000 {
 			return nil, fmt.Errorf("baseline episode exceeds 10000 tests")
@@ -153,8 +161,9 @@ func appendEvaluationTests(tests []predictive.EvaluationTest, observation contra
 		if err != nil {
 			return nil, err
 		}
-		tests = append(tests, predictive.EvaluationTest{ID: identity, Decision: selection.Outcome(test.Decision),
-			Outcome: execution.TestOutcome(test.Outcome), DurationMS: test.DurationMS, ControlCompletedAt: completedAt})
+		tests = append(tests, predictive.EvaluationTest{ID: identity, RepositoryKey: repositoryKey, Family: observation.Family,
+			Decision: selection.Outcome(test.Decision),
+			Outcome:  execution.TestOutcome(test.Outcome), DurationMS: test.DurationMS, ControlCompletedAt: completedAt})
 	}
 
 	return tests, nil

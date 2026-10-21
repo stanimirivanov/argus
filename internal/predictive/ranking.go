@@ -87,8 +87,11 @@ type trainingEpisode struct {
 }
 
 type trainingRow struct {
-	Features RankingFactors
-	Failed   float64
+	EpisodeID     string
+	RepositoryKey string
+	Family        string
+	Features      RankingFactors
+	Failed        float64
 }
 
 // TrainRanking fits a deterministic linear failure-risk model on causal
@@ -146,7 +149,8 @@ func causalTrainingRows(replay Replay, archive map[string][]EvaluationTest) ([]t
 			if test.Outcome == execution.TestFailed {
 				failed = 1
 			}
-			rows = append(rows, trainingRow{Features: rankingFeatures(test.Decision, history[test.ID]), Failed: failed})
+			rows = append(rows, trainingRow{EpisodeID: episode.Replay.ID, RepositoryKey: test.RepositoryKey,
+				Family: test.Family, Features: rankingFeatures(test.Decision, history[test.ID]), Failed: failed})
 		}
 	}
 	for ; next < len(completed); next++ {
@@ -271,11 +275,20 @@ func sigmoid(score float64) float64 {
 }
 
 func rankHoldout(id string, tests []EvaluationTest, history map[string]rankingHistory, model RankingModel, budgetMS int64) RankingEpisode {
-	entry := RankingEpisode{ID: id, Ranked: make([]RankedTest, 0, len(tests))}
+	entry := RankingEpisode{ID: id, Ranked: scoreHoldout(tests, history, model)}
 	byID := make(map[string]EvaluationTest, len(tests))
-	weights := model.Coefficients.values()
 	for _, test := range tests {
 		byID[test.ID] = test
+	}
+	entry.Comparison = evaluateRanking(&entry, byID, budgetMS)
+
+	return entry
+}
+
+func scoreHoldout(tests []EvaluationTest, history map[string]rankingHistory, model RankingModel) []RankedTest {
+	ranked := make([]RankedTest, 0, len(tests))
+	weights := model.Coefficients.values()
+	for _, test := range tests {
 		features := rankingFeatures(test.Decision, history[test.ID])
 		values := features.values()
 		var effects [4]float64
@@ -289,11 +302,11 @@ func rankHoldout(id string, tests []EvaluationTest, history map[string]rankingHi
 			estimate = signal.DurationMS
 		}
 		cost := max(estimate, 1)
-		entry.Ranked = append(entry.Ranked, RankedTest{ID: test.ID, Features: features,
+		ranked = append(ranked, RankedTest{ID: test.ID, Features: features,
 			Contributions: factors(effects), RiskScore: risk, ValueScore: risk - math.Log(float64(cost)/1000),
 			EstimatedDurationMS: estimate})
 	}
-	slices.SortFunc(entry.Ranked, func(a, b RankedTest) int {
+	slices.SortFunc(ranked, func(a, b RankedTest) int {
 		if a.ValueScore > b.ValueScore {
 			return -1
 		}
@@ -303,9 +316,8 @@ func rankHoldout(id string, tests []EvaluationTest, history map[string]rankingHi
 
 		return compare(a.ID, b.ID)
 	})
-	entry.Comparison = evaluateRanking(&entry, byID, budgetMS)
 
-	return entry
+	return ranked
 }
 
 func evaluateRanking(entry *RankingEpisode, tests map[string]EvaluationTest, budgetMS int64) BaselineComparison {
