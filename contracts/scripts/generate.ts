@@ -65,6 +65,10 @@ import { MaintenanceAssessmentV1 } from "../source/maintenance-assessment-v1.js"
 import { PredictiveAbstentionV1 } from "../source/predictive-abstention-v1.js";
 import { PredictiveBaselinesV1 } from "../source/predictive-baselines-v1.js";
 import { PredictiveCalibrationV1 } from "../source/predictive-calibration-v1.js";
+import {
+  PredictiveStageConstraintsV1,
+  PredictiveStageCostV1,
+} from "../source/predictive-cost-v1.js";
 import { PredictiveObservationEnvelopeV1 } from "../source/predictive-observation-v1.js";
 import { PredictiveRankingV1 } from "../source/predictive-ranking-v1.js";
 import { PredictiveDatasetIndexV1, PredictiveReplayV1 } from "../source/predictive-replay-v1.js";
@@ -80,6 +84,28 @@ import { TestCatalogPageV1 } from "../source/test-catalog-page-v1.js";
 import { compileJsonSchema } from "./json-schema.js";
 
 const artifacts = [
+  {
+    name: "predictive-stage-constraints",
+    outputPath: new URL(
+      "../generated/predictive-stage-constraints/v1/predictive-stage-constraints.schema.json",
+      import.meta.url,
+    ),
+    document: {
+      $id: "https://argus.dev/contracts/predictive-stage-constraints/v1/schema.json",
+      ...compileJsonSchema(PredictiveStageConstraintsV1),
+    },
+  },
+  {
+    name: "predictive-stage-cost",
+    outputPath: new URL(
+      "../generated/predictive-stage-cost/v1/predictive-stage-cost.schema.json",
+      import.meta.url,
+    ),
+    document: {
+      $id: "https://argus.dev/contracts/predictive-stage-cost/v1/schema.json",
+      ...compileJsonSchema(PredictiveStageCostV1),
+    },
+  },
   {
     name: "predictive-abstention",
     outputPath: new URL(

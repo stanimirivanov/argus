@@ -1,0 +1,149 @@
+{
+  "$id": "https://argus.dev/contracts/predictive-stage-constraints/v1/schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$ref": "#/$defs/PredictiveStageConstraintsV1",
+  "$defs": {
+    "LocalKey": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 63,
+      "pattern": "^[a-z][a-z0-9._-]*$",
+      "description": "A stable, repository-declared key. It is scoped by its containing repository or parent declaration."
+    },
+    "PredictiveStageConstraintsV1": {
+      "type": "object",
+      "properties": {
+        "apiVersion": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "argus.dev/predictive-stage-constraints/v1"
+              ]
+            }
+          ]
+        },
+        "episodes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/LocalKey"
+              },
+              "reviewId": {
+                "$ref": "#/$defs/LocalKey"
+              },
+              "reviewedBy": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 127
+              },
+              "reviewedAt": {
+                "type": "string"
+              },
+              "featureCutoffAt": {
+                "type": "string"
+              },
+              "manifestSha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "environments": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "$ref": "#/$defs/LocalKey"
+                    },
+                    "capacityUnits": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 10000
+                    },
+                    "setupDurationMs": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 86400000
+                    }
+                  },
+                  "required": [
+                    "key",
+                    "capacityUnits",
+                    "setupDurationMs"
+                  ],
+                  "additionalProperties": false
+                },
+                "minItems": 1,
+                "maxItems": 100
+              },
+              "tests": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "environment": {
+                      "$ref": "#/$defs/LocalKey"
+                    },
+                    "resourceUnits": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 10000
+                    },
+                    "coldStartDurationMs": {
+                      "type": "integer",
+                      "maximum": 86400000,
+                      "exclusiveMinimum": 0
+                    },
+                    "dependencies": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "pattern": "^[0-9a-f]{64}$"
+                      },
+                      "maxItems": 100
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "environment",
+                    "resourceUnits",
+                    "coldStartDurationMs",
+                    "dependencies"
+                  ],
+                  "additionalProperties": false
+                },
+                "minItems": 1,
+                "maxItems": 10000
+              }
+            },
+            "required": [
+              "id",
+              "reviewId",
+              "reviewedBy",
+              "reviewedAt",
+              "featureCutoffAt",
+              "manifestSha256",
+              "environments",
+              "tests"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1,
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "apiVersion",
+        "episodes"
+      ],
+      "additionalProperties": false,
+      "title": "Argus reviewed predictive stage constraints v1"
+    }
+  }
+}

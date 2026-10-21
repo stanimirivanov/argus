@@ -381,5 +381,8 @@ global fallback, and holdout reliability under
 The additive abstention report records decision-time evidence gaps and
 full-control fallback under
 [ADR-0044](../docs/decisions/0044-abstain-on-weak-predictive-evidence.md).
+The stage constraints and cost contracts bind reviewed resource/dependency
+requirements and training-only duration estimates under
+[ADR-0045](../docs/decisions/0045-estimate-stage-cost-from-reviewed-constraints.md).
 The stable version migration, regex-export constraints and Node 24 retention
 are recorded in [ADR-0029](../docs/decisions/0029-migrate-stable-contract-toolchain-without-wire-changes.md).

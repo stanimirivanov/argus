@@ -145,6 +145,10 @@ func readObservation(root, name string) (contracts.PredictiveObservationEnvelope
 }
 
 func appendEvaluationTests(tests []predictive.EvaluationTest, observation contracts.PredictiveObservationV1, completedAt time.Time) ([]predictive.EvaluationTest, error) {
+	environment := ""
+	if observation.Environment != nil {
+		environment = *observation.Environment
+	}
 	repositoryKey, err := digest(struct {
 		Provider             string
 		Host                 string
@@ -161,9 +165,10 @@ func appendEvaluationTests(tests []predictive.EvaluationTest, observation contra
 		if err != nil {
 			return nil, err
 		}
-		tests = append(tests, predictive.EvaluationTest{ID: identity, RepositoryKey: repositoryKey, Family: observation.Family,
-			Decision: selection.Outcome(test.Decision),
-			Outcome:  execution.TestOutcome(test.Outcome), DurationMS: test.DurationMS, ControlCompletedAt: completedAt})
+		tests = append(tests, predictive.EvaluationTest{ID: identity, RepositoryKey: repositoryKey, Family: observation.Family, Environment: environment,
+			ManifestSHA256: observation.Manifest.SHA256,
+			Decision:       selection.Outcome(test.Decision),
+			Outcome:        execution.TestOutcome(test.Outcome), DurationMS: test.DurationMS, ControlCompletedAt: completedAt})
 	}
 
 	return tests, nil
