@@ -1,0 +1,549 @@
+{
+  "$id": "https://argus.dev/contracts/predictive-portfolio/v1/schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$ref": "#/$defs/PredictivePortfolioV1",
+  "$defs": {
+    "LocalKey": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 63,
+      "pattern": "^[a-z][a-z0-9._-]*$",
+      "description": "A stable, repository-declared key. It is scoped by its containing repository or parent declaration."
+    },
+    "PredictiveStageCostV1": {
+      "type": "object",
+      "properties": {
+        "apiVersion": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "argus.dev/predictive-stage-cost/v1"
+              ]
+            }
+          ]
+        },
+        "constraintsSha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "episodes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/LocalKey"
+              },
+              "reviewId": {
+                "$ref": "#/$defs/LocalKey"
+              },
+              "reviewedBy": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 127
+              },
+              "reviewedAt": {
+                "type": "string"
+              },
+              "featureCutoffAt": {
+                "type": "string"
+              },
+              "manifestSha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "environments": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "$ref": "#/$defs/LocalKey"
+                    },
+                    "capacityUnits": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 10000
+                    },
+                    "setupDurationMs": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 86400000
+                    },
+                    "workUnitMs": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 8640000000000000
+                    },
+                    "resourceLowerBoundMs": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 8640000000000000
+                    }
+                  },
+                  "required": [
+                    "key",
+                    "capacityUnits",
+                    "setupDurationMs",
+                    "workUnitMs",
+                    "resourceLowerBoundMs"
+                  ],
+                  "additionalProperties": false
+                },
+                "minItems": 1,
+                "maxItems": 100
+              },
+              "tests": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "environment": {
+                      "$ref": "#/$defs/LocalKey"
+                    },
+                    "resourceUnits": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 10000
+                    },
+                    "coldStartDurationMs": {
+                      "type": "integer",
+                      "maximum": 86400000,
+                      "exclusiveMinimum": 0
+                    },
+                    "dependencies": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "pattern": "^[0-9a-f]{64}$"
+                      },
+                      "maxItems": 100
+                    },
+                    "durationMs": {
+                      "type": "integer",
+                      "maximum": 86400000,
+                      "exclusiveMinimum": 0
+                    },
+                    "samples": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000
+                    },
+                    "source": {
+                      "type": "string",
+                      "enum": [
+                        "training-p90",
+                        "reviewed-cold-start"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "environment",
+                    "resourceUnits",
+                    "coldStartDurationMs",
+                    "dependencies",
+                    "durationMs",
+                    "samples",
+                    "source"
+                  ],
+                  "additionalProperties": false
+                },
+                "minItems": 1,
+                "maxItems": 10000
+              },
+              "serialDurationMs": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 8640000000000000
+              },
+              "dependencyLowerBoundMs": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 8640000000000000
+              },
+              "lowerBoundMs": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 8640000000000000
+              }
+            },
+            "required": [
+              "id",
+              "reviewId",
+              "reviewedBy",
+              "reviewedAt",
+              "featureCutoffAt",
+              "manifestSha256",
+              "environments",
+              "tests",
+              "serialDurationMs",
+              "dependencyLowerBoundMs",
+              "lowerBoundMs"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1,
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "apiVersion",
+        "constraintsSha256",
+        "episodes"
+      ],
+      "additionalProperties": false,
+      "title": "Argus predictive stage cost v1"
+    },
+    "PredictiveAbstentionV1": {
+      "type": "object",
+      "properties": {
+        "apiVersion": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "argus.dev/predictive-abstention/v1"
+              ]
+            }
+          ]
+        },
+        "calibrationVersion": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "argus.dev/predictive-calibration/v1"
+              ]
+            }
+          ]
+        },
+        "minimumBinExamples": {
+          "type": "integer",
+          "maximum": 9007199254740991,
+          "exclusiveMinimum": 0
+        },
+        "fitEpisodeIds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LocalKey"
+          },
+          "maxItems": 1000
+        },
+        "calibrationEpisodeIds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LocalKey"
+          },
+          "maxItems": 1000
+        },
+        "episodes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/LocalKey"
+              },
+              "mode": {
+                "type": "string",
+                "enum": [
+                  "eligible",
+                  "full-control"
+                ]
+              },
+              "evidenceState": {
+                "type": "string",
+                "enum": [
+                  "calibrated",
+                  "unavailable"
+                ]
+              },
+              "candidateTestIds": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "minItems": 1,
+                "maxItems": 10000
+              },
+              "requiredTestIds": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "maxItems": 10000
+              },
+              "tests": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "repositoryKey": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "family": {
+                      "type": "string",
+                      "enum": [
+                        "functional-api",
+                        "functional-ui"
+                      ]
+                    },
+                    "probability": {
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "Infinity",
+                            "-Infinity",
+                            "NaN"
+                          ]
+                        }
+                      ]
+                    },
+                    "calibrationSource": {
+                      "type": "string",
+                      "enum": [
+                        "cohort",
+                        "global"
+                      ]
+                    },
+                    "priorControls": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "cohortExamples": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "calibrationBin": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9
+                    },
+                    "binExamples": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "reasons": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "cold-start",
+                          "global-calibration",
+                          "sparse-calibration-bin"
+                        ]
+                      },
+                      "maxItems": 3
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "repositoryKey",
+                    "family",
+                    "probability",
+                    "calibrationSource",
+                    "priorControls",
+                    "cohortExamples",
+                    "calibrationBin",
+                    "binExamples",
+                    "reasons"
+                  ],
+                  "additionalProperties": false
+                },
+                "maxItems": 10000
+              }
+            },
+            "required": [
+              "id",
+              "mode",
+              "evidenceState",
+              "candidateTestIds",
+              "requiredTestIds",
+              "tests"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1,
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "apiVersion",
+        "calibrationVersion",
+        "minimumBinExamples",
+        "fitEpisodeIds",
+        "calibrationEpisodeIds",
+        "episodes"
+      ],
+      "additionalProperties": false,
+      "title": "Argus predictive abstention evaluation v1"
+    },
+    "PredictivePortfolioV1": {
+      "type": "object",
+      "properties": {
+        "apiVersion": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "argus.dev/predictive-portfolio/v1"
+              ]
+            }
+          ]
+        },
+        "budgetMs": {
+          "type": "integer",
+          "maximum": 86400000,
+          "exclusiveMinimum": 0
+        },
+        "costs": {
+          "$ref": "#/$defs/PredictiveStageCostV1"
+        },
+        "abstention": {
+          "$ref": "#/$defs/PredictiveAbstentionV1"
+        },
+        "episodes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/LocalKey"
+              },
+              "mode": {
+                "type": "string",
+                "enum": [
+                  "portfolio",
+                  "full-control",
+                  "required-over-budget"
+                ]
+              },
+              "fallbackReason": {
+                "type": "string",
+                "enum": [
+                  "",
+                  "abstention",
+                  "optimizer-limit"
+                ]
+              },
+              "requiredTestIds": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "maxItems": 10000
+              },
+              "omittedTestIds": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "maxItems": 10000
+              },
+              "coveredCapabilities": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/LocalKey"
+                },
+                "maxItems": 1000000
+              },
+              "selected": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "reason": {
+                      "type": "string",
+                      "enum": [
+                        "required",
+                        "dependency",
+                        "diversity",
+                        "ranked",
+                        "fallback"
+                      ]
+                    },
+                    "startMs": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 8640000000000000
+                    },
+                    "endMs": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 8640000000000000
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "reason",
+                    "startMs",
+                    "endMs"
+                  ],
+                  "additionalProperties": false
+                },
+                "maxItems": 10000
+              },
+              "estimatedDurationMs": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 8640000000000000
+              },
+              "overBudget": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "id",
+              "mode",
+              "fallbackReason",
+              "requiredTestIds",
+              "omittedTestIds",
+              "coveredCapabilities",
+              "selected",
+              "estimatedDurationMs",
+              "overBudget"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1,
+          "maxItems": 1000
+        }
+      },
+      "required": [
+        "apiVersion",
+        "budgetMs",
+        "costs",
+        "abstention",
+        "episodes"
+      ],
+      "additionalProperties": false,
+      "title": "Argus predictive portfolio v1"
+    }
+  }
+}
