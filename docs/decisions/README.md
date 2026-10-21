@@ -140,3 +140,4 @@ How will the assumptions and consequences be verified?
 | [ADR-0039](0039-capture-explicit-predictive-observations.md) | Capture explicit predictive observations for offline evaluation | Proposed | 2026-10-20 |
 | [ADR-0040](0040-replay-predictive-evidence-with-a-fixed-temporal-cutoff.md) | Replay predictive evidence with a fixed temporal cutoff | Proposed | 2026-10-20 |
 | [ADR-0041](0041-compare-predictive-baselines-with-training-only-signals.md) | Compare predictive baselines with training-only signals | Proposed | 2026-10-20 |
+| [ADR-0042](0042-train-a-causal-interpretable-ranking-baseline.md) | Train a causal interpretable ranking baseline | Proposed | 2026-10-20 |
