@@ -378,5 +378,8 @@ holdout comparisons under
 The additive calibration report records frozen repository/family curves, explicit
 global fallback, and holdout reliability under
 [ADR-0043](../docs/decisions/0043-calibrate-predictive-risk-by-repository-and-family.md).
+The additive abstention report records decision-time evidence gaps and
+full-control fallback under
+[ADR-0044](../docs/decisions/0044-abstain-on-weak-predictive-evidence.md).
 The stable version migration, regex-export constraints and Node 24 retention
 are recorded in [ADR-0029](../docs/decisions/0029-migrate-stable-contract-toolchain-without-wire-changes.md).

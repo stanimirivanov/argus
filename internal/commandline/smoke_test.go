@@ -33,6 +33,7 @@ var commandNames = []string{
 	"predictive-baselines",
 	"predictive-ranking",
 	"predictive-calibration",
+	"predictive-abstention",
 	"propose-browser-locator",
 	"playwright-catalog",
 	"propose-functional-api-repair",
