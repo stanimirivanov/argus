@@ -150,7 +150,11 @@ func TestBrowserStagedCLIAndScopeIsolation(t *testing.T) {
 	f := browserStageInputs(t)
 	for _, mode := range []string{"staged", "shadow"} {
 		var output bytes.Buffer
-		if err := planningcli.RunBrowser(t.Context(), f.args(mode), nil, &output); err != nil {
+		args := f.args(mode)
+		if mode == "staged" {
+			args = append(args, browserPromotionArgs(t, f)...)
+		}
+		if err := planningcli.RunBrowser(t.Context(), args, nil, &output); err != nil {
 			t.Fatal(err)
 		}
 		if err := os.WriteFile(filepath.Join(f.directory, "plan.json"), output.Bytes(), 0600); err != nil {

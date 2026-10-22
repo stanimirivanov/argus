@@ -25,6 +25,7 @@ func RunBrowser(_ context.Context, args []string, stdin io.Reader, stdout io.Wri
 	scheduleSHA := flags.String("schedule-sha256", "", "trusted full portfolio SHA-256")
 	episode := flags.String("episode", "", "exact portfolio episode")
 	mode := flags.String("mode", "", "shadow (default when opted in) or staged")
+	promotion := addPromotionFlags(flags)
 	discoveryPath := flags.String("discovery", "", "complete revision-bound browser discovery file")
 	if err := commandline.Parse(flags, args); err != nil {
 		return err
@@ -53,9 +54,9 @@ func RunBrowser(_ context.Context, args []string, stdin io.Reader, stdout io.Wri
 		if *mode == "" {
 			*mode = "shadow"
 		}
-		return runBrowserStagePlan(document, hex.EncodeToString(digest[:]), data, *schedulePath, *scheduleSHA, *episode, *mode, *discoveryPath, stdout)
+		return runBrowserStagePlan(document, hex.EncodeToString(digest[:]), data, *schedulePath, *scheduleSHA, *episode, *mode, *discoveryPath, promotion, stdout)
 	}
-	if *scheduleSHA != "" || *episode != "" || *mode != "" || *discoveryPath != "" {
+	if *scheduleSHA != "" || *episode != "" || *mode != "" || *discoveryPath != "" || promotion.provided() {
 		return commandline.UsageText("staged flags require -schedule")
 	}
 	bindingDocument, err := contracts.DecodeBrowserExecutionBindingsV1(data)

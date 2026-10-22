@@ -82,6 +82,10 @@ import {
 } from "../source/predictive-cost-v1.js";
 import { PredictiveObservationEnvelopeV1 } from "../source/predictive-observation-v1.js";
 import { PredictivePortfolioV1 } from "../source/predictive-portfolio-v1.js";
+import {
+  PredictivePromotionDecisionV1,
+  PredictivePromotionPolicyV1,
+} from "../source/predictive-promotion-policy-v1.js";
 import { PredictiveRankingV1 } from "../source/predictive-ranking-v1.js";
 import { PredictiveDatasetIndexV1, PredictiveReplayV1 } from "../source/predictive-replay-v1.js";
 import {
@@ -179,6 +183,28 @@ const artifacts = [
     },
   },
 
+  {
+    name: "predictive-promotion-policy",
+    outputPath: new URL(
+      "../generated/predictive-promotion-policy/v1/predictive-promotion-policy.schema.json",
+      import.meta.url,
+    ),
+    document: {
+      $id: "https://argus.dev/contracts/predictive-promotion-policy/v1/schema.json",
+      ...compileJsonSchema(PredictivePromotionPolicyV1),
+    },
+  },
+  {
+    name: "predictive-promotion-decision",
+    outputPath: new URL(
+      "../generated/predictive-promotion-decision/v1/predictive-promotion-decision.schema.json",
+      import.meta.url,
+    ),
+    document: {
+      $id: "https://argus.dev/contracts/predictive-promotion-decision/v1/schema.json",
+      ...compileJsonSchema(PredictivePromotionDecisionV1),
+    },
+  },
   {
     name: "predictive-safety-index",
     outputPath: new URL(

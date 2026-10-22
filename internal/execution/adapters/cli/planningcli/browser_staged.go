@@ -12,7 +12,7 @@ import (
 	"github.com/stanimirivanov/argus/internal/execution/scheduledplan"
 )
 
-func runBrowserStagePlan(doc contracts.BrowserSelectionManifestV1, manifestSHA string, bindingsData []byte, schedulePath, expectedSHA, episode, mode, discoveryPath string, stdout io.Writer) error {
+func runBrowserStagePlan(doc contracts.BrowserSelectionManifestV1, manifestSHA string, bindingsData []byte, schedulePath, expectedSHA, episode, mode, discoveryPath string, promotion promotionFlags, stdout io.Writer) error {
 	bindings, err := contracts.DecodeBrowserExecutionBindingsV1(bindingsData)
 	if err != nil {
 		return err
@@ -38,7 +38,11 @@ func runBrowserStagePlan(doc contracts.BrowserSelectionManifestV1, manifestSHA s
 	if err != nil {
 		return err
 	}
-	plan, err := scheduledplan.Build(source, scheduledplan.Mode(mode))
+	resolved, err := promotion.mode(mode, source)
+	if err != nil {
+		return err
+	}
+	plan, err := scheduledplan.Build(source, resolved)
 	if err != nil {
 		return err
 	}

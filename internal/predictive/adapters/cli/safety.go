@@ -35,36 +35,11 @@ func RunSafety(args []string, stdout io.Writer) error {
 	if *path == "" || flags.NArg() != 0 {
 		return commandline.UsageText("usage: predictive-safety -index <path>")
 	}
-	data, err := readBounded(*path)
+	report, inputSHA, err := loadSafetySnapshot(*path)
 	if err != nil {
 		return err
 	}
-	index, err := contracts.DecodePredictiveSafetyIndexV1(data)
-	if err != nil {
-		return err
-	}
-	root, err := filepath.EvalSymlinks(filepath.Dir(*path))
-	if err != nil {
-		return err
-	}
-	root, err = filepath.Abs(root)
-	if err != nil {
-		return err
-	}
-	window, err := safetyWindow(index)
-	if err != nil {
-		return err
-	}
-	archive := safetyArchive{root: root}
-	inputs, err := archive.loadSafetyInputs(index.Runs)
-	if err != nil {
-		return err
-	}
-	report, err := predictive.Monitor(window, inputs)
-	if err != nil {
-		return err
-	}
-	output := exportSafety(report, safetySHA(data))
+	output := exportSafety(report, inputSHA)
 	if err := contracts.ValidatePredictiveSafetyReportV1(output); err != nil {
 		return err
 	}
@@ -273,4 +248,38 @@ func (a *safetyArchive) loadSafetyInputs(declarations []contracts.PredictiveSafe
 	}
 
 	return inputs, nil
+}
+
+func loadSafetySnapshot(path string) (predictive.SafetyReport, string, error) {
+	data, err := readBounded(path)
+	if err != nil {
+		return predictive.SafetyReport{}, "", err
+	}
+	index, err := contracts.DecodePredictiveSafetyIndexV1(data)
+	if err != nil {
+		return predictive.SafetyReport{}, "", err
+	}
+	root, err := filepath.EvalSymlinks(filepath.Dir(path))
+	if err != nil {
+		return predictive.SafetyReport{}, "", err
+	}
+	root, err = filepath.Abs(root)
+	if err != nil {
+		return predictive.SafetyReport{}, "", err
+	}
+	window, err := safetyWindow(index)
+	if err != nil {
+		return predictive.SafetyReport{}, "", err
+	}
+	archive := safetyArchive{root: root}
+	inputs, err := archive.loadSafetyInputs(index.Runs)
+	if err != nil {
+		return predictive.SafetyReport{}, "", err
+	}
+	report, err := predictive.Monitor(window, inputs)
+	if err != nil {
+		return predictive.SafetyReport{}, "", err
+	}
+
+	return report, safetySHA(data), nil
 }
