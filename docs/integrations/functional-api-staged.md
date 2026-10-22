@@ -63,7 +63,7 @@ Attempts use `argus.dev/execution-attempt/v2` and retain immutable provenance. E
 go run ./cmd/execution-evidence ingest -file attempt-v2.json
 ~~~
 
-Exact evidence retries are idempotent, including provenance and normalized results. Reusing an attempt ID for different content returns a conflict; a genuine rerun needs a new ID. Stored results and provenance are read from one repeatable-read snapshot. Ingestion validates evidence shape; trusted CI remains responsible for supplying genuine runner evidence. V1 shadow-report consumers deliberately reject v2; aggregate staged safety reporting belongs to M08-PR12. Do not interpret an individual passed stage as complete coverage.
+Exact evidence retries are idempotent, including provenance and normalized results. Reusing an attempt ID for different content returns a conflict; a genuine rerun needs a new ID. Stored results and provenance are read from one repeatable-read snapshot. Ingestion validates evidence shape; trusted CI remains responsible for supplying genuine runner evidence. V1 shadow-report consumers deliberately reject v2; use the [staged safety reader](predictive-safety.md) for aggregate observations. Do not interpret an individual passed stage as complete coverage.
 
 ## Deployment and verification
 

@@ -90,6 +90,11 @@ type PredictiveCalibrationQuality struct {
 	ReliabilityBins []PredictiveReliabilityBin `json:"reliabilityBins"`
 }
 
+// ValidateRawPredictiveCalibrationV1 rejects unknown fields before typed decoding.
+func ValidateRawPredictiveCalibrationV1(data []byte) error {
+	return validateDocument(data, loadPredictiveCalibrationSchema, "predictive calibration")
+}
+
 // ValidatePredictiveCalibrationV1 checks the portable report shape.
 func ValidatePredictiveCalibrationV1(report PredictiveCalibrationV1) error {
 	data, err := json.Marshal(report)

@@ -247,7 +247,7 @@ func TestFullFallbackSkipsEmptyLaterPhase(t *testing.T) {
 	}
 }
 
-func checkStageRoundTrip(t *testing.T, fixture stageFixture, mode, stage string) {
+func checkStageRoundTrip(t *testing.T, fixture stageFixture, mode, stage string) []byte {
 	t.Helper()
 	var output bytes.Buffer
 	args := append(fixture.planArgs(mode), "-plan", filepath.Join(fixture.directory, "plan.json"), "-group", "orders", "-environment", "ci", "-attempt-id", mode+"-"+stage, "-stage", stage, "-test-repository-id", "tests-1", "-test-revision", strings.Repeat("b", 40), "-adapter", "playwright", "--", "reviewed-adapter")
@@ -269,4 +269,6 @@ func checkStageRoundTrip(t *testing.T, fixture stageFixture, mode, stage string)
 	if _, err := contracts.DecodeExecutionAttemptV1(output.Bytes()); err == nil {
 		t.Fatal("v1 accepted v2")
 	}
+
+	return output.Bytes()
 }

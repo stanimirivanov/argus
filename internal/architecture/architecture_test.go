@@ -138,6 +138,7 @@ var productionPackagePolicy = map[string]packagePolicy{
 	modulePath + "/cmd/predictive-abstention":                             {compositionRootLayer, productCapability},
 	modulePath + "/cmd/predictive-cost":                                   {compositionRootLayer, productCapability},
 	modulePath + "/cmd/predictive-portfolio":                              {compositionRootLayer, productCapability},
+	modulePath + "/cmd/predictive-safety":                                 {compositionRootLayer, productCapability},
 	modulePath + "/internal/selection/capabilitymapped":                   {applicationLayer, selectionCapability},
 	modulePath + "/internal/selection/browsermapped":                      {applicationLayer, selectionCapability},
 	modulePath + "/internal/selection/adapters/catalogreader":             {adapterLayer, selectionCapability},

@@ -84,6 +84,10 @@ import { PredictiveObservationEnvelopeV1 } from "../source/predictive-observatio
 import { PredictivePortfolioV1 } from "../source/predictive-portfolio-v1.js";
 import { PredictiveRankingV1 } from "../source/predictive-ranking-v1.js";
 import { PredictiveDatasetIndexV1, PredictiveReplayV1 } from "../source/predictive-replay-v1.js";
+import {
+  PredictiveSafetyIndexV1,
+  PredictiveSafetyReportV1,
+} from "../source/predictive-safety-report-v1.js";
 import { RepositoryDescriptorV1 } from "../source/repository-descriptor-v1.js";
 import { ReviewOutcomeV1 } from "../source/review-outcome-v1.js";
 import { ReviewedSelectionPolicyV1 } from "../source/reviewed-selection-policy-v1.js";
@@ -175,6 +179,28 @@ const artifacts = [
     },
   },
 
+  {
+    name: "predictive-safety-index",
+    outputPath: new URL(
+      "../generated/predictive-safety-index/v1/predictive-safety-index.schema.json",
+      import.meta.url,
+    ),
+    document: {
+      $id: "https://argus.dev/contracts/predictive-safety-index/v1/schema.json",
+      ...compileJsonSchema(PredictiveSafetyIndexV1),
+    },
+  },
+  {
+    name: "predictive-safety-report",
+    outputPath: new URL(
+      "../generated/predictive-safety-report/v1/predictive-safety-report.schema.json",
+      import.meta.url,
+    ),
+    document: {
+      $id: "https://argus.dev/contracts/predictive-safety-report/v1/schema.json",
+      ...compileJsonSchema(PredictiveSafetyReportV1),
+    },
+  },
   {
     name: "predictive-portfolio",
     outputPath: new URL(

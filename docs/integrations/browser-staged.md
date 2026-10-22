@@ -9,7 +9,7 @@
 - Shadow requires relevant-now and a full shadow-control. Staged requires
   relevant-now and its exact remaining-later complement, even after early failures.
 - V1 selected/full-suite behavior stays compatible. Individual stages grant no
-  release or promotion authority; aggregate monitoring belongs to M08-PR12.
+  release or promotion authority; use the [staged safety reader](predictive-safety.md) for aggregate observations.
 
 ## Trust and complete inventory
 
@@ -102,7 +102,7 @@ Exact retries are idempotent; changing membership, results or any provenance
 under the same attempt ID conflicts. Genuine reruns need new IDs. Ingestion
 validates normalized evidence shape; genuine runner origin remains a trusted CI
 responsibility. Legacy-only shadow and locator consumers deliberately reject v2.
-Full staged safety aggregation and promotion remain M08-PR12 and M08-PR13.
+The [staged safety reader](predictive-safety.md) compares explicit v2 evidence; promotion remains M08-PR13.
 
 ## Deployment and verification
 

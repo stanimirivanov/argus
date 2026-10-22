@@ -36,6 +36,8 @@ TOOL_LICENSE_EXCEPTIONS := \
 
 .PHONY: help bootstrap doctor build binaries generate-contracts fmt fmt-check docs-check architecture-check ci-policy-check check test verify api-validate ui-validate race fuzz-smoke db-validate dbos-evaluate vuln license supply-chain validate
 
+.PHONY: predictive-validate
+
 help:
 	@echo Argus engineering-foundation command surface
 	@echo   make bootstrap  Resolve all pinned repository dependencies
@@ -51,6 +53,7 @@ help:
 	@echo   make check  Run format, lint, static-analysis, and module checks
 	@echo   make test   Run ordinary tests without cached results
 	@echo   make verify  Run the fast network-independent development feedback loop
+	@echo   make predictive-validate  Run focused predictive evidence tests
 	@echo   make api-validate  Run the disposable Playwright API reference campaign
 	@echo   make ui-validate   Run the real Chromium browser execution campaign
 	@echo   make race   Run all tests with the race detector
@@ -61,6 +64,11 @@ help:
 	@echo   make license  Enforce runtime and development-tool license policy
 	@echo   make supply-chain  Run vulnerability and license checks
 	@echo   make validate  Run all non-mutating acceptance checks
+
+# Focused entry point. The same packages already run in verify's full test gate;
+# do not execute them a second time in CI merely through this alias.
+predictive-validate:
+	go test -vet=off -count=1 ./internal/predictive/...
 
 bootstrap:
 	go mod download
