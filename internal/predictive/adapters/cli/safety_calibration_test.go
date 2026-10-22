@@ -27,7 +27,12 @@ func safetyCalibrationFixture(t *testing.T) (safetyArchive, contracts.Predictive
 	if err := contracts.ValidatePredictiveCalibrationV1(calibration); err != nil {
 		t.Fatal(err)
 	}
-	archive := safetyArchive{root: t.TempDir()}
+	// Match RunSafety: resolve Windows short temp paths before containment checks.
+	root, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	archive := safetyArchive{root: root}
 	run := contracts.PredictiveSafetyRun{EpisodeID: "episode", Calibration: &contracts.SafetyFileReference{Path: "calibration.json"}}
 
 	return archive, run, []predictive.SafetyInput{input}, portfolio, calibration
