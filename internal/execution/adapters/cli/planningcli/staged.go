@@ -10,7 +10,7 @@ import (
 	"github.com/stanimirivanov/argus/internal/selection"
 )
 
-func runStagePlan(manifest selection.Manifest, digest string, bindingsData []byte, schedulePath, expectedSHA, episode, mode string, stdout io.Writer) error {
+func runStagePlan(manifest selection.Manifest, digest string, bindingsData []byte, schedulePath, expectedSHA, episode, mode string, promotion promotionFlags, stdout io.Writer) error {
 	var bindings contracts.FunctionalAPIStageBindingsV2
 	if err := contracts.DecodeStagedDocument(bindingsData, "functional-api-execution-bindings", &bindings); err != nil {
 		return err
@@ -23,7 +23,11 @@ func runStagePlan(manifest selection.Manifest, digest string, bindingsData []byt
 	if err != nil {
 		return err
 	}
-	plan, err := scheduledplan.Build(source, scheduledplan.Mode(mode))
+	resolved, err := promotion.mode(mode, source)
+	if err != nil {
+		return err
+	}
+	plan, err := scheduledplan.Build(source, resolved)
 	if err != nil {
 		return err
 	}

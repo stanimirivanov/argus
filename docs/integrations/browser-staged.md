@@ -38,6 +38,12 @@ project and environment arguments before opening the adapter.
 
 ## Plan and run
 
+Staged planning now requires a fresh [owner-policy promotion decision](predictive-promotion.md).
+`-mode staged` without applicable authority returns a shadow plan. Supply the
+promotion policy, decision, trusted decision digest and identical evaluation time
+to the planner; configure runner mode and required phases from the emitted plan.
+All project/environment groups must match the approved repository/family.
+
 From an Argus checkout with the commands built or available through Go:
 
 ~~~sh

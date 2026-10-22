@@ -1,0 +1,207 @@
+{
+  "$id": "https://argus.dev/contracts/predictive-promotion-policy/v1/schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "apiVersion": {
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "argus.dev/predictive-promotion-policy/v1"
+          ]
+        }
+      ]
+    },
+    "repository": {
+      "$ref": "#/$defs/RepositoryReference"
+    },
+    "family": {
+      "type": "string",
+      "enum": [
+        "functional-api",
+        "functional-ui"
+      ]
+    },
+    "reviewId": {
+      "$ref": "#/$defs/LocalKey"
+    },
+    "reviewedBy": {
+      "$ref": "#/$defs/LocalKey"
+    },
+    "reviewedAt": {
+      "type": "string"
+    },
+    "expiresAt": {
+      "type": "string"
+    },
+    "scheduleSha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "modelSha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "calibrationSha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "maxEvidenceAgeSeconds": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 31536000
+    },
+    "validForSeconds": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 86400
+    },
+    "minReplayEpisodes": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "minShadowRuns": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "minFailures": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "maxMissRate": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "string",
+          "enum": [
+            "Infinity",
+            "-Infinity",
+            "NaN"
+          ]
+        }
+      ]
+    },
+    "maxEce": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "string",
+          "enum": [
+            "Infinity",
+            "-Infinity",
+            "NaN"
+          ]
+        }
+      ]
+    },
+    "maxEceDrift": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "string",
+          "enum": [
+            "Infinity",
+            "-Infinity",
+            "NaN"
+          ]
+        }
+      ]
+    },
+    "maxStageDurationMs": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "maxStageResourceUnitMs": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    }
+  },
+  "required": [
+    "apiVersion",
+    "repository",
+    "family",
+    "reviewId",
+    "reviewedBy",
+    "reviewedAt",
+    "expiresAt",
+    "scheduleSha256",
+    "modelSha256",
+    "calibrationSha256",
+    "maxEvidenceAgeSeconds",
+    "validForSeconds",
+    "minReplayEpisodes",
+    "minShadowRuns",
+    "minFailures",
+    "maxMissRate",
+    "maxEce",
+    "maxEceDrift",
+    "maxStageDurationMs",
+    "maxStageResourceUnitMs"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "RepositoryReference": {
+      "type": "object",
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": [
+            "github",
+            "gitlab",
+            "azure-devops",
+            "other"
+          ]
+        },
+        "host": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "pattern": "^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$"
+        },
+        "providerRepositoryId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "owner": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        }
+      },
+      "required": [
+        "provider",
+        "host",
+        "providerRepositoryId",
+        "owner",
+        "name"
+      ],
+      "additionalProperties": false,
+      "description": "A repository reference anchored by the provider-assigned identity; owner and name are mutable display coordinates."
+    },
+    "LocalKey": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 63,
+      "pattern": "^[a-z][a-z0-9._-]*$",
+      "description": "A stable, repository-declared key. It is scoped by its containing repository or parent declaration."
+    }
+  }
+}

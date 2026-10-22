@@ -31,6 +31,12 @@ Bindings must cover every complete manifest repository/adapter group exactly. Re
 
 ## Plan and run
 
+Staged planning now requires a fresh [owner-policy promotion decision](predictive-promotion.md).
+`-mode staged` without applicable authority returns a shadow plan. Supply the
+promotion policy, decision, trusted decision digest and identical evaluation time
+to the planner; configure runner mode and required phases from the emitted plan.
+The remaining-later complement remains mandatory after promotion.
+
 ~~~sh
 go run ./cmd/plan-functional-api \
   -manifest manifest.json -bindings bindings-v2.json \

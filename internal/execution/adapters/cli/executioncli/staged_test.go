@@ -140,7 +140,11 @@ func TestStagePlannerRunnerAndEvidenceRoundTrip(t *testing.T) {
 	fixture := stageInputs(t)
 	for _, mode := range []string{"staged", "shadow"} {
 		var output bytes.Buffer
-		if err := planningcli.Run(t.Context(), fixture.planArgs(mode), nil, &output); err != nil {
+		args := fixture.planArgs(mode)
+		if mode == "staged" {
+			args = append(args, apiPromotionArgs(t, fixture)...)
+		}
+		if err := planningcli.Run(t.Context(), args, nil, &output); err != nil {
 			t.Fatal(err)
 		}
 		if err := os.WriteFile(filepath.Join(fixture.directory, "plan.json"), output.Bytes(), 0o600); err != nil {
@@ -230,7 +234,7 @@ func TestFullFallbackSkipsEmptyLaterPhase(t *testing.T) {
 	sum := sha256.Sum256(data)
 	fixture.sha = hex.EncodeToString(sum[:])
 	var output bytes.Buffer
-	if err := planningcli.Run(t.Context(), fixture.planArgs("staged"), nil, &output); err != nil {
+	if err := planningcli.Run(t.Context(), append(fixture.planArgs("staged"), apiPromotionArgs(t, fixture)...), nil, &output); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(fixture.directory, "plan.json"), output.Bytes(), 0o600); err != nil {

@@ -710,3 +710,16 @@ cost and conservative failure-time semantics without importing wire DTOs, SQL
 or runner application packages. V1 shadow consumers remain strict. Report v1
 retains unavailable measurements and grants no promotion authority; see
 [ADR-0050](../decisions/0050-report-explicit-staged-safety-observations.md).
+
+## Owner-policy staged promotion
+
+The [promotion gate](../integrations/predictive-promotion.md) recomputes original
+chronological replay and prospective shadow evidence, then evaluates explicit
+repository/family owner thresholds in the predictive domain. The command root
+composes both archive readers without coupling driving adapters. Decisions pin
+policy, evidence and exact portfolio/model/calibration bytes. API/browser planners
+require current trusted authority for staged requests and otherwise restore
+independent full controls. Remaining-later work stays mandatory. Authentication,
+current time and complete archive declaration belong to trusted CI; there is no
+implicit latest lookup, durable approval or background monitor. See
+[ADR-0051](../decisions/0051-gate-staged-promotion-by-owner-policy.md).

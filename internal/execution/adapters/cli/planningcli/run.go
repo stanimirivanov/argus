@@ -29,6 +29,7 @@ func Run(_ context.Context, arguments []string, stdin io.Reader, stdout io.Write
 	scheduleSHA := flags.String("schedule-sha256", "", "trusted exact portfolio file SHA-256")
 	episode := flags.String("episode", "", "exact portfolio episode")
 	mode := flags.String("mode", "", "shadow (default when opted in) or staged")
+	promotion := addPromotionFlags(flags)
 	if err := commandline.Parse(flags, arguments); err != nil {
 		return fmt.Errorf("plan functional API execution: %w", err)
 	}
@@ -59,9 +60,9 @@ func Run(_ context.Context, arguments []string, stdin io.Reader, stdout io.Write
 		if *mode == "" {
 			*mode = "shadow"
 		}
-		return runStagePlan(manifest, manifestSHA256, bindingsData, *schedulePath, *scheduleSHA, *episode, *mode, stdout)
+		return runStagePlan(manifest, manifestSHA256, bindingsData, *schedulePath, *scheduleSHA, *episode, *mode, promotion, stdout)
 	}
-	if *scheduleSHA != "" || *episode != "" || *mode != "" {
+	if *scheduleSHA != "" || *episode != "" || *mode != "" || promotion.provided() {
 		return commandline.UsageText("staged flags require -schedule")
 	}
 	bindingsDocument, err := contracts.DecodeFunctionalAPIExecutionBindingsV1(bindingsData)

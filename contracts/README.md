@@ -403,3 +403,8 @@ The stable version migration, regex-export constraints and Node 24 retention
 are recorded in [ADR-0029](../docs/decisions/0029-migrate-stable-contract-toolchain-without-wire-changes.md).
 
 Predictive portfolio v1 composes the complete cost/review and abstention evidence with a deterministic serial selection, required prerequisite closure, explicit omitted IDs and budget overruns. See the [portfolio guide](../docs/integrations/predictive-portfolio.md).
+
+Predictive promotion policy/decision v1 binds owner thresholds, repository/family,
+exact portfolio/model/calibration, replay/shadow evidence and expiry. Missing or
+breached authority restores shadow planning without removing later execution.
+See the [promotion guide](../docs/integrations/predictive-promotion.md).
