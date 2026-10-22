@@ -24,6 +24,11 @@ import {
   BrowserExecutionAttemptV1,
 } from "../source/browser-execution-v1.js";
 import {
+  BrowserAdapterRequestV2,
+  BrowserExecutionAttemptV2,
+  BrowserExecutionPlanV2,
+} from "../source/browser-execution-v2.js";
+import {
   BrowserLocatorDiagnosisV1,
   BrowserLocatorProposalV1,
   BrowserStructureV1,
@@ -91,6 +96,40 @@ import { TestCatalogPageV1 } from "../source/test-catalog-page-v1.js";
 import { compileJsonSchema } from "./json-schema.js";
 
 const artifacts = [
+  {
+    name: "browser-adapter-request-v2",
+    outputPath: new URL(
+      "../generated/browser-adapter-request/v2/browser-adapter-request.schema.json",
+      import.meta.url,
+    ),
+    document: {
+      $id: "https://argus.dev/contracts/browser-adapter-request/v2/schema.json",
+      ...compileJsonSchema(BrowserAdapterRequestV2),
+    },
+  },
+  {
+    name: "browser-execution-attempt-v2",
+    outputPath: new URL(
+      "../generated/browser-execution-attempt/v2/browser-execution-attempt.schema.json",
+      import.meta.url,
+    ),
+    document: {
+      $id: "https://argus.dev/contracts/browser-execution-attempt/v2/schema.json",
+      ...compileJsonSchema(BrowserExecutionAttemptV2),
+    },
+  },
+  {
+    name: "browser-execution-plan-v2",
+    outputPath: new URL(
+      "../generated/browser-execution-plan/v2/browser-execution-plan.schema.json",
+      import.meta.url,
+    ),
+    document: {
+      $id: "https://argus.dev/contracts/browser-execution-plan/v2/schema.json",
+      ...compileJsonSchema(BrowserExecutionPlanV2),
+    },
+  },
+
   {
     name: "functional-api-execution-bindings-v2",
     outputPath: new URL(

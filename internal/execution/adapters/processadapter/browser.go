@@ -36,7 +36,7 @@ func NewBrowser(command []string, stderr io.Writer) (*BrowserAdapter, error) {
 
 // Execute runs the adapter process without a shell or manifest-supplied executable.
 func (adapter *BrowserAdapter) Execute(ctx context.Context, request browser.Request) (browser.Result, error) {
-	document, err := executioncontract.ExportBrowserRequest(request)
+	document, err := executioncontract.ExportRecordedBrowserRequest(request)
 	if err != nil {
 		return browser.Result{}, err
 	}

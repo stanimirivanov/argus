@@ -71,6 +71,9 @@ type ExecutionAttemptV2 struct {
 }
 
 var stagedSchemas = map[string]func() (*jsonschema.Schema, error){
+	"browser-adapter-request":           stagedLoader("browser-adapter-request"),
+	"browser-execution-attempt":         stagedLoader("browser-execution-attempt"),
+	"browser-execution-plan":            stagedLoader("browser-execution-plan"),
 	"functional-api-execution-bindings": stagedLoader("functional-api-execution-bindings"),
 	"functional-api-execution-plan":     stagedLoader("functional-api-execution-plan"),
 	"functional-api-adapter-request":    stagedLoader("functional-api-adapter-request"),

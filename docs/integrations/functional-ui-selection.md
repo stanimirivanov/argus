@@ -186,6 +186,10 @@ go run ./cmd/run-browser \
 go run ./cmd/execution-evidence browser-ingest -file browser-attempt.json
 ~~~
 
+For explicit predictive portfolios, the [staged browser workflow](browser-staged.md)
+adds v2 plans, requests and attempts with complete discovery and obligatory
+later/control passes. The commands below retain their default v1 behavior.
+
 `run-browser` accepts only `argus.dev/browser-selection-manifest/v1`. It checks
 the entire manifest against its schema, binds its SHA-256 to the attempt,
 selects exact stable tests for the requested group, and validates the adapter's

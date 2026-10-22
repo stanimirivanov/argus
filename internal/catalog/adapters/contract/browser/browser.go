@@ -10,6 +10,20 @@ import (
 	"github.com/stanimirivanov/argus/internal/contracts"
 )
 
+// Digest returns the existing canonical evidence digest for selection correlation.
+// It does not replace descriptor validation at catalog ingress.
+func Digest(document contracts.BrowserDiscoveryV1) (string, error) {
+	if err := contracts.ValidateBrowserDiscoveryV1(document); err != nil {
+		return "", err
+	}
+	evidence, err := Import(document)
+	if err != nil {
+		return "", err
+	}
+
+	return discovery.DigestEvidence(evidence)
+}
+
 // Import converts a schema-checked document; the caller must validate it
 // against its immutable catalog snapshot before persistence.
 func Import(document contracts.BrowserDiscoveryV1) (discovery.Evidence, error) {

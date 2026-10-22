@@ -64,6 +64,11 @@ unchanged. V1 validators remain strict; see the
 [staged API guide](../docs/integrations/functional-api-staged.md) for independent
 source validation, complete-pass obligations and rollout.
 
+The opt-in browser staged protocol adds v2 plans/requests/attempts in
+`source/browser-execution-v2.ts`; reviewed bindings and adapter results remain v1.
+See the [staged browser guide](../docs/integrations/browser-staged.md) for complete
+discovery, project/environment correlation and deployment requirements.
+
 ## Delivered boundary
 
 `repository-descriptor/v1` lets one source repository declare:

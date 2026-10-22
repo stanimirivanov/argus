@@ -190,6 +190,75 @@ async function oneTest(request, test, registry, root) {
   return { normalized, artifacts };
 }
 
+async function verifyStagedInventory(request, registry) {
+  const provenance = request.staging;
+  const phases =
+    provenance?.mode === "shadow"
+      ? ["relevant-now", "shadow-control"]
+      : provenance?.mode === "staged"
+        ? ["relevant-now", "remaining-later"]
+        : [];
+  const digest = /^[0-9a-f]{64}$/u;
+  const localKey = /^[a-z][a-z0-9._-]{0,62}$/u;
+  if (
+    !phases.includes(request.stage) ||
+    provenance?.environment !== request.environment ||
+    provenance?.schedule?.apiVersion !== "argus.dev/predictive-portfolio/v1" ||
+    !digest.test(provenance?.schedule?.sha256 ?? "") ||
+    !digest.test(provenance?.discoverySha256 ?? "") ||
+    !localKey.test(provenance?.episodeId ?? "") ||
+    !localKey.test(provenance?.groupKey ?? "") ||
+    !Array.isArray(request.candidates) ||
+    request.candidates.length === 0 ||
+    request.candidates.length > 10000
+  )
+    fail("invalid staged browser provenance");
+  const expected = new Map();
+  const byName = new Map();
+  for (const test of request.candidates) {
+    const key = `${test.suiteKey}/${test.testKey}`;
+    if (expected.has(key) || byName.has(test.name) || registry.get(key)?.name !== test.name)
+      fail("invalid complete staged inventory");
+    expected.set(key, test.name);
+    byName.set(test.name, key);
+  }
+  const listed = await run(process.execPath, [
+    playwrightCLI,
+    "test",
+    "--project",
+    request.project,
+    "--list",
+    "--reporter=json",
+  ]);
+  if (listed.code !== 0) fail("complete browser discovery failed");
+  const report = parse(listed.stdout, "complete browser discovery");
+  const specs = flatten(report.suites);
+  if (report.errors?.length || specs.length !== expected.size)
+    fail("incomplete staged discovery partition");
+  const observed = new Set();
+  for (const spec of specs) {
+    const key = byName.get(spec.title);
+    if (
+      !key ||
+      observed.has(key) ||
+      spec.tests?.length !== 1 ||
+      spec.tests[0].projectName !== request.project ||
+      spec.tests[0].results?.length
+    )
+      fail("browser discovery differs from complete stage inventory");
+    observed.add(key);
+  }
+  const requested = new Set();
+  for (const test of request.tests) {
+    const key = `${test.suiteKey}/${test.testKey}`;
+    if (requested.has(key) || expected.get(key) !== test.name)
+      fail("requested test outside complete inventory");
+    requested.add(key);
+  }
+  if (request.stage === "shadow-control" && request.tests.length !== expected.size)
+    fail("incomplete shadow control");
+}
+
 async function main() {
   if (!artifactRoot || !isAbsolute(artifactRoot)) fail("absolute artifact directory is required");
   let input = "";
@@ -199,7 +268,9 @@ async function main() {
   }
   const request = parse(input, "browser adapter request");
   if (
-    request.apiVersion !== "argus.dev/browser-adapter-request/v1" ||
+    !["argus.dev/browser-adapter-request/v1", "argus.dev/browser-adapter-request/v2"].includes(
+      request.apiVersion,
+    ) ||
     request.adapter !== "playwright" ||
     !Array.isArray(request.tests) ||
     request.tests.length === 0 ||
@@ -211,6 +282,8 @@ async function main() {
   )
     fail("invalid request or checkout revision");
   const registry = await requestedRegistry();
+  if (request.apiVersion === "argus.dev/browser-adapter-request/v2")
+    await verifyStagedInventory(request, registry);
   const startedAt = new Date().toISOString();
   const root = await mkdtemp(join(tmpdir(), "argus-browser-"));
   try {
