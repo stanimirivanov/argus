@@ -39,7 +39,7 @@ func (store *ExecutionStore) FindExecutionAttempt(ctx context.Context, attemptID
 		return execution.Attempt{}, err
 	}
 	attempt = execution.CanonicalAttempt(attempt)
-	if err := execution.ValidateAttempt(attempt); err != nil {
+	if err := execution.ValidateRecordedAttempt(attempt); err != nil {
 		return execution.Attempt{}, fmt.Errorf("%w: invalid persisted execution attempt", execution.ErrUnavailable)
 	}
 	if err := tx.Commit(operationContext); err != nil {
@@ -56,6 +56,7 @@ func readExecutionAttemptHeader(
 ) (int64, execution.Attempt, error) {
 	var attemptKey int64
 	var attempt execution.Attempt
+	var scheduleSHA, episode, group, environment, mode *string
 	err := tx.QueryRow(ctx, `
 		SELECT
 			a.execution_attempt_id,
@@ -75,7 +76,7 @@ func readExecutionAttemptHeader(
 			a.adapter_version,
 			a.started_at,
 			a.completed_at,
-			a.attempt_outcome
+			a.attempt_outcome, a.schedule_sha256, a.episode_id, a.group_key, a.environment_key, a.execution_mode
 		FROM argus_catalog.execution_attempts AS a
 		JOIN argus_catalog.repositories AS r
 		  ON r.repository_id = a.test_repository_id
@@ -98,10 +99,15 @@ func readExecutionAttemptHeader(
 		&attempt.AdapterVersion,
 		&attempt.StartedAt,
 		&attempt.CompletedAt,
-		&attempt.Outcome,
+		&attempt.Outcome, &scheduleSHA, &episode, &group, &environment, &mode,
 	)
 	if err != nil {
 		return 0, execution.Attempt{}, classifyExecutionDatabaseError(err)
+	}
+
+	if scheduleSHA != nil && episode != nil && group != nil && environment != nil && mode != nil {
+		attempt.Staging = &execution.Staging{Schedule: execution.ScheduleReference{APIVersion: execution.ScheduleAPIVersion, SHA256: *scheduleSHA},
+			EpisodeID: *episode, GroupKey: *group, Environment: *environment, Mode: *mode}
 	}
 
 	return attemptKey, attempt, nil

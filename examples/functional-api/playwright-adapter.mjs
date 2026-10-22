@@ -205,7 +205,10 @@ async function execute() {
   }
   const request = parseJSON(input, "adapter request");
   if (
-    request.apiVersion !== "argus.dev/functional-api-adapter-request/v1" ||
+    ![
+      "argus.dev/functional-api-adapter-request/v1",
+      "argus.dev/functional-api-adapter-request/v2",
+    ].includes(request.apiVersion) ||
     request.adapter !== "playwright" ||
     !Array.isArray(request.tests) ||
     request.tests.length === 0 ||
@@ -213,6 +216,24 @@ async function execute() {
     request.testRevision?.algorithm !== "git-sha1"
   )
     fail("invalid adapter request or checkout revision");
+  if (request.apiVersion === "argus.dev/functional-api-adapter-request/v2") {
+    const provenance = request.staging;
+    const stages =
+      provenance?.mode === "shadow"
+        ? ["relevant-now", "shadow-control"]
+        : provenance?.mode === "staged"
+          ? ["relevant-now", "remaining-later"]
+          : [];
+    if (
+      !stages.includes(request.stage) ||
+      provenance?.schedule?.apiVersion !== "argus.dev/predictive-portfolio/v1" ||
+      !/^[0-9a-f]{64}$/u.test(provenance?.schedule?.sha256 ?? "") ||
+      !keyPattern.test(provenance?.episodeId ?? "") ||
+      !keyPattern.test(provenance?.groupKey ?? "") ||
+      !keyPattern.test(provenance?.environment ?? "")
+    )
+      fail("invalid staged provenance");
+  }
   const discovered = await discover();
   const startedAt = new Date().toISOString();
   const results = [];

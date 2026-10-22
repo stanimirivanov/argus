@@ -24,6 +24,11 @@ func Run(_ context.Context, arguments []string, stdin io.Reader, stdout io.Write
 	flags.SetOutput(io.Discard)
 	manifestPath := flags.String("manifest", "", "execution manifest path, or - for stdin")
 	bindingsPath := flags.String("bindings", "", "reviewed execution bindings path, or - for stdin")
+
+	schedulePath := flags.String("schedule", "", "opt-in predictive portfolio path")
+	scheduleSHA := flags.String("schedule-sha256", "", "trusted exact portfolio file SHA-256")
+	episode := flags.String("episode", "", "exact portfolio episode")
+	mode := flags.String("mode", "", "shadow (default when opted in) or staged")
 	if err := commandline.Parse(flags, arguments); err != nil {
 		return fmt.Errorf("plan functional API execution: %w", err)
 	}
@@ -48,6 +53,16 @@ func Run(_ context.Context, arguments []string, stdin io.Reader, stdout io.Write
 	bindingsData, err := readDocument(*bindingsPath, stdin, "execution bindings")
 	if err != nil {
 		return err
+	}
+
+	if *schedulePath != "" {
+		if *mode == "" {
+			*mode = "shadow"
+		}
+		return runStagePlan(manifest, manifestSHA256, bindingsData, *schedulePath, *scheduleSHA, *episode, *mode, stdout)
+	}
+	if *scheduleSHA != "" || *episode != "" || *mode != "" {
+		return commandline.UsageText("staged flags require -schedule")
 	}
 	bindingsDocument, err := contracts.DecodeFunctionalAPIExecutionBindingsV1(bindingsData)
 	if err != nil {

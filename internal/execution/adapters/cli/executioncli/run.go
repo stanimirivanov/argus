@@ -49,6 +49,16 @@ func Run(
 	revisionAlgorithm := flags.String("test-revision-algorithm", string(catalog.RevisionGitSHA1), "test revision algorithm")
 	revisionDigest := flags.String("test-revision", "", "immutable test repository revision")
 	timeout := flags.Duration("timeout", 30*time.Minute, "maximum adapter runtime")
+
+	files := stageFiles{}
+	flags.StringVar(&files.schedule, "schedule", "", "opt-in predictive portfolio path")
+	flags.StringVar(&files.sha, "schedule-sha256", "", "trusted exact portfolio file SHA-256")
+	flags.StringVar(&files.episode, "episode", "", "exact portfolio episode")
+	flags.StringVar(&files.mode, "mode", "", "shadow (default when opted in) or staged")
+	flags.StringVar(&files.plan, "plan", "", "v2 stage plan path")
+	flags.StringVar(&files.bindings, "bindings", "", "reviewed v2 execution bindings path")
+	flags.StringVar(&files.group, "group", "", "exact execution group key")
+	flags.StringVar(&files.environment, "environment", "", "reviewed execution environment")
 	if err := commandline.Parse(flags, arguments); err != nil {
 		return fmt.Errorf("run functional API tests: %w", err)
 	}
@@ -76,6 +86,19 @@ func Run(
 	digest, err := manifestDigest(manifest)
 	if err != nil {
 		return err
+	}
+
+	if files.schedule != "" {
+		if files.mode == "" {
+			files.mode = "shadow"
+		}
+
+		return runStage(ctx, files, manifest, functionalapi.Options{AttemptID: *attemptID, ManifestSHA256: digest, Stage: execution.Stage(*stage),
+			TestRepository: catalog.RepositoryIdentity{Provider: catalog.Provider(*provider), Host: *host, ProviderRepositoryID: *repositoryID},
+			TestRevision:   revision, Adapter: *adapterID}, command, *timeout, stdout, stderr, open)
+	}
+	if files != (stageFiles{}) {
+		return commandline.UsageText("staged flags require -schedule")
 	}
 	if open == nil {
 		return errors.New("adapter factory is required")

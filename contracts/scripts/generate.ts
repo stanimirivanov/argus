@@ -58,6 +58,12 @@ import {
   FunctionalAPIAdapterRequestV1,
   FunctionalAPIAdapterResultV1,
 } from "../source/functional-api-execution-v1.js";
+import {
+  ExecutionAttemptV2,
+  FunctionalAPIAdapterRequestV2,
+  FunctionalAPIExecutionBindingsV2,
+  FunctionalAPIExecutionPlanV2,
+} from "../source/functional-api-execution-v2.js";
 import { HeadTestInventoryV1 } from "../source/head-test-inventory-v1.js";
 import { ImpactEdgePageV1 } from "../source/impact-edge-page-v1.js";
 import { ImpactEvidenceBundleV1 } from "../source/impact-evidence-bundle-v1.js";
@@ -85,6 +91,51 @@ import { TestCatalogPageV1 } from "../source/test-catalog-page-v1.js";
 import { compileJsonSchema } from "./json-schema.js";
 
 const artifacts = [
+  {
+    name: "functional-api-execution-bindings-v2",
+    outputPath: new URL(
+      "../generated/functional-api-execution-bindings/v2/functional-api-execution-bindings.schema.json",
+      import.meta.url,
+    ),
+    document: {
+      $id: "https://argus.dev/contracts/functional-api-execution-bindings/v2/schema.json",
+      ...compileJsonSchema(FunctionalAPIExecutionBindingsV2),
+    },
+  },
+  {
+    name: "functional-api-execution-plan-v2",
+    outputPath: new URL(
+      "../generated/functional-api-execution-plan/v2/functional-api-execution-plan.schema.json",
+      import.meta.url,
+    ),
+    document: {
+      $id: "https://argus.dev/contracts/functional-api-execution-plan/v2/schema.json",
+      ...compileJsonSchema(FunctionalAPIExecutionPlanV2),
+    },
+  },
+  {
+    name: "functional-api-adapter-request-v2",
+    outputPath: new URL(
+      "../generated/functional-api-adapter-request/v2/functional-api-adapter-request.schema.json",
+      import.meta.url,
+    ),
+    document: {
+      $id: "https://argus.dev/contracts/functional-api-adapter-request/v2/schema.json",
+      ...compileJsonSchema(FunctionalAPIAdapterRequestV2),
+    },
+  },
+  {
+    name: "execution-attempt-v2",
+    outputPath: new URL(
+      "../generated/execution-attempt/v2/execution-attempt.schema.json",
+      import.meta.url,
+    ),
+    document: {
+      $id: "https://argus.dev/contracts/execution-attempt/v2/schema.json",
+      ...compileJsonSchema(ExecutionAttemptV2),
+    },
+  },
+
   {
     name: "predictive-portfolio",
     outputPath: new URL(

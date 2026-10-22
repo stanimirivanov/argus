@@ -79,13 +79,9 @@ func runIngest(
 	if err != nil {
 		return err
 	}
-	document, err := contracts.DecodeExecutionAttemptV1(data)
+	attempt, err := executioncontract.DecodeRecordedAttempt(data)
 	if err != nil {
 		return fmt.Errorf("read execution attempt: %w", err)
-	}
-	attempt, err := executioncontract.ImportAttemptV1(document)
-	if err != nil {
-		return fmt.Errorf("import execution attempt: %w", err)
 	}
 	runtime, err := openStore(ctx, databaseURL, open)
 	if err != nil {

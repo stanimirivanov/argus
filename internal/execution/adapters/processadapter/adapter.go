@@ -46,7 +46,7 @@ func (adapter *Adapter) Execute(
 	if adapter == nil || len(adapter.command) == 0 {
 		return functionalapi.AdapterResult{}, execution.ErrInvalid
 	}
-	document, err := executioncontract.ExportRequestV1(request)
+	document, err := executioncontract.ExportRequest(request)
 	if err != nil {
 		return functionalapi.AdapterResult{}, err
 	}
