@@ -41,6 +41,15 @@ func Run(ctx context.Context, args []string, stdin io.Reader, stdout, stderr io.
 	project := flags.String("project", "", "Playwright project")
 	environment := flags.String("environment", "", "execution environment")
 	timeout := flags.Duration("timeout", 30*time.Minute, "adapter deadline")
+	files := stageFiles{}
+	flags.StringVar(&files.schedule, "schedule", "", "opt-in predictive portfolio file")
+	flags.StringVar(&files.sha, "schedule-sha256", "", "trusted full portfolio SHA-256")
+	flags.StringVar(&files.episode, "episode", "", "exact portfolio episode")
+	flags.StringVar(&files.mode, "mode", "", "shadow (default when opted in) or staged")
+	flags.StringVar(&files.discovery, "discovery", "", "complete revision-bound discovery file")
+	flags.StringVar(&files.bindings, "bindings", "", "reviewed browser execution bindings file")
+	flags.StringVar(&files.plan, "plan", "", "v2 browser stage plan file")
+	flags.StringVar(&files.group, "group", "", "exact browser execution group")
 	if err := commandline.Parse(flags, args); err != nil {
 		return err
 	}
@@ -51,31 +60,23 @@ func Run(ctx context.Context, args []string, stdin io.Reader, stdout, stderr io.
 	if *timeout <= 0 || *timeout > 2*time.Hour {
 		return errors.New("timeout must be positive and at most 2h")
 	}
-	reader := stdin
-	if *manifestPath != "-" {
-		file, err := os.Open(*manifestPath)
-		if err != nil {
-			return err
-		}
-		defer func() { _ = file.Close() }() //nolint:errcheck // Input file is closed after the bounded read.
-		reader = file
-	}
-	data, err := io.ReadAll(io.LimitReader(reader, (16<<20)+1))
+	document, data, err := readBrowserManifest(*manifestPath, stdin)
 	if err != nil {
-		return err
-	}
-	if len(data) > 16<<20 {
-		return errors.New("browser manifest exceeds 16 MiB")
-	}
-	document, err := contracts.DecodeBrowserSelectionManifestV1(data)
-	if err != nil {
-		return err
-	}
-	if err := validateManifestDecisions(document); err != nil {
 		return err
 	}
 	digest := sha256.Sum256(data)
 	revision := catalog.Revision{Algorithm: catalog.RevisionAlgorithm(*revisionAlgorithm), Digest: *revisionDigest}
+	if files.schedule != "" {
+		if files.mode == "" {
+			files.mode = "shadow"
+		}
+
+		return runBrowserStage(ctx, files, document, browser.Options{AttemptID: *attemptID, ManifestSHA256: hex.EncodeToString(digest[:]), Stage: execution.Stage(*stage),
+			TestRepository: catalog.RepositoryIdentity{Provider: catalog.Provider(*provider), Host: *host, ProviderRepositoryID: *repositoryID}, TestRevision: revision, Adapter: *adapterID, Project: *project, Environment: *environment}, command, *timeout, stdout, stderr, open)
+	}
+	if files != (stageFiles{}) {
+		return commandline.UsageText("staged flags require -schedule")
+	}
 	manifest := browser.Manifest{APIVersion: document.APIVersion, Decisions: make([]browser.Decision, 0, len(document.Decisions))}
 	for _, decision := range document.Decisions {
 		manifest.Decisions = append(manifest.Decisions, browser.Decision{Repository: catalog.Repository{
@@ -136,4 +137,29 @@ func validateManifestDecisions(document contracts.BrowserSelectionManifestV1) er
 	}
 
 	return nil
+}
+
+func readBrowserManifest(path string, stdin io.Reader) (contracts.BrowserSelectionManifestV1, []byte, error) {
+	reader := stdin
+	if path != "-" {
+		file, err := os.Open(path)
+		if err != nil {
+			return contracts.BrowserSelectionManifestV1{}, nil, err
+		}
+		defer func() { _ = file.Close() }() //nolint:errcheck // Input file is closed after the bounded read.
+		reader = file
+	}
+	data, err := io.ReadAll(io.LimitReader(reader, (16<<20)+1))
+	if err != nil {
+		return contracts.BrowserSelectionManifestV1{}, nil, err
+	}
+	if len(data) > 16<<20 {
+		return contracts.BrowserSelectionManifestV1{}, nil, errors.New("browser manifest exceeds 16 MiB")
+	}
+	document, err := contracts.DecodeBrowserSelectionManifestV1(data)
+	if err != nil {
+		return document, nil, err
+	}
+
+	return document, data, validateManifestDecisions(document)
 }

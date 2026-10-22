@@ -24,7 +24,7 @@ func TestStagedAttemptsUpgradeRoundTripAndConcurrentRetry(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, file := range files {
-		if file.Name() == "20261021211703_add_predictive_api_stages.sql" {
+		if file.Name() >= "20261021211703_add_predictive_api_stages.sql" {
 			continue
 		}
 		name := "migrations/" + file.Name()

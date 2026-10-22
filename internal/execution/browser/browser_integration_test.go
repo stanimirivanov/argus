@@ -68,6 +68,7 @@ func TestReferencePlaywrightBrowserExecution(t *testing.T) {
 			t.Fatalf("unexpected real browser attempt: %+v", attempt)
 		}
 	}
+	runStagedBrowserCampaign(t, manifest, adapter, &diagnostics)
 	if _, err := os.Stat(filepath.Join(root, "examples", "functional-ui", "test-repository", "test-results")); err == nil {
 		t.Fatal("Playwright left output in fixture checkout")
 	}

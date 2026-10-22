@@ -88,11 +88,7 @@ func runBrowserIngest(ctx context.Context, args []string, databaseURL string, st
 	if err != nil {
 		return err
 	}
-	document, err := contracts.DecodeBrowserExecutionAttemptV1(data)
-	if err != nil {
-		return err
-	}
-	attempt, err := executioncontract.ImportBrowserAttempt(document)
+	attempt, err := executioncontract.DecodeRecordedBrowserAttempt(data)
 	if err != nil {
 		return err
 	}

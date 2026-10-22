@@ -363,7 +363,7 @@ protocol:
 | `internal/execution/shadow` | Explicit pair and complete-plan compatibility checks, aggregate duration/failure recall, and miss classification including full-only groups | Attempt lookup SQL, implicit latest selection, report persistence, or release policy |
 | `internal/execution/browserplanning` | Browser project/environment grouping, reviewed binding coverage, and mandatory full-suite jobs | CI commands, persistence, or browser adapter execution |
 | `internal/execution/browsershadow` | Explicit browser attempt correlation, complete-plan miss classification, and failure recall | Implicit latest attempts, SQL, artifact bytes, or release policy |
-| `internal/execution/adapters/contract` | Adapter request/result and execution-attempt v1 conversion | Execution policy or process lifecycle |
+| `internal/execution/adapters/contract` | Versioned adapter request/result and execution-attempt conversion | Execution policy or process lifecycle |
 | `internal/execution/adapters/processadapter` | Bounded stdin/stdout exchange with an explicit executable | Test selection or command discovery |
 | `internal/execution/adapters/cli/executioncli` | Manifest input, explicit group arguments, timeout, and normalized output | Shell evaluation or concrete adapter construction |
 | `internal/execution/adapters/cli/planningcli` | Bounded manifest/binding input and execution-plan JSON output | Checkout, command mapping, process execution, or persistence |
@@ -690,3 +690,13 @@ exact v2 stage evidence; the existing attempt ingestion/store accepts explicit
 v1/v2 versions. Legacy selected/full-suite validators remain strict. The forward
 metadata migration and [ADR-0048](../decisions/0048-opt-in-functional-api-staged-execution.md)
 define rollout, rollback and the external CI pass/capacity obligations.
+
+## Browser staged execution
+
+The [opt-in staged browser protocol](../integrations/browser-staged.md) consumes
+the same shared partition domain with independent complete discovery and reviewed
+project/environment bindings. Contract/CLI adapters load evidence; the browser
+service owns exact execution and artifact invariants. Explicit v2 plans, requests
+and attempts preserve strict legacy consumers. Fresh native inventory is checked
+by the process adapter before execution. [ADR-0049](../decisions/0049-opt-in-browser-staged-execution.md)
+defines the forward provenance migration and CI pass/capacity obligations.

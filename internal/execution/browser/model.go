@@ -35,6 +35,8 @@ type Test struct {
 
 // Request is the exact CI-local browser adapter input.
 type Request struct {
+	Staging        *Staging                    `json:"staging,omitempty"`
+	Candidates     []Test                      `json:"candidates,omitempty"`
 	APIVersion     string                      `json:"apiVersion"`
 	AttemptID      string                      `json:"attemptId"`
 	Manifest       execution.ManifestReference `json:"manifest"`
@@ -81,14 +83,27 @@ type Attempt struct {
 
 // CanonicalAttempt deep-copies and orders request and result evidence.
 func CanonicalAttempt(attempt Attempt) Attempt {
-	attempt.Request.Tests = append([]Test{}, attempt.Request.Tests...)
-	slices.SortFunc(attempt.Request.Tests, func(a, b Test) int {
+	if attempt.Request.Staging != nil {
+		value := *attempt.Request.Staging
+		attempt.Request.Staging = &value
+	}
+	attempt.Request.Candidates = slices.Clone(attempt.Request.Candidates)
+	slices.SortFunc(attempt.Request.Candidates, func(a, b Test) int {
 		if n := cmp.Compare(a.SuiteKey, b.SuiteKey); n != 0 {
 			return n
 		}
-
 		return cmp.Compare(a.TestKey, b.TestKey)
 	})
+	attempt.Request.Tests = append([]Test{}, attempt.Request.Tests...)
+	if attempt.Request.APIVersion != StagedRequestVersion {
+		slices.SortFunc(attempt.Request.Tests, func(a, b Test) int {
+			if n := cmp.Compare(a.SuiteKey, b.SuiteKey); n != 0 {
+				return n
+			}
+
+			return cmp.Compare(a.TestKey, b.TestKey)
+		})
+	}
 	attempt.Result.Results = append([]execution.TestResult{}, attempt.Result.Results...)
 	for i, item := range attempt.Result.Results {
 		if item.Failure != nil {
@@ -113,7 +128,7 @@ func CanonicalAttempt(attempt Attempt) Attempt {
 
 // ValidateRequest rejects ambiguous or mutable browser adapter input.
 func ValidateRequest(request Request) error {
-	if request.APIVersion != RequestVersion || execution.ValidateAttemptID(request.AttemptID) != nil || request.Manifest.APIVersion != ManifestVersion || !digestValid(request.Manifest.SHA256) ||
+	if request.APIVersion != RequestVersion || request.Staging != nil || len(request.Candidates) != 0 || execution.ValidateAttemptID(request.AttemptID) != nil || request.Manifest.APIVersion != ManifestVersion || !digestValid(request.Manifest.SHA256) ||
 		(request.Stage != execution.StageSelected && request.Stage != execution.StageFullSuite) || execution.ValidateTestRepository(request.TestRepository) != nil || execution.ValidateTestRevision(request.TestRevision) != nil ||
 		!catalog.IsLocalKey(request.Adapter) || !catalog.IsLocalKey(request.Project) || !catalog.IsLocalKey(request.Environment) || len(request.Tests) == 0 || len(request.Tests) > execution.MaxAttemptTests {
 		return ErrInvalid

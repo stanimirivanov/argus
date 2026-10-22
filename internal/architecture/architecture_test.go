@@ -321,6 +321,7 @@ var githubTransportUsers = map[string]bool{
 // Cross-application orchestration is exceptional and explicit. Most use-case
 // packages own one port and must not reach sideways into another use case.
 var allowedApplicationDependencies = map[string]map[string]bool{
+	modulePath + "/internal/execution/browser":       {modulePath + "/internal/execution/scheduledplan": true},
 	modulePath + "/internal/execution/functionalapi": {modulePath + "/internal/execution/scheduledplan": true},
 	modulePath + "/internal/adaptation/browserlocator": {
 		modulePath + "/internal/execution/browser": true,
