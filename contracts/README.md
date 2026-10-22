@@ -69,6 +69,10 @@ The opt-in browser staged protocol adds v2 plans/requests/attempts in
 See the [staged browser guide](../docs/integrations/browser-staged.md) for complete
 discovery, project/environment correlation and deployment requirements.
 
+The [staged safety report](../docs/integrations/predictive-safety.md) adds explicit
+archive-index and observational report v1 contracts in
+`source/predictive-safety-report-v1.ts`, preserving all legacy shadow protocols.
+
 ## Delivered boundary
 
 `repository-descriptor/v1` lets one source repository declare:

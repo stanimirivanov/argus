@@ -148,3 +148,4 @@ How will the assumptions and consequences be verified?
 | [ADR-0047](0047-define-shared-staged-execution-invariants.md) | Define shared staged-execution invariants | Proposed | 2026-10-21 |
 | [ADR-0048](0048-opt-in-functional-api-staged-execution.md) | Opt in to functional API staged execution | Proposed | 2026-10-21 |
 | [ADR-0049](0049-opt-in-browser-staged-execution.md) | Opt in to browser staged execution | Proposed | 2026-10-22 |
+| [ADR-0050](0050-report-explicit-staged-safety-observations.md) | Report explicit staged safety observations | Proposed | 2026-10-22 |

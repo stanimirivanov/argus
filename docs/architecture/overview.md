@@ -700,3 +700,13 @@ service owns exact execution and artifact invariants. Explicit v2 plans, request
 and attempts preserve strict legacy consumers. Fresh native inventory is checked
 by the process adapter before execution. [ADR-0049](../decisions/0049-opt-in-browser-staged-execution.md)
 defines the forward provenance migration and CI pass/capacity obligations.
+
+## Staged safety observations
+
+The [predictive safety reader](../integrations/predictive-safety.md) verifies
+explicit archived runner inputs and v2 attempts before projecting measurements
+into `internal/predictive`. The domain owns completeness, miss/recall, calibration,
+cost and conservative failure-time semantics without importing wire DTOs, SQL
+or runner application packages. V1 shadow consumers remain strict. Report v1
+retains unavailable measurements and grants no promotion authority; see
+[ADR-0050](../decisions/0050-report-explicit-staged-safety-observations.md).

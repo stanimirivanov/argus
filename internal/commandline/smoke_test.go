@@ -36,6 +36,7 @@ var commandNames = []string{
 	"predictive-abstention",
 	"predictive-cost",
 	"predictive-portfolio",
+	"predictive-safety",
 	"propose-browser-locator",
 	"playwright-catalog",
 	"propose-functional-api-repair",

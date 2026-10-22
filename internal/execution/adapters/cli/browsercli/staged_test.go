@@ -166,7 +166,7 @@ func TestBrowserStagedCLIAndScopeIsolation(t *testing.T) {
 	}
 }
 
-func checkBrowserCLIStage(t *testing.T, f browserStageFixture, mode, stage string) {
+func checkBrowserCLIStage(t *testing.T, f browserStageFixture, mode, stage string) []byte {
 	t.Helper()
 	count := 1
 	if stage == "shadow-control" {
@@ -182,6 +182,8 @@ func checkBrowserCLIStage(t *testing.T, f browserStageFixture, mode, stage strin
 	if err != nil || attempt.Request.Project != "chromium-desktop" || attempt.Request.Staging.Schedule.SHA256 != f.sha || attempt.Request.Staging.Mode != mode {
 		t.Fatalf("v2 evidence: %+v %v", attempt, err)
 	}
+
+	return output.Bytes()
 }
 
 func TestBrowserStagedCLIRejectsSubstitutionsBeforeAdapter(t *testing.T) {
