@@ -12,6 +12,7 @@ import (
 )
 
 var commandNames = []string{
+	"performance-catalog",
 	"adaptation-evidence",
 	"assess-functional-api-maintenance",
 	"browser-catalog",
@@ -117,6 +118,7 @@ func testExitCodes(t *testing.T, binDirectory string) {
 		{name: "migrate", args: []string{"unexpected"}, code: 2},
 		{name: "migrate", code: 1},
 		{name: "descriptor", code: 2},
+		{name: "performance-catalog", code: 2},
 		{name: "descriptor", args: []string{"--unknown"}, code: 2},
 		{name: "playwright-catalog", code: 2},
 		{name: "browser-catalog", code: 2},

@@ -60,6 +60,9 @@ const (
 // must declare its architectural ownership here before it can enter the graph.
 // That makes an otherwise invisible new boundary a reviewable policy change.
 var productionPackagePolicy = map[string]packagePolicy{
+	modulePath + "/internal/performance/adapters/cataloghttp":             {adapterLayer, performanceCapability},
+	modulePath + "/internal/performance/adapters/cli/catalogcli":          {adapterLayer, performanceCapability},
+	modulePath + "/cmd/performance-catalog":                               {compositionRootLayer, productCapability},
 	modulePath + "/internal/performance/adapters/perfeng":                 {adapterLayer, performanceCapability},
 	modulePath + "/internal/adaptation":                                   {domainLayer, adaptationCapability},
 	modulePath + "/internal/adaptation/browserlocator":                    {applicationLayer, adaptationCapability},
@@ -181,6 +184,8 @@ var productionPackagePolicy = map[string]packagePolicy{
 // composition roots. Contract converters and narrow application bridges are
 // the only adapters a driving adapter may compose directly.
 var adapterPolicy = map[string]adapterKind{
+	modulePath + "/internal/performance/adapters/cataloghttp":             drivenAdapter,
+	modulePath + "/internal/performance/adapters/cli/catalogcli":          drivingAdapter,
 	modulePath + "/internal/performance/adapters/perfeng":                 contractAdapter,
 	modulePath + "/internal/adaptation/adapters/cli/browserlocatorcli":    drivingAdapter,
 	modulePath + "/internal/adaptation/adapters/cli/browservalidationcli": drivingAdapter,
@@ -296,6 +301,7 @@ var processProtocolUsers = map[string]bool{
 // command protocol classification. Domain and persistence code cannot acquire
 // a dependency on executable behavior through this shared adapter utility.
 var commandlineUsers = map[string]bool{
+	modulePath + "/internal/performance/adapters/cli/catalogcli":          true,
 	modulePath + "/internal/adaptation/adapters/cli/browserlocatorcli":    true,
 	modulePath + "/internal/adaptation/adapters/cli/browservalidationcli": true,
 	modulePath + "/internal/adaptation/adapters/cli/browserreviewcli":     true,
@@ -432,13 +438,14 @@ var allowedCapabilityDependencies = map[capability]map[capability]bool{
 		selectionCapability:  true,
 	},
 	productCapability: {
-		adaptationCapability: true,
-		catalogCapability:    true,
-		changeCapability:     true,
-		executionCapability:  true,
-		selectionCapability:  true,
-		predictiveCapability: true,
-		productCapability:    true,
+		performanceCapability: true,
+		adaptationCapability:  true,
+		catalogCapability:     true,
+		changeCapability:      true,
+		executionCapability:   true,
+		selectionCapability:   true,
+		predictiveCapability:  true,
+		productCapability:     true,
 	},
 }
 
