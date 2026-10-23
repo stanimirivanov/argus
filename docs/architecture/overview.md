@@ -605,6 +605,12 @@ approval. Wire conversion, authentication and I/O remain adapter responsibilitie
 the selector grants no execution authority. The
 [selection guide](../integrations/performance-selection.md) defines these boundaries.
 
+The `selectionio` driving adapter has explicit product-composition classification:
+it combines public change conversion, pinned catalog validation and the selector,
+then checks portable context/result contracts. Its owned opaque evidence keeps
+source inputs and provenance together. It has no provider transport or storage
+authority; argument adapters consume an injected operation rather than import it.
+
 ## Incident-intelligence boundary
 
 An independently deployed incident-intelligence product MAY consume published

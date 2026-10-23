@@ -60,6 +60,7 @@ const (
 // must declare its architectural ownership here before it can enter the graph.
 // That makes an otherwise invisible new boundary a reviewable policy change.
 var productionPackagePolicy = map[string]packagePolicy{
+	modulePath + "/internal/performance/adapters/selectionio":             {adapterLayer, productCapability},
 	modulePath + "/internal/performance":                                  {domainLayer, performanceCapability},
 	modulePath + "/internal/performance/catalogsync":                      {applicationLayer, performanceCapability},
 	modulePath + "/internal/performance/adapters/cataloghttp":             {adapterLayer, performanceCapability},
@@ -186,6 +187,7 @@ var productionPackagePolicy = map[string]packagePolicy{
 // composition roots. Contract converters and narrow application bridges are
 // the only adapters a driving adapter may compose directly.
 var adapterPolicy = map[string]adapterKind{
+	modulePath + "/internal/performance/adapters/selectionio":             drivingAdapter,
 	modulePath + "/internal/performance/adapters/cataloghttp":             drivenAdapter,
 	modulePath + "/internal/performance/adapters/cli/catalogcli":          drivingAdapter,
 	modulePath + "/internal/performance/adapters/perfeng":                 contractAdapter,
@@ -242,6 +244,7 @@ var adapterPolicy = map[string]adapterKind{
 // see generated wire DTOs; provider and persistence adapters must use domain
 // values and application-owned ports instead.
 var generatedContractImporters = map[string]bool{
+	modulePath + "/internal/performance/adapters/selectionio":             true,
 	modulePath + "/internal/execution/adapters/cli/executioncli":          true,
 	modulePath + "/cmd/propose-browser-locator":                           true,
 	modulePath + "/cmd/validate-browser-locator":                          true,
