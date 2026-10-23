@@ -150,3 +150,4 @@ How will the assumptions and consequences be verified?
 | [ADR-0049](0049-opt-in-browser-staged-execution.md) | Opt in to browser staged execution | Proposed | 2026-10-22 |
 | [ADR-0050](0050-report-explicit-staged-safety-observations.md) | Report explicit staged safety observations | Proposed | 2026-10-22 |
 | [ADR-0051](0051-gate-staged-promotion-by-owner-policy.md) | Gate staged promotion by owner policy | Proposed | 2026-10-22 |
+| [ADR-0052](0052-pin-perfeng-catalog-validation.md) | Pin Perfeng catalog validation | Proposed | 2026-10-23 |
