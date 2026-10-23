@@ -60,6 +60,7 @@ const (
 // must declare its architectural ownership here before it can enter the graph.
 // That makes an otherwise invisible new boundary a reviewable policy change.
 var productionPackagePolicy = map[string]packagePolicy{
+	modulePath + "/internal/performance":                                  {domainLayer, performanceCapability},
 	modulePath + "/internal/performance/catalogsync":                      {applicationLayer, performanceCapability},
 	modulePath + "/internal/performance/adapters/cataloghttp":             {adapterLayer, performanceCapability},
 	modulePath + "/internal/performance/adapters/cli/catalogcli":          {adapterLayer, performanceCapability},
@@ -406,7 +407,7 @@ var allowedLayerDependencies = map[architectureLayer]map[architectureLayer]bool{
 // direction. product-composition is used only by cross-capability adapters and
 // command composition roots; it is not an inward domain capability.
 var allowedCapabilityDependencies = map[capability]map[capability]bool{
-	performanceCapability: {performanceCapability: true},
+	performanceCapability: {performanceCapability: true, catalogCapability: true, changeCapability: true},
 	catalogCapability: {
 		catalogCapability: true,
 	},
