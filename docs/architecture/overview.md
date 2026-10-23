@@ -589,10 +589,14 @@ evidence defined by
 [ADR-0001](../decisions/0001-use-go-and-evidence-based-cross-project-reuse.md).
 
 The contract adapter under `internal/performance` validates the pinned public
-catalog against independent scope and clock expectations. M09-PR4b adds bounded
-authenticated HTTP fetching and a read-only operator inspection command. It has
-no persistence or execution authority. The [catalog guide](../integrations/perfeng-catalog.md)
-records provenance and the remaining synchronization/publication slices.
+catalog against independent scope and clock expectations. Bounded authenticated
+HTTP fetching precedes opt-in atomic publication through the inward catalogsync
+port and the performance-only PostgreSQL view. Immutable source evidence and
+resource identities share a transaction with the scoped current pointer. Stored
+inspection retains expiry and grants no execution authority. The
+[catalog guide](../integrations/perfeng-catalog.md) records provenance and operation;
+[ADR-0054](../decisions/0054-publish-immutable-performance-catalogs-atomically.md)
+records identity, freshness, concurrency and persistence semantics.
 
 ## Incident-intelligence boundary
 

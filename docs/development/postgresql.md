@@ -49,13 +49,18 @@ container image.
 
 The Go adapter exposes runtime and migration capabilities separately.
 `postgres.Runtime` owns one bounded read/write pool and creates
-`CatalogStore`, `ChangeStore`, `ExecutionStore`, and `AdaptationStore` views.
+`CatalogStore`, `ChangeStore`, `ExecutionStore`, `AdaptationStore`, and `PerformanceStore` views.
 Each view implements only its capability's consumer ports. Opening the runtime
 never changes schema state. `postgres.Migrator` owns a separate single-connection
 privileged pool and can only apply the embedded migration chain. Commands pass
 only their required store views to application services; the `catalog` and
 `select` commands compose both catalog and change views over the same pool.
 Runtime credentials cannot acquire DDL authority through a store view.
+
+The performance view atomically retains immutable catalog evidence and its scoped
+current pointer. Apply migrations before opting into `performance-catalog -publish`;
+see the [catalog guide](../integrations/perfeng-catalog.md) for credentials, replay,
+freshness and stored inspection. This view grants no workload execution authority.
 
 [ADR-0004](../decisions/0004-use-postgresql-and-embedded-forward-migrations.md)
 records the database, migration, transaction, identity, and Perfeng-reuse
