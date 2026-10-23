@@ -408,3 +408,9 @@ Predictive promotion policy/decision v1 binds owner thresholds, repository/famil
 exact portfolio/model/calibration, replay/shadow evidence and expiry. Missing or
 breached authority restores shadow planning without removing later execution.
 See the [promotion guide](../docs/integrations/predictive-promotion.md).
+
+## External Perfeng contract pin
+
+The M09 catalog consumer embeds the upstream published JSON schema independently
+of Argus Effect sources. See the [Perfeng catalog guide](../docs/integrations/perfeng-catalog.md)
+for the immutable commit, license, hash sensor and complete-snapshot validation boundary.

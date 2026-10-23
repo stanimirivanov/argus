@@ -31,13 +31,14 @@ const (
 type capability string
 
 const (
-	adaptationCapability capability = "adaptation"
-	catalogCapability    capability = "catalog"
-	changeCapability     capability = "change"
-	executionCapability  capability = "execution"
-	selectionCapability  capability = "selection"
-	predictiveCapability capability = "predictive"
-	productCapability    capability = "product-composition"
+	adaptationCapability  capability = "adaptation"
+	catalogCapability     capability = "catalog"
+	changeCapability      capability = "change"
+	executionCapability   capability = "execution"
+	selectionCapability   capability = "selection"
+	predictiveCapability  capability = "predictive"
+	performanceCapability capability = "performance"
+	productCapability     capability = "product-composition"
 )
 
 type packagePolicy struct {
@@ -59,6 +60,7 @@ const (
 // must declare its architectural ownership here before it can enter the graph.
 // That makes an otherwise invisible new boundary a reviewable policy change.
 var productionPackagePolicy = map[string]packagePolicy{
+	modulePath + "/internal/performance/adapters/perfeng":                 {adapterLayer, performanceCapability},
 	modulePath + "/internal/adaptation":                                   {domainLayer, adaptationCapability},
 	modulePath + "/internal/adaptation/browserlocator":                    {applicationLayer, adaptationCapability},
 	modulePath + "/internal/adaptation/browservalidation":                 {applicationLayer, adaptationCapability},
@@ -179,6 +181,7 @@ var productionPackagePolicy = map[string]packagePolicy{
 // composition roots. Contract converters and narrow application bridges are
 // the only adapters a driving adapter may compose directly.
 var adapterPolicy = map[string]adapterKind{
+	modulePath + "/internal/performance/adapters/perfeng":                 contractAdapter,
 	modulePath + "/internal/adaptation/adapters/cli/browserlocatorcli":    drivingAdapter,
 	modulePath + "/internal/adaptation/adapters/cli/browservalidationcli": drivingAdapter,
 	modulePath + "/internal/adaptation/adapters/cli/browserreviewcli":     drivingAdapter,
@@ -396,6 +399,7 @@ var allowedLayerDependencies = map[architectureLayer]map[architectureLayer]bool{
 // direction. product-composition is used only by cross-capability adapters and
 // command composition roots; it is not an inward domain capability.
 var allowedCapabilityDependencies = map[capability]map[capability]bool{
+	performanceCapability: {performanceCapability: true},
 	catalogCapability: {
 		catalogCapability: true,
 	},
