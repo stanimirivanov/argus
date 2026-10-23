@@ -60,6 +60,7 @@ const (
 // must declare its architectural ownership here before it can enter the graph.
 // That makes an otherwise invisible new boundary a reviewable policy change.
 var productionPackagePolicy = map[string]packagePolicy{
+	modulePath + "/internal/performance/catalogsync":                      {applicationLayer, performanceCapability},
 	modulePath + "/internal/performance/adapters/cataloghttp":             {adapterLayer, performanceCapability},
 	modulePath + "/internal/performance/adapters/cli/catalogcli":          {adapterLayer, performanceCapability},
 	modulePath + "/cmd/performance-catalog":                               {compositionRootLayer, productCapability},

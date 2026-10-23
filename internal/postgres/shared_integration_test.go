@@ -54,7 +54,7 @@ func TestScopedStoresShareOneRuntimePool(t *testing.T) {
 	}
 	t.Cleanup(runtime.Close)
 	if runtime.Catalog().runtime != runtime || runtime.Change().runtime != runtime ||
-		runtime.Execution().runtime != runtime || runtime.Adaptation().runtime != runtime {
+		runtime.Execution().runtime != runtime || runtime.Adaptation().runtime != runtime || runtime.Performance().runtime != runtime {
 		t.Fatal("capability stores do not share the runtime pool owner")
 	}
 }

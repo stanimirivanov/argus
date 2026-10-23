@@ -16,6 +16,7 @@ import (
 	"github.com/stanimirivanov/argus/internal/change/ingest"
 	"github.com/stanimirivanov/argus/internal/execution/attempts"
 	"github.com/stanimirivanov/argus/internal/execution/shadow"
+	"github.com/stanimirivanov/argus/internal/performance/catalogsync"
 )
 
 const (
@@ -34,6 +35,15 @@ type Runtime struct {
 // CatalogStore owns catalog snapshots, test queries, and impact-edge evidence.
 // Obtain it from Runtime.Catalog; its zero value is invalid.
 type CatalogStore struct{ runtime *Runtime }
+
+// PerformanceStore owns immutable performance catalog evidence and current views.
+// Obtain it from Runtime.Performance; its zero value is invalid.
+type PerformanceStore struct{ runtime *Runtime }
+
+var _ catalogsync.Store = (*PerformanceStore)(nil)
+
+// Performance returns the performance-only view of the runtime pool.
+func (runtime *Runtime) Performance() *PerformanceStore { return &PerformanceStore{runtime: runtime} }
 
 // ChangeStore owns delivery and semantic capability-impact evidence.
 // Obtain it from Runtime.Change; its zero value is invalid.

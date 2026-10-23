@@ -1,4 +1,4 @@
-# Perfeng catalog fetching and inspection
+# Perfeng catalog synchronization and publication
 
 ## TL;DR
 
@@ -6,7 +6,8 @@
 - Supply trusted provider, principal, producer version and observation time separately.
 - Validation establishes consistency, never authentication or launch permission.
 - M09-PR4b adds authenticated fetching and read-only operator inspection.
-- Atomic PostgreSQL publication remains M09-PR4c work.
+- M09-PR4c adds opt-in atomic PostgreSQL publication and stored-current inspection.
+- Apply migrations before publication; stored evidence grants no execution authority.
 
 ## Pinned boundary
 
@@ -67,8 +68,8 @@ normal trusted roots; the CLI provides no TLS verification bypass.
 The command writes a JSON array of complete validated pages to stdout after success.
 Help/version work without credentials. Exit codes are 0 for success, 1 for fetch,
 validation or output failures, and 2 for invalid command syntax. Failed fetches
-write no snapshot bytes. There is no database connection, background refresh,
-eligibility publication or workload launch. Shell output redirection is not atomic
+write no snapshot bytes. Default inspection opens no database connection. There is
+no background refresh or workload launch. Shell output redirection is not atomic
 publication; do not use an existing evidence file as the direct redirection target.
 
 All redirects are rejected, including same-origin redirects. Cookies are disabled;
@@ -88,24 +89,61 @@ without automatic retry: retry later according to deployment policy. Timeouts,
 malformed, mixed, partial or stale responses produce errors without exposing remote
 bodies, credentials or cursor URLs. Failures never represent an empty catalog.
 
-## Remaining publication slice
+## Atomic publication and stored inspection
 
-M09-PR4c consumes the same validator at
-the durable import boundary, adds transactional publication through a performance-only
-store and additive migration, and connects synchronization to publication. It must
-retain the prior view/history on refresh failure, reject identity conflicts and
-older concurrent publication, and handle idempotent replay. These are the remaining
-slices of M09-PR4, not new milestone features.
-Missing resources in a complete refresh cease eligibility; failed or stale
-refreshes must never erase prior evidence or silently grant fresh eligibility.
-No workload selection or execution is introduced here.
+Set `ARGUS_DATABASE_URL` through the deployment secret environment and apply
+`go run ./cmd/migrate` with migration credentials before using database modes.
+Then use the ordinary restricted runtime role. Roles require schema USAGE,
+SELECT/INSERT on performance snapshots/resources, SELECT/INSERT/UPDATE on current,
+and function execution. Do not grant runtime schema ownership, DDL or TRUNCATE.
+
+```sh
+go run ./cmd/performance-catalog -publish -endpoint https://perfeng.example/v1/performance-catalog -issuer https://provider.example/identity -principal-issuer https://auth.example/tenant -principal-id argus-service -producer-version 1.0.0
+go run ./cmd/performance-catalog -stored -issuer https://provider.example/identity -principal-issuer https://auth.example/tenant -principal-id argus-service
+```
+
+`-publish` fetches all pages, revalidates them, then atomically stores immutable
+evidence, relational resource identities/lifecycle and the scoped current pointer.
+Output is `{"created":true,"pages":[...]}` from durable readback. Exact replay
+returns `created:false` and never repoints current. The store also accepts exact
+historical/expired replays; live fetching/import still requires fresh source pages.
+A snapshot ID is immutable within provider/principal scope: changes to
+revision, metadata, content or schema pin conflict. A new ID must be fresh at the
+database clock and have a strictly newer generation instant; equal/older generations
+are rejected. Scope serializes concurrent writers, with freshness rechecked at commit.
+
+Failed fetching, validation or transactions retain the prior view and all history.
+An empty complete refresh advances current to empty membership; removed resources
+cease current membership while their evidence remains. Explicit retirement is
+preserved. No selection, eligibility or execution is inferred from stored references.
+Identity fields cannot contain NUL; labels remain opaque source evidence. Source
+pages are canonical UTF-8 bytes, with relational keys stored separately. Fingerprints
+are versioned; timestamps use UTC microsecond database precision.
+
+`-stored` emits the current page array without contacting Perfeng or requiring its
+token, endpoint or producer version. It is mutually exclusive with `-publish`.
+Current means last published: expired evidence remains inspectable and its original
+expiry is retained. A missing scope returns an error, never an empty success.
+Database credentials confer trusted service authority; scope filters and composite
+keys are not tenant authentication. Deployment owns role restrictions and clocks.
+
+Cancellation/deadlines propagate, lock waits are bounded to five seconds and each
+database operation to fifteen seconds. Errors exclude SQL details and credentials.
+Commit can succeed before readback/stdout fails: inspect stored current and retry
+the same source snapshot to resolve ambiguity. Do not assume an output failure
+rolled back publication. Rollback disables `-publish` and retains additive tables;
+there is no destructive down migration or automatic startup DDL.
 
 ## Verification
 
-Run `go test -vet=off ./internal/performance/adapters/... ./internal/architecture`
+Run `go test -vet=off ./internal/performance/... ./internal/architecture`
 and `make validate`. Executable metadata/exit smoke tests cover the inspection
 command. HTTP tests exercise loopback authentication, opaque cursors, bounded
 restart, redirects, cancellation, stale/wrong scope and invalid/oversized responses.
-Database verification belongs to M09-PR4c; this slice does not touch persistence.
+Run `make db-validate` with a disposable loopback PostgreSQL 17.11 server through
+`ARGUS_TEST_POSTGRES_URL`. Tests cover full HTTP-to-publication flow, retained views
+on failure, replay/conflict, concurrent writers, rollback, empty/retired membership
+and immutable resource guards, as well as the complete migration/upgrade chain.
 See [ADR-0052](../decisions/0052-pin-perfeng-catalog-validation.md) and
-[ADR-0053](../decisions/0053-fetch-authorized-catalogs-for-inspection.md).
+[ADR-0053](../decisions/0053-fetch-authorized-catalogs-for-inspection.md) and
+[ADR-0054](../decisions/0054-publish-immutable-performance-catalogs-atomically.md).
