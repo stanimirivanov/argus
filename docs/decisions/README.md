@@ -151,3 +151,4 @@ How will the assumptions and consequences be verified?
 | [ADR-0050](0050-report-explicit-staged-safety-observations.md) | Report explicit staged safety observations | Proposed | 2026-10-22 |
 | [ADR-0051](0051-gate-staged-promotion-by-owner-policy.md) | Gate staged promotion by owner policy | Proposed | 2026-10-22 |
 | [ADR-0052](0052-pin-perfeng-catalog-validation.md) | Pin Perfeng catalog validation | Proposed | 2026-10-23 |
+| [ADR-0053](0053-fetch-authorized-catalogs-for-inspection.md) | Fetch authorized catalogs for inspection | Proposed | 2026-10-23 |

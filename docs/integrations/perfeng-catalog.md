@@ -1,11 +1,12 @@
-# Perfeng catalog validation
+# Perfeng catalog fetching and inspection
 
 ## TL;DR
 
 - M09-PR4a validates the complete public `performance-catalog/v1` projection offline.
 - Supply trusted provider, principal, producer version and observation time separately.
 - Validation establishes consistency, never authentication or launch permission.
-- HTTP synchronization and atomic PostgreSQL publication remain M09-PR4b/PR4c work.
+- M09-PR4b adds authenticated fetching and read-only operator inspection.
+- Atomic PostgreSQL publication remains M09-PR4c work.
 
 ## Pinned boundary
 
@@ -46,10 +47,50 @@ than external artifact provenance. Recheck freshness at eventual publication/use
 Expiry is exclusive, generation inclusive. Fixtures use the frozen upstream instant
 2026-10-22T12:00:00Z; production callers must supply their actual trusted clock.
 
-## Remaining synchronization slice
+## Authenticated operator inspection
 
-M09-PR4b consumes this validator in bounded authenticated HTTP pagination and
-cancellation with an operator inspection command. M09-PR4c consumes it again at
+Inject `ARGUS_PERFENG_TOKEN` through the operator's secret environment. The provider
+must explicitly grant that credential `catalog:read`. Credentials are never CLI
+arguments. Independently review the endpoint, provider issuer, principal issuer/ID,
+producer ID and accepted version; do not derive them from a fetched page.
+
+```sh
+go run ./cmd/performance-catalog -endpoint https://perfeng.example/v1/performance-catalog -issuer https://provider.example/identity -principal-issuer https://auth.example/tenant -principal-id argus-service -producer-version 1.0.0
+```
+
+`-producer-id` defaults to `perfeng-control-plane`; other scope/version options are
+required. The endpoint is the full reviewed URL, including any deployment prefix.
+It must use HTTPS; development HTTP accepts literal loopback IPs only, not DNS
+names. Embedded credentials, queries and fragments are rejected. TLS uses the
+normal trusted roots; the CLI provides no TLS verification bypass.
+
+The command writes a JSON array of complete validated pages to stdout after success.
+Help/version work without credentials. Exit codes are 0 for success, 1 for fetch,
+validation or output failures, and 2 for invalid command syntax. Failed fetches
+write no snapshot bytes. There is no database connection, background refresh,
+eligibility publication or workload launch. Shell output redirection is not atomic
+publication; do not use an existing evidence file as the direct redirection target.
+
+All redirects are rejected, including same-origin redirects. Cookies are disabled;
+every page uses the same bearer credential and configured endpoint, with the opaque
+cursor safely encoded as its only query parameter. Enumeration is limited to 1,000
+pages/attempt, 2 MiB/response body, 64 MiB across attempts, 10 seconds/request and 30
+seconds overall. Cancellation covers the operation and response reads. Freshness
+is checked with the actual clock after fetching the complete view and again after
+validation, before returning pages.
+
+One HTTP 410 restarts enumeration from the initial endpoint and discards all prior
+pages; a second 410 fails. Provider caches are process-local, so deployments need
+instance affinity during pagination that does not depend on cookies, such as a
+reviewed endpoint routed to one instance. HTTP 401/403 requires credential/scope review;
+404 requires endpoint/publication configuration review. HTTP 429/503 is reported
+without automatic retry: retry later according to deployment policy. Timeouts,
+malformed, mixed, partial or stale responses produce errors without exposing remote
+bodies, credentials or cursor URLs. Failures never represent an empty catalog.
+
+## Remaining publication slice
+
+M09-PR4c consumes the same validator at
 the durable import boundary, adds transactional publication through a performance-only
 store and additive migration, and connects synchronization to publication. It must
 retain the prior view/history on refresh failure, reject identity conflicts and
@@ -61,6 +102,10 @@ No workload selection or execution is introduced here.
 
 ## Verification
 
-Run `go test -vet=off ./internal/performance/adapters/perfeng ./internal/architecture`
-and `make validate`. Database verification belongs to M09-PR4c; this foundation
-does not touch persistence. See [ADR-0052](../decisions/0052-pin-perfeng-catalog-validation.md).
+Run `go test -vet=off ./internal/performance/adapters/... ./internal/architecture`
+and `make validate`. Executable metadata/exit smoke tests cover the inspection
+command. HTTP tests exercise loopback authentication, opaque cursors, bounded
+restart, redirects, cancellation, stale/wrong scope and invalid/oversized responses.
+Database verification belongs to M09-PR4c; this slice does not touch persistence.
+See [ADR-0052](../decisions/0052-pin-perfeng-catalog-validation.md) and
+[ADR-0053](../decisions/0053-fetch-authorized-catalogs-for-inspection.md).
