@@ -1,0 +1,317 @@
+{
+  "$id": "https://argus.dev/contracts/performance-selection-context/v1/schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "apiVersion": {
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "argus.dev/performance-selection-context/v1"
+          ]
+        }
+      ]
+    },
+    "change": {
+      "type": "object",
+      "properties": {
+        "sourceRepository": {
+          "$ref": "#/$defs/RepositoryReference"
+        },
+        "pullRequest": {
+          "type": "object",
+          "properties": {
+            "number": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "number"
+          ],
+          "additionalProperties": false
+        },
+        "baseRevision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "headRevision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "observedAt": {
+          "type": "string"
+        },
+        "trigger": {
+          "type": "object",
+          "properties": {
+            "provider": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "github"
+                  ]
+                }
+              ]
+            },
+            "deliveryId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255
+            },
+            "event": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "pull_request"
+                  ]
+                }
+              ]
+            },
+            "action": {
+              "type": "string",
+              "enum": [
+                "opened",
+                "reopened",
+                "synchronize",
+                "ready_for_review"
+              ]
+            }
+          },
+          "required": [
+            "provider",
+            "deliveryId",
+            "event",
+            "action"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "sourceRepository",
+        "pullRequest",
+        "baseRevision",
+        "headRevision",
+        "observedAt",
+        "trigger"
+      ],
+      "additionalProperties": false
+    },
+    "impact": {
+      "type": "object",
+      "properties": {
+        "apiVersion": {
+          "type": "string",
+          "enum": [
+            "argus.dev/capability-impact/v1",
+            "argus.dev/capability-impact/v2"
+          ]
+        },
+        "analyzerVersion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "apiVersion",
+        "analyzerVersion",
+        "sha256"
+      ],
+      "additionalProperties": false
+    },
+    "catalog": {
+      "type": "object",
+      "properties": {
+        "reference": {
+          "type": "object",
+          "properties": {
+            "issuer": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            "id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "revision": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          "required": [
+            "issuer",
+            "id",
+            "revision",
+            "sha256"
+          ],
+          "additionalProperties": false
+        },
+        "fingerprint": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "schemaSha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "scope": {
+          "type": "object",
+          "properties": {
+            "issuer": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            "principalIssuer": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            "principalId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          "required": [
+            "issuer",
+            "principalIssuer",
+            "principalId"
+          ],
+          "additionalProperties": false
+        },
+        "validUntil": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "reference",
+        "fingerprint",
+        "schemaSha256",
+        "scope",
+        "validUntil"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "apiVersion",
+    "change",
+    "impact",
+    "catalog"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "RepositoryReference": {
+      "type": "object",
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": [
+            "github",
+            "gitlab",
+            "azure-devops",
+            "other"
+          ]
+        },
+        "host": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "pattern": "^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$"
+        },
+        "providerRepositoryId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "owner": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        }
+      },
+      "required": [
+        "provider",
+        "host",
+        "providerRepositoryId",
+        "owner",
+        "name"
+      ],
+      "additionalProperties": false,
+      "description": "A repository reference anchored by the provider-assigned identity; owner and name are mutable display coordinates."
+    },
+    "Revision": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "algorithm": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "git-sha1"
+                  ]
+                }
+              ]
+            },
+            "digest": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            }
+          },
+          "required": [
+            "algorithm",
+            "digest"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "algorithm": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "git-sha256"
+                  ]
+                }
+              ]
+            },
+            "digest": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          "required": [
+            "algorithm",
+            "digest"
+          ],
+          "additionalProperties": false
+        }
+      ],
+      "description": "An immutable, normalized Git object revision."
+    }
+  }
+}

@@ -73,6 +73,11 @@ import { HeadTestInventoryV1 } from "../source/head-test-inventory-v1.js";
 import { ImpactEdgePageV1 } from "../source/impact-edge-page-v1.js";
 import { ImpactEvidenceBundleV1 } from "../source/impact-evidence-bundle-v1.js";
 import { MaintenanceAssessmentV1 } from "../source/maintenance-assessment-v1.js";
+import {
+  PerformanceMappingPolicyV1,
+  PerformanceSelectionContextV1,
+  PerformanceSelectionV1,
+} from "../source/performance-selection-v1.js";
 import { PredictiveAbstentionV1 } from "../source/predictive-abstention-v1.js";
 import { PredictiveBaselinesV1 } from "../source/predictive-baselines-v1.js";
 import { PredictiveCalibrationV1 } from "../source/predictive-calibration-v1.js";
@@ -104,6 +109,18 @@ import { TestCatalogPageV1 } from "../source/test-catalog-page-v1.js";
 import { compileJsonSchema } from "./json-schema.js";
 
 const artifacts = [
+  ...[
+    { name: "performance-mapping-policy", schema: PerformanceMappingPolicyV1 },
+    { name: "performance-selection", schema: PerformanceSelectionV1 },
+    { name: "performance-selection-context", schema: PerformanceSelectionContextV1 },
+  ].map(({ name, schema }) => ({
+    name,
+    outputPath: new URL(`../generated/${name}/v1/${name}.schema.json`, import.meta.url),
+    document: {
+      $id: `https://argus.dev/contracts/${name}/v1/schema.json`,
+      ...compileJsonSchema(schema),
+    },
+  })),
   {
     name: "browser-adapter-request-v2",
     outputPath: new URL(
