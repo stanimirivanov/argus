@@ -598,6 +598,13 @@ inspection retains expiry and grants no execution authority. The
 [ADR-0054](../decisions/0054-publish-immutable-performance-catalogs-atomically.md)
 records identity, freshness, concurrency and persistence semantics.
 
+The pure `internal/performance` domain consumes public catalog/change values through
+declared inward dependencies. Its deterministic selector checks reviewed target and
+deployment eligibility, retains omissions and review reasons, and requires owner
+approval. Wire conversion, authentication and I/O remain adapter responsibilities;
+the selector grants no execution authority. The
+[selection guide](../integrations/performance-selection.md) defines these boundaries.
+
 ## Incident-intelligence boundary
 
 An independently deployed incident-intelligence product MAY consume published

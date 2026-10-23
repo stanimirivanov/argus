@@ -5,7 +5,7 @@
 - M09-PR5a publishes reviewed mapping, source context and recommendation contracts.
 - Every recommendation pins source, impact, catalog and reviewed policy evidence.
 - Candidates require complete deployment provenance and explicit owner approval.
-- Runtime selection, evidence adapters and the operator CLI follow in PR5b-PR5d.
+- PR5b adds the pure deterministic selector; evidence adapters and CLI follow in PR5c-PR5d.
 
 ## Published boundaries
 
@@ -65,6 +65,35 @@ revalidate current source/catalog/policy and owner authorization. Perfeng owns
 admission, execution, baseline approval and statistics. This foundation provides no
 runtime command, dispatch, prediction or persistence changes.
 
+## Deterministic domain selection
+
+The [performance domain](../../internal/performance/selection.go) evaluates validated
+inward impact/catalog values and reviewed policy at an explicit trusted instant.
+It performs no I/O, wall-clock lookup or dispatch. Source evidence and returned
+evidence pointers are read-only and must not be mutated concurrently.
+
+Mappings are ordered by stable ID; uncovered affected capability keys follow in
+sorted order. Unaffected mappings are retained as omissions. A removed API
+operation still affects its capability when that capability exists at the reviewed
+head. Explicit workload/environment fan-out is permitted with separate exact
+deployment bindings; rules sharing capability/workload/profile/environment identity
+conflict even when their resource versions differ.
+
+Candidates require matching source/impact/catalog pins, fresh catalog/review,
+allowed profile, active exact references and owner route, reciprocal workload/profile
+support, a published target tuple, approved matching baseline, and complete
+deployment/service/image/source proof. Every result requires owner approval and
+expires at the earlier of catalog and policy expiry. Expired evidence retains its
+original expiry in review output. A complete producer flag cannot hide unmapped
+operations or an empty impact. Any unresolved decision requires overall review;
+otherwise eligible mapping decisions remain visible without permitting partial
+automatic dispatch. Malformed input, future source observations and duplicate
+mapping, environment or catalog identities return an error with no partial result.
+
+This domain API does not authenticate review metadata or calculate artifact hashes.
+PR5c supplies independently validated, digest-bound evidence; PR5d supplies the
+operator entry point. No new command or persistence behavior ships in PR5b.
+
 ## Delivery and verification
 
 The [approved delivery sequence](../development/plans/m09-pr5-performance-selection.md)
@@ -72,5 +101,7 @@ separates contracts, selector, evidence adapters and CLI. Shared contracts suppo
 those consumers and later M09 request/projection work without runtime stubs.
 Run `make generate-contracts` and `make validate`; Go and TypeScript conformance
 tests cover closed shapes, explicit emptiness, approval and candidate provenance.
-No database-specific gate is needed for this schema-only change. See
+Run `go test -vet=off ./internal/performance ./internal/architecture` for focused
+selector and dependency-boundary verification. No database-specific gate is needed
+because selection changes no SQL or persistence. See
 [ADR-0055](../decisions/0055-select-reviewed-performance-workload-targets.md).
