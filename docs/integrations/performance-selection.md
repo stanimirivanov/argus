@@ -5,7 +5,7 @@
 - M09-PR5a publishes reviewed mapping, source context and recommendation contracts.
 - Every recommendation pins source, impact, catalog and reviewed policy evidence.
 - Candidates require complete deployment provenance and explicit owner approval.
-- PR5b adds the pure deterministic selector; evidence adapters and CLI follow in PR5c-PR5d.
+- PR5b adds the selector and PR5c adds pinned evidence adapters; the CLI follows in PR5d.
 
 ## Published boundaries
 
@@ -91,8 +91,38 @@ automatic dispatch. Malformed input, future source observations and duplicate
 mapping, environment or catalog identities return an error with no partial result.
 
 This domain API does not authenticate review metadata or calculate artifact hashes.
-PR5c supplies independently validated, digest-bound evidence; PR5d supplies the
-operator entry point. No new command or persistence behavior ships in PR5b.
+The pinned evidence adapter supplies independently validated, digest-bound evidence;
+PR5d supplies the operator entry point. Neither slice adds persistence behavior.
+
+## Pinned evidence conversion
+
+The [selection I/O adapter](../../internal/performance/adapters/selectionio/selection.go)
+composes existing public change converters and the pinned Perfeng catalog importer.
+`Inspect` creates owned, opaque evidence: callers cannot independently replace its
+domain inputs and portable provenance. It hashes the complete canonical public
+impact export, including v2 file evidence, without mutating the source.
+
+Stored catalogs are revalidated against independent issuer/principal/producer
+expectations, the pinned schema, full page/relationship closure and the stored
+fingerprint. Revalidation uses the source generation instant, retaining supported
+microsecond precision and UTC offsets. Historical expiry does not prevent integrity
+inspection within accepted schema/producer pins; unsupported pins require explicit
+compatibility review rather than silent re-pinning. `Evaluate` checks freshness at
+the caller's trusted use-time instant.
+
+`Context` validates the portable inspection response. `Evaluate` accepts at most
+16 MiB of original policy bytes, validates their schema and parses actual review/
+expiry instants, then imports separate domain values. It retains the exact policy
+byte digest and validates exported candidates, omissions and review decisions before
+returning output. Unknown versions/fields, malformed or oversized policy, mismatched
+stored evidence and zero evidence fail without partial results. Opaque evidence can
+be reused concurrently; returned DTOs do not expose its private source projection.
+
+These checks establish consistency with authenticated stored evidence, not reviewer
+authentication or deployment-claim truth. Operators/CI must supply trusted policy
+origin and independent catalog expectations. The adapter performs no network or
+database I/O and grants no dispatch authority. The future command composition root
+will call it and inject a validated operation into its argument/output adapter.
 
 ## Delivery and verification
 
@@ -101,7 +131,7 @@ separates contracts, selector, evidence adapters and CLI. Shared contracts suppo
 those consumers and later M09 request/projection work without runtime stubs.
 Run `make generate-contracts` and `make validate`; Go and TypeScript conformance
 tests cover closed shapes, explicit emptiness, approval and candidate provenance.
-Run `go test -vet=off ./internal/performance ./internal/architecture` for focused
-selector and dependency-boundary verification. No database-specific gate is needed
+Run `go test -vet=off ./internal/performance/... ./internal/architecture` for focused
+selector, evidence conversion and dependency-boundary verification. No database-specific gate is needed
 because selection changes no SQL or persistence. See
 [ADR-0055](../decisions/0055-select-reviewed-performance-workload-targets.md).
