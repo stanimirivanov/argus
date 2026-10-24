@@ -610,6 +610,10 @@ it combines public change conversion, pinned catalog validation and the selector
 then checks portable context/result contracts. Its owned opaque evidence keeps
 source inputs and provenance together. It has no provider transport or storage
 authority; argument adapters consume an injected operation rather than import it.
+The `cmd/select-performance` root selects existing PostgreSQL readers for the exact
+GitHub delivery and issuer/principal scope. The CLI adapter owns bounded policy
+input and output; the root validates evidence and samples actual time after reads.
+This read-only workflow adds no dispatch authority or persistence writes.
 
 ## Incident-intelligence boundary
 

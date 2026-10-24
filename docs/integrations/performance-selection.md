@@ -1,11 +1,11 @@
-# Performance selection contracts
+# Reviewed performance selection
 
 ## TL;DR
 
 - M09-PR5a publishes reviewed mapping, source context and recommendation contracts.
 - Every recommendation pins source, impact, catalog and reviewed policy evidence.
 - Candidates require complete deployment provenance and explicit owner approval.
-- PR5b adds the selector and PR5c adds pinned evidence adapters; the CLI follows in PR5d.
+- Use `select-performance -inspect` before reviewing a policy, then select with `-policy`.
 
 ## Published boundaries
 
@@ -62,8 +62,8 @@ invariant rather than a schema-derived status. No run-all fallback is permitted.
 
 Later request creation must combine identical targets while retaining reasons and
 revalidate current source/catalog/policy and owner authorization. Perfeng owns
-admission, execution, baseline approval and statistics. This foundation provides no
-runtime command, dispatch, prediction or persistence changes.
+admission, execution, baseline approval and statistics. Selection provides no
+dispatch, prediction or persistence writes.
 
 ## Deterministic domain selection
 
@@ -92,7 +92,7 @@ mapping, environment or catalog identities return an error with no partial resul
 
 This domain API does not authenticate review metadata or calculate artifact hashes.
 The pinned evidence adapter supplies independently validated, digest-bound evidence;
-PR5d supplies the operator entry point. Neither slice adds persistence behavior.
+the operator command supplies the entry point without persistence writes.
 
 ## Pinned evidence conversion
 
@@ -121,8 +121,53 @@ be reused concurrently; returned DTOs do not expose its private source projectio
 These checks establish consistency with authenticated stored evidence, not reviewer
 authentication or deployment-claim truth. Operators/CI must supply trusted policy
 origin and independent catalog expectations. The adapter performs no network or
-database I/O and grants no dispatch authority. The future command composition root
-will call it and inject a validated operation into its argument/output adapter.
+database I/O and grants no dispatch authority. The command composition root calls
+it and injects a validated operation into its argument/output adapter.
+
+## Operator inspection and selection
+
+The [select-performance command](../../cmd/select-performance/main.go) is opt-in.
+Configure `ARGUS_DATABASE_URL` through your secret manager/environment, using a
+read-only database role for the existing impact and performance catalog stores.
+No provider URL or token is required: this command makes no provider requests.
+
+```sh
+go run ./cmd/select-performance -delivery-id delivery-42 -inspect \
+  -issuer https://provider.example/identity \
+  -principal-issuer https://auth.example/tenant -principal-id argus-service \
+  -producer-version 1.0.0
+```
+
+Issuer, principal and producer expectations must come from trusted operator/CI
+configuration, independently of the stored pages. `-producer-id` defaults to
+`perfeng-control-plane`. These arguments select and verify an authorized stored
+view; they do not authenticate the caller. Database access and scope authorization
+remain deployment responsibilities. Impact lookup uses the exact GitHub delivery
+ID and verifies that the returned evidence belongs to that delivery. Catalog lookup
+uses the exact issuer/principal tuple; missing evidence never becomes an empty view.
+
+Preserve the inspection JSON and its referenced canonical impact and catalog
+artifacts. Have an authorized reviewer construct the mapping policy described above,
+including exact pins, head inventory, target/deployment bindings and validity window.
+Then repeat the invocation, replacing `-inspect` with `-policy reviewed-policy.json`.
+Policy input is limited to 16 MiB; its original bytes define the policy digest.
+Operators/CI must establish policy origin and reviewer authority before invoking it.
+
+Selection evaluates freshness using actual time after both stored reads and evidence
+validation. There is no historical-clock override. Inspection can retain historical
+expired provenance; selection conservatively requires review for stale evidence.
+Separate immutable reads require no shared write transaction: a later current-pointer
+update cannot alter the loaded snapshot, and the policy pins must still match it.
+Later request creation must revalidate current evidence and owner authorization.
+
+Success writes one schema-validated JSON document plus a newline and exits 0;
+`review-required` is a successful decision requiring human action. Syntax/missing
+options exit 2. Storage, validation, policy-file, cancellation and output failures
+exit 1. No JSON is written before successful evaluation and a final cancellation
+check. A stdout failure can leave a partial document: consume output only after exit
+0. Database/file failures use bounded diagnostics without credentials or policy bytes.
+Ctrl+C/SIGTERM cancels database reads; no retry, write, execution lease or dispatch is
+performed. `--help` and `--version` work without database configuration.
 
 ## Delivery and verification
 
@@ -132,6 +177,9 @@ those consumers and later M09 request/projection work without runtime stubs.
 Run `make generate-contracts` and `make validate`; Go and TypeScript conformance
 tests cover closed shapes, explicit emptiness, approval and candidate provenance.
 Run `go test -vet=off ./internal/performance/... ./internal/architecture` for focused
-selector, evidence conversion and dependency-boundary verification. No database-specific gate is needed
-because selection changes no SQL or persistence. See
+selector, evidence conversion and dependency-boundary verification. Run
+`go test -vet=off ./cmd/select-performance ./internal/performance/adapters/cli/selectioncli`
+for scoped read and CLI failure coverage; the command smoke suite also checks metadata
+and exit codes. No database-specific gate is needed because this slice changes no
+SQL, schema or persistence writes. See
 [ADR-0055](../decisions/0055-select-reviewed-performance-workload-targets.md).
