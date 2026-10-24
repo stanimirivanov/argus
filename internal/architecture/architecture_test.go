@@ -60,6 +60,8 @@ const (
 // must declare its architectural ownership here before it can enter the graph.
 // That makes an otherwise invisible new boundary a reviewable policy change.
 var productionPackagePolicy = map[string]packagePolicy{
+	modulePath + "/cmd/select-performance":                                {compositionRootLayer, productCapability},
+	modulePath + "/internal/performance/adapters/cli/selectioncli":        {adapterLayer, performanceCapability},
 	modulePath + "/internal/performance/adapters/selectionio":             {adapterLayer, productCapability},
 	modulePath + "/internal/performance":                                  {domainLayer, performanceCapability},
 	modulePath + "/internal/performance/catalogsync":                      {applicationLayer, performanceCapability},
@@ -187,6 +189,7 @@ var productionPackagePolicy = map[string]packagePolicy{
 // composition roots. Contract converters and narrow application bridges are
 // the only adapters a driving adapter may compose directly.
 var adapterPolicy = map[string]adapterKind{
+	modulePath + "/internal/performance/adapters/cli/selectioncli":        drivingAdapter,
 	modulePath + "/internal/performance/adapters/selectionio":             drivingAdapter,
 	modulePath + "/internal/performance/adapters/cataloghttp":             drivenAdapter,
 	modulePath + "/internal/performance/adapters/cli/catalogcli":          drivingAdapter,
@@ -306,6 +309,7 @@ var processProtocolUsers = map[string]bool{
 // command protocol classification. Domain and persistence code cannot acquire
 // a dependency on executable behavior through this shared adapter utility.
 var commandlineUsers = map[string]bool{
+	modulePath + "/internal/performance/adapters/cli/selectioncli":        true,
 	modulePath + "/internal/performance/adapters/cli/catalogcli":          true,
 	modulePath + "/internal/adaptation/adapters/cli/browserlocatorcli":    true,
 	modulePath + "/internal/adaptation/adapters/cli/browservalidationcli": true,
