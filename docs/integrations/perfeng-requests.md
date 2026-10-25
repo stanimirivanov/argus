@@ -79,5 +79,30 @@ No partial snapshot is returned on failure. This is evidence for PR7c persistenc
 it does not insert rows, enqueue work or send a request. Rollback is a code revert;
 there is no activation flag, migration or production behavior change.
 
-Run focused adapter/architecture tests and `make validate`. This foundation needs
-no SQL gate, migration, credential, network endpoint or deployment enablement.
+Run focused adapter/architecture tests and `make validate` for the contract and
+compiler above. The durable evidence foundation below also needs the SQL gate.
+
+## Durable evidence foundation
+
+PR7c1 adds `Compilation.Intent`: an inward value with a versioned fingerprint and
+owned copies of retained policy/selection/review evidence, exact child payloads,
+digests, identities, timestamps and reasons. The requestintent application package
+validates inward integrity; it neither parses provider DTOs nor grants authority.
+PostgreSQL and future dispatch consumers can use it without importing selectionio.
+
+The additive schema provides scoped intent and pending-dispatch rows, identity
+uniqueness, exact child counts/ordinals and a parent/current-catalog relationship.
+Deferred guards reject incomplete assembly, future or expired work, and a changed
+or expired catalog. Rows cannot be changed or deleted; children cannot be appended
+after the creating transaction commits. The pending position is an internal keyset
+cursor, not a lease, acknowledgement or durable snapshot.
+
+This foundation introduces no storage methods. PR7c2 owns transactional creation,
+read-only exact replay, conflicts, reopen and bounded scoped reads; PR7d composes
+the operator entry point. PR8 owns dispatch progress separately from immutable work.
+
+Apply migration `20261025093826_add_performance_request_intents.sql` before new
+writers. No backfill or existing-table rewrite is required. Rollback disables new
+creation while retaining immutable rows; never delete pending evidence to roll back.
+Run `make validate` and `make db-validate` on disposable PostgreSQL 17.11. Direct SQL
+tests prove the schema guards independently of the future storage implementation.

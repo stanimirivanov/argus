@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -109,6 +110,30 @@ func TestCompileKeepsDistinctApprovedProviderTargets(t *testing.T) {
 	compiled, err := selectionio.Compile(evidence, policy, review, authority, observed)
 	if err != nil || len(compiled.Snapshot().Children) != 2 {
 		t.Fatalf("lost distinct requests: %v", err)
+	}
+}
+
+func TestCompilationProjectsOwnedInwardIntent(t *testing.T) {
+	t.Parallel()
+	evidence, policy, review, authority := requestReview(t, true)
+	for i := range review.Bindings {
+		review.Bindings[i].Message.Data.Context.Request.ID = strings.Repeat("界", 256)
+	}
+	authority.ReviewSHA256 = digest(encode(t, review))
+	compiled, err := selectionio.Compile(evidence, policy, review, authority, observed)
+	if err != nil {
+		t.Fatal(err)
+	}
+	intent, err := compiled.Intent()
+	if err != nil {
+		t.Fatal(err)
+	}
+	d := intent.Data()
+	if d.ReviewSHA256 != authority.ReviewSHA256 || d.CatalogSHA256 != review.Selection.Catalog.Fingerprint || len(d.Children) != 1 || len(d.Children[0].Reasons) != 2 || !bytes.Equal(d.Children[0].Payload, compiled.Snapshot().Children[0].Payload) {
+		t.Fatal("lost frozen inward pins or reasons")
+	}
+	if _, err := (selectionio.Compilation{}).Intent(); err == nil {
+		t.Fatal("zero compilation became durable intent")
 	}
 }
 
