@@ -39,6 +39,14 @@ from zero; pages are not a durable snapshot. PR8 owns claims/fencing and dispatc
 progress separately from immutable payload evidence. This avoids a broker or generic
 job framework and keeps network calls outside transactions.
 
+The opt-in performance-requests command first exposes read-only inspection (PR7d1).
+Its local diagnostic output retains the inward evidence projection and base64
+binary fields, following catalog CLI diagnostics without publishing a portable
+data contract. New independently consumed contracts follow ADR-0003. Scope
+configuration and
+database authorization govern access. Reviewed write activation follows in PR7d2;
+inspection supplies no approval, processing claim or execution authority.
+
 The migration is additive, transactional and has no backfill. Apply it before a new
 writer; old binaries continue to work. Rollback disables creation and retains the
 tables and pending evidence. Follow existing migration-role access controls; no new
