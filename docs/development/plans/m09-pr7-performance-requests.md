@@ -22,6 +22,8 @@ workflow runtime or network endpoint is introduced by this plan.
 PR7c was split into two reviewable slices by owner agreement. PR7c1 is a shared
 schema/evidence foundation consumed by storage/dispatch and operator composition;
 it does not expose persistence methods or claim that intent creation is enabled.
+PR7c2 supplies the atomic store and scoped reads on that foundation. Operator
+creation remains deferred to PR7d; pending reads do not claim or dispatch work.
 
 Compilation must independently revalidate source/catalog/policy and owner authority;
 recommendation metadata alone cannot authorize requests. Preserve exact source,

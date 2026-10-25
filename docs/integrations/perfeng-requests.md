@@ -97,12 +97,29 @@ or expired catalog. Rows cannot be changed or deleted; children cannot be append
 after the creating transaction commits. The pending position is an internal keyset
 cursor, not a lease, acknowledgement or durable snapshot.
 
-This foundation introduces no storage methods. PR7c2 owns transactional creation,
-read-only exact replay, conflicts, reopen and bounded scoped reads; PR7d composes
-the operator entry point. PR8 owns dispatch progress separately from immutable work.
+`PerformanceStore.CreateRequest` atomically retains an intent and every child,
+sharing the catalog publication scope lock. Exact review/fingerprint replay is
+read-only even after catalog replacement or expiry. Changed evidence or reused
+child identities return `requestintent.ErrConflict`; non-live children return
+`ErrExpired`. New creation requires the current live catalog at commit. A lost
+commit response has an uncertain outcome: retry the exact immutable intent.
+
+`GetRequest` reads owned evidence by review digest in the independently authorized
+provider/principal scope; wrong-scope and missing reads both return `ErrNotFound`.
+`PendingRequests` reads owned child evidence in increasing database-local cursor
+order with limits 1..100 and a nonnegative `after` cursor. Expired work remains
+visible for recovery. Concurrent writers can commit out of cursor allocation order;
+restart from zero rather than treating pages as a durable snapshot or lease.
+Invalid input returns `ErrInvalid`; cancellation/deadlines propagate, and other
+storage failures return redacted `ErrUnavailable`. Reads and writes are bounded by
+the runtime operation timeout. These methods do not authenticate embedded claims.
+
+PR7d composes the operator entry point. PR8 owns dispatch progress separately from
+immutable work. No CLI activation or network dispatch is introduced here.
 
 Apply migration `20261025093826_add_performance_request_intents.sql` before new
 writers. No backfill or existing-table rewrite is required. Rollback disables new
 creation while retaining immutable rows; never delete pending evidence to roll back.
 Run `make validate` and `make db-validate` on disposable PostgreSQL 17.11. Direct SQL
-tests prove the schema guards independently of the future storage implementation.
+tests prove schema guards independently; adapter tests verify concurrent replay,
+atomic failure, complete evidence recovery after reopening, and scoped pagination.
