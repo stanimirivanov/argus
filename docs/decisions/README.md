@@ -154,3 +154,4 @@ How will the assumptions and consequences be verified?
 | [ADR-0053](0053-fetch-authorized-catalogs-for-inspection.md) | Fetch authorized catalogs for inspection | Proposed | 2026-10-23 |
 | [ADR-0054](0054-publish-immutable-performance-catalogs-atomically.md) | Publish immutable performance catalogs atomically | Proposed | 2026-10-23 |
 | [ADR-0055](0055-select-reviewed-performance-workload-targets.md) | Define reviewed performance selection boundaries | Proposed | 2026-10-23 |
+| [ADR-0056](0056-pin-perfeng-integration-messages.md) | Pin Perfeng integration messages | Proposed | 2026-10-25 |

@@ -1,4 +1,4 @@
-// Package perfeng validates the pinned public Perfeng catalog projection offline.
+// Package perfeng validates pinned public Perfeng interchange offline.
 // Its wire values never confer authentication, ownership or execution authority.
 package perfeng
 
