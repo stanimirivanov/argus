@@ -13,8 +13,10 @@
 - Exact replay is read-only; current catalog and deadlines gate new creation.
 - Scope every read; keep processing claims and network calls outside this slice.
 
-PR7c1 delivers only the evidence value and schema guards. PR7c2 implements the
-transactional storage and read behavior specified below; PR7d adds operator use.
+PR7c1 delivers the evidence value and schema guards. PR7c2 delivers transactional
+creation, exact replay and scoped reads through PerformanceStore; PR7d adds operator
+use. The adapter exposes redacted conflict/not-found/expired/unavailable errors and
+preserves context cancellation; uncertain commit responses require exact replay.
 
 ## Decision and consequences
 

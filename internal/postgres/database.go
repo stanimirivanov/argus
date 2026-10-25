@@ -36,7 +36,8 @@ type Runtime struct {
 // Obtain it from Runtime.Catalog; its zero value is invalid.
 type CatalogStore struct{ runtime *Runtime }
 
-// PerformanceStore owns immutable performance catalog evidence and current views.
+// PerformanceStore owns immutable performance catalog/request evidence and scoped
+// current/pending views. Methods are concurrent-safe; views share the runtime pool.
 // Obtain it from Runtime.Performance; its zero value is invalid.
 type PerformanceStore struct{ runtime *Runtime }
 
