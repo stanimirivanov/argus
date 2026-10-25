@@ -3,6 +3,7 @@
 package postgres
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -15,9 +16,45 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
+
 	"github.com/stanimirivanov/argus/internal/performance"
+	"github.com/stanimirivanov/argus/internal/performance/adapters/cli/requestcli"
 	"github.com/stanimirivanov/argus/internal/performance/requestintent"
 )
+
+func TestPerformanceRequestCLIReadsWithReadOnlyConnection(t *testing.T) {
+	store, catalogSHA := requestSchemaStore(t, "cli")
+	data := requestFixture(t, store, catalogSHA, "inspection")
+	intent := inwardRequest(t, data)
+	if _, err := store.runtime.Performance().CreateRequest(t.Context(), intent); err != nil {
+		t.Fatal(err)
+	}
+	config := store.pool.Config()
+	config.ConnConfig.RuntimeParams["default_transaction_read_only"] = "on"
+	pool, err := pgxpool.NewWithConfig(t.Context(), config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(pool.Close)
+	reader := (&Runtime{pool: pool}).Performance()
+	var readOnly string
+	if err := pool.QueryRow(t.Context(), "SHOW default_transaction_read_only").Scan(&readOnly); err != nil || readOnly != "on" {
+		t.Fatalf("not read-only: %s %v", readOnly, err)
+	}
+	open := func(context.Context) (requestcli.Reader, func(), error) {
+		return requestcli.Reader{Get: reader.GetRequest, Pending: reader.PendingRequests}, func() {}, nil
+	}
+	args := []string{"-issuer", data.Scope.Issuer, "-principal-issuer", data.Scope.PrincipalIssuer, "-principal-id", data.Scope.PrincipalID}
+	var output bytes.Buffer
+	if err := requestcli.Run(t.Context(), append(args, "-review-sha256", data.ReviewSHA256), &output, open); err != nil || !bytes.Contains(output.Bytes(), []byte(intent.Fingerprint())) {
+		t.Fatalf("intent inspection: %v", err)
+	}
+	output.Reset()
+	if err := requestcli.Run(t.Context(), append(args, "-pending", "-limit", "1"), &output, open); err != nil || !bytes.Contains(output.Bytes(), []byte(`"nextAfter":`)) {
+		t.Fatalf("pending inspection: %v", err)
+	}
+}
 
 func requestDigest(raw string) string {
 	h := sha256.Sum256([]byte(raw))

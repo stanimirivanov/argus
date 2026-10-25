@@ -114,8 +114,9 @@ Invalid input returns `ErrInvalid`; cancellation/deadlines propagate, and other
 storage failures return redacted `ErrUnavailable`. Reads and writes are bounded by
 the runtime operation timeout. These methods do not authenticate embedded claims.
 
-PR7d composes the operator entry point. PR8 owns dispatch progress separately from
-immutable work. No CLI activation or network dispatch is introduced here.
+PR7d1 adds the read-only operator entry point below; PR7d2 adds independently
+authorized reviewed creation. PR8 owns dispatch progress separately from immutable
+work. No request-creation CLI activation or network dispatch is introduced here.
 
 Apply migration `20261025093826_add_performance_request_intents.sql` before new
 writers. No backfill or existing-table rewrite is required. Rollback disables new
@@ -123,3 +124,41 @@ creation while retaining immutable rows; never delete pending evidence to roll b
 Run `make validate` and `make db-validate` on disposable PostgreSQL 17.11. Direct SQL
 tests prove schema guards independently; adapter tests verify concurrent replay,
 atomic failure, complete evidence recovery after reopening, and scoped pagination.
+
+## Operator evidence inspection
+
+`go run ./cmd/performance-requests` is opt-in. Configure `ARGUS_DATABASE_URL` through
+your secret manager/environment with read-only access to the request-intent and
+pending-dispatch tables. No provider URL or token is needed; the command neither
+runs migrations nor calls the provider.
+
+```sh
+go run ./cmd/performance-requests -pending -after 0 -limit 25 \
+  -issuer https://provider.example/identity \
+  -principal-issuer https://auth.example/tenant -principal-id argus-service
+```
+
+Replace `-pending -after 0 -limit 25` with `-review-sha256 <lowercase-64-hex-digest>`
+to inspect one complete intent. Scope arguments must come from trusted operator/CI
+configuration independently of submitted evidence; they do not authenticate the
+caller. Database credentials and scope authorization remain deployment duties.
+The command has no creation, dispatch, acknowledgement or cancellation operation.
+
+Success emits one local diagnostic JSON document with the exact `scope`, and either
+`fingerprint` plus
+`intent` or a `pending` array plus `nextAfter`. Retained evidence uses the version-one
+inward projection's field names; binary evidence and frozen payloads are base64 JSON
+strings. Treat output as sensitive reviewed evidence. Like catalog publication
+diagnostics, its shape follows this executable's internal projection; it is not a
+portable Argus data contract or provider interchange. An independently consumed
+data contract would require Effect Schema and compatibility fixtures under ADR-0003.
+An empty page has `pending: []` and preserves the supplied cursor. A nonempty page's
+`nextAfter` is its last position; restart at zero across concurrent writes. Expired
+work remains visible, and inspection says nothing about execution eligibility.
+
+Usage errors exit 2 before opening storage. Storage, cancellation and output failures
+exit 1 with redacted database diagnostics; success exits 0. No success JSON is written
+after a failed read or observed cancellation. Output errors may leave partial bytes:
+consume only after exit 0. Ctrl+C/SIGTERM cancels reads. `--help`/`--version` require no
+credentials. Run `make validate` and `make db-validate`; tests include a connection
+with `default_transaction_read_only=on`.
