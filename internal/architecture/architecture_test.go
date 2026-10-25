@@ -65,6 +65,7 @@ var productionPackagePolicy = map[string]packagePolicy{
 	modulePath + "/internal/performance/adapters/selectionio":             {adapterLayer, productCapability},
 	modulePath + "/internal/performance":                                  {domainLayer, performanceCapability},
 	modulePath + "/internal/performance/catalogsync":                      {applicationLayer, performanceCapability},
+	modulePath + "/internal/performance/requestintent":                    {applicationLayer, performanceCapability},
 	modulePath + "/internal/performance/adapters/cataloghttp":             {adapterLayer, performanceCapability},
 	modulePath + "/internal/performance/adapters/cli/catalogcli":          {adapterLayer, performanceCapability},
 	modulePath + "/cmd/performance-catalog":                               {compositionRootLayer, productCapability},

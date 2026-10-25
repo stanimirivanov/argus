@@ -10,13 +10,18 @@
 |:--|:--|:--|:--|
 | PR7a | Pin shared messages and validate owned request/reply evidence offline | PR5d, shared PR1 | Fixture/negative/ownership tests, `make validate` |
 | PR7b | Compile explicit owner-approved selection into immutable child requests; deduplicate identical targets and retain reasons | PR7a | Review, source/pin/freshness and deterministic compilation tests, `make validate` |
-| PR7c | Atomically retain request intent and pending dispatch work; exact replay and scoped pending reads | PR7b | Rollback, concurrent creation, conflict, ownership and reopen tests, `make validate`, `make db-validate` |
-| PR7d | Opt-in request creation/read CLI using current scoped stored evidence and reviewed inputs | PR7c | CLI/command/architecture and persistence tests, `make validate`, `make db-validate` |
+| PR7c1 | Define immutable inward request evidence and additive sealed intent/pending schema | PR7b | Inward ownership/integrity and live schema guard tests, `make validate`, `make db-validate` |
+| PR7c2 | Atomically retain intent and pending work; exact replay and scoped reads | PR7c1 | Rollback, concurrent creation, conflict, ownership and reopen tests, `make validate`, `make db-validate` |
+| PR7d | Opt-in request creation/read CLI using current scoped stored evidence and reviewed inputs | PR7c2 | CLI/command/architecture and persistence tests, `make validate`, `make db-validate` |
 
 The original PR7 outcome is complete only after all slices merge. PR8 owns HTTP
 dispatch, claims/fencing and recovery of uncertain admission; PR9 owns lifecycle
 observations; PR10 owns cancellation/reruns. No broker, general queue framework,
 workflow runtime or network endpoint is introduced by this plan.
+
+PR7c was split into two reviewable slices by owner agreement. PR7c1 is a shared
+schema/evidence foundation consumed by storage/dispatch and operator composition;
+it does not expose persistence methods or claim that intent creation is enabled.
 
 Compilation must independently revalidate source/catalog/policy and owner authority;
 recommendation metadata alone cannot authorize requests. Preserve exact source,
