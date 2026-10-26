@@ -9,8 +9,9 @@
 | Slice | Observable scope | Depends on | Gate |
 |:--|:--|:--|:--|
 | PR8a | Authenticated bounded submission and scoped provider lookup with exact context validation | PR7d2 | HTTP replay, rejection, correlation, redirect/cancellation tests, `make validate` |
-| PR8b | Durable dispatch claims, fencing and retained outcomes separate from immutable pending evidence | PR8a | Live concurrent claim, expiry/fencing, rollback/reopen tests, `make validate`, `make db-validate` |
-| PR8c | Application dispatch and uncertain-admission recovery with opt-in worker composition | PR8b | Crash/replay, lost-response/readback, deadline and provider-failure tests, `make validate`, `make db-validate` |
+| PR8b1 | Durable scoped leases, monotonic fencing and retry release separate from immutable pending evidence | PR8a | Live concurrent claim, expiry/fencing, rollback/reopen tests, `make validate`, `make db-validate` |
+| PR8b2 | Retain provider outcomes atomically under live fenced ownership; completed work is no longer claimable | PR8b1 | Outcome integrity, stale acknowledgement, replay and concurrent settlement tests, `make validate`, `make db-validate` |
+| PR8c | Application dispatch and uncertain-admission recovery with opt-in worker composition | PR8b2 | Crash/replay, lost-response/readback, deadline and provider-failure tests, `make validate`, `make db-validate` |
 
 Split a later slice further if its implementation exceeds the agreed size band.
 PR8c must consume both the transport and durable claim boundaries; PR8a exposes no
