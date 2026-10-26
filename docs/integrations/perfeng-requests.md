@@ -274,3 +274,31 @@ cannot be claimed or released, while pending inspection preserves its history.
 These APIs perform no provider calls and enable no worker. [ADR-0061](../decisions/0061-settle-performance-dispatch-under-live-fences.md)
 records migration locks, required privileges, uncertainty and rollback. Apply the
 outcome migration before callers; verify with `make validate` and `make db-validate`.
+
+## Lookup-only admission recovery
+
+PR8c1 adds `requestintent.Recover` over a store-issued claim and independently
+authorized scope. Its consumer-owned ports use existing scoped outcome reads and
+fenced settlement. [ADR-0062](../decisions/0062-recover-performance-admission-through-scoped-readback.md)
+records the boundary. `perfeng.IntegrationHTTP.LookupOutcome` supplies the configured
+provider port: it checks provider/principal scope, child integrity, request/attempt/
+event identities and timestamps against the frozen bytes before any network access.
+The existing authenticated HTTP boundary validates the complete response context.
+
+Recovery first returns already retained correlated evidence without contacting the
+provider. Otherwise it performs one bounded lookup of the original request and
+settles the owned result under the supplied fence. Request deadlines do not prevent
+readback; only the database can authorize a live settlement. On settlement failure,
+one scoped read can recover a lost acknowledgement or another owner's retained
+disposition. If that read also fails, the original settlement error is preserved.
+Cancellation always returns no success evidence, even if a write committed; inspect
+or recover again with the same identities and independently authorized scope.
+
+Lookup absence (including 404), provider/storage failures and stale ownership leave
+unresolved evidence intact. The operation never submits, generates identities,
+acquires/releases leases, retries provider calls or schedules work. It cannot
+resolve an unsubmitted request absent at the provider. No command or worker is
+activated, and ordered lifecycle remains PR9. PR8c2 owns initial-send/crash policy
+and opt-in composition. Rollback removes callers without altering retained data.
+Run focused recovery/Perfeng tests and `make validate`; there are no schema/query
+changes or new database privileges in this slice.
