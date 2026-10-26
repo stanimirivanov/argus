@@ -302,3 +302,21 @@ activated, and ordered lifecycle remains PR9. PR8c2 owns initial-send/crash poli
 and opt-in composition. Rollback removes callers without altering retained data.
 Run focused recovery/Perfeng tests and `make validate`; there are no schema/query
 changes or new database privileges in this slice.
+
+## Issuer-filtered acquisition
+
+PR8c2a1 adds `PerformanceStore.ClaimRequestForIssuer(scope, issuer, lease)`. Supply
+independently authorized provider/principal scope and request issuer. Both frozen
+request and attempt issuers must match before acquiring ownership; unrelated and
+mixed-issuer work retains first-acquisition eligibility. Empty/whitespace, invalid
+UTF-8, NUL-containing or over-512-rune issuers reject before storage. Existing scope
+and lease bounds apply; no eligible work/wrong scope returns `ErrNotFound`.
+
+The method shares database-clock leases, monotonic fences, scoped ownership,
+outcome exclusion, redaction and uncertain-commit behavior with `ClaimRequest`.
+Legacy `ClaimRequest` remains unfiltered. No schema, wire, index or privilege changes
+are needed. A claim still grants no approval or submission authority. This slice
+activates no command or worker; PR8c2a2/PR8c2b retain dispatch/runtime composition.
+Rollback disables callers and preserves evidence/fences. See
+[ADR-0063](../decisions/0063-acquire-performance-work-by-authorized-request-issuer.md).
+Run focused issuer-claim tests, `make validate` and `make db-validate`.

@@ -80,6 +80,11 @@ func New(data Data) (Intent, error) {
 func ValidScope(s Scope) bool {
 	return text(s.Issuer, 512) && text(s.PrincipalIssuer, 512) && text(s.PrincipalID, 256)
 }
+
+// ValidRequestIssuer checks the retained identity's UTF-8 and 512-rune bound.
+// It does not authenticate configuration or validate provider wire messages.
+func ValidRequestIssuer(issuer string) bool { return text(issuer, 512) }
+
 func text(s string, maximum int) bool {
 	// Match JSON Schema maxLength and PostgreSQL CHAR_LENGTH, not UTF-8 bytes.
 	return utf8.ValidString(s) && strings.TrimSpace(s) != "" && utf8.RuneCountInString(s) <= maximum && !strings.ContainsRune(s, 0)
