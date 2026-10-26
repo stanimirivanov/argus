@@ -157,3 +157,4 @@ How will the assumptions and consequences be verified?
 | [ADR-0056](0056-pin-perfeng-integration-messages.md) | Pin Perfeng integration messages | Proposed | 2026-10-25 |
 | [ADR-0057](0057-compile-explicitly-approved-performance-requests.md) | Compile explicitly approved performance requests | Proposed | 2026-10-25 |
 | [ADR-0058](0058-retain-performance-intent-and-pending-dispatch-atomically.md) | Retain performance intent and pending dispatch atomically | Proposed | 2026-10-25 |
+| [ADR-0059](0059-lease-performance-dispatch-with-monotonic-fencing.md) | Lease performance dispatch with monotonic fencing | Proposed | 2026-10-26 |

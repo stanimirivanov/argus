@@ -3,7 +3,7 @@ package requestintent
 import "errors"
 
 var (
-	// ErrConflict denotes changed evidence or reuse of an existing child identity.
+	// ErrConflict denotes changed evidence, reused identities or lost dispatch ownership.
 	ErrConflict = errors.New("performance request identity conflict")
 	// ErrNotFound hides whether evidence exists outside the requested scope.
 	ErrNotFound = errors.New("performance request not found")

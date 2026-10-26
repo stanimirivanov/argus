@@ -231,3 +231,19 @@ There are no automatic retries. A failed submission or a lookup 404 cannot estab
 that admission never committed. Retain identities and payloads for the later fenced
 worker's recovery; this transport does not authenticate approval, enforce dispatch
 eligibility or persist outcomes. Run HTTP/contract tests and `make validate`.
+
+## Durable dispatch leases
+
+PR8b1 adds `PerformanceStore.ClaimRequest(scope, lease)` and
+`ReleaseRequest(scope, claim, delay)` over independently authorized scope.
+Acquisition skips locks and returns owned evidence, token, fence and database-clock
+expiry; no candidate/wrong scope returns `ErrNotFound`. Leases accept 1s..5m and retry
+delays 0..1h in whole microseconds; invalid inputs return `ErrInvalid`. Stale, expired
+or already released owners get `ErrConflict`. Cancellation propagates; diagnostics
+are redacted. Claims can expire in transit and never authorize submission or
+acknowledge completion. Uncertain commits must not trigger sending; preserve frozen
+identities. Expired requests remain claimable only for lookup recovery.
+
+Apply `20261026092008_add_performance_dispatch_claims.sql` before callers; no worker
+is enabled. PR8b2 adds outcomes, PR8c the worker. [ADR-0059](../decisions/0059-lease-performance-dispatch-with-monotonic-fencing.md)
+documents privileges, migration locks/headroom, retry uncertainty, rollback and tests.
