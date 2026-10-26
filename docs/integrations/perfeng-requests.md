@@ -206,3 +206,28 @@ after expiry/catalog changes, use inspection to recover retained history. Do not
 invent fresh identities to retry. Rollback disables the new option/configuration
 and retains all evidence; dispatch remains PR8. Testdata is synthetic and expired,
 not production approval. Run `make validate` and `make db-validate`.
+
+## Provider admission transport
+
+`perfeng.IntegrationHTTP` is the opt-in PR8a embedding boundary. Configure the exact
+`/integration/v1/requests` collection endpoint, bearer credential, expected provider
+issuer and principal independently of submitted messages. HTTPS is required except
+literal loopback HTTP for local testing. No command or worker is enabled by this slice;
+see the [PR8 delivery plan](../development/plans/m09-pr8-performance-dispatch.md).
+
+`Submit` validates the frozen requested message and sends its original bytes once.
+`Lookup` takes that original message and escapes its issuer-scoped request ID for
+readback. Both require a matching configured principal and return only schema-valid
+messages with the exact original context and configured provider/run issuer.
+Submission expects accepted/202 or rejected/422; lookup expects lifecycle/200 or
+rejected/422. The current provider uses 422 for durable rejection although the pinned
+OpenAPI omits that status; pinned artifacts remain unchanged. Rejection is evidence,
+not execution success, and a lifecycle snapshot is not ordered/retained by this adapter.
+
+Each exchange has a ten-second bound and a 64 KiB response limit. Client settings
+are cloned, cookies and redirects are disabled, and errors omit network/remote-body
+diagnostics. HTTP failures expose status only; cancellation/deadlines propagate.
+There are no automatic retries. A failed submission or a lookup 404 cannot establish
+that admission never committed. Retain identities and payloads for the later fenced
+worker's recovery; this transport does not authenticate approval, enforce dispatch
+eligibility or persist outcomes. Run HTTP/contract tests and `make validate`.
