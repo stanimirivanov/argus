@@ -320,3 +320,21 @@ activates no command or worker; PR8c2a2/PR8c2b retain dispatch/runtime compositi
 Rollback disables callers and preserves evidence/fences. See
 [ADR-0063](../decisions/0063-acquire-performance-work-by-authorized-request-issuer.md).
 Run focused issuer-claim tests, `make validate` and `make db-validate`.
+
+## One-shot dispatch
+
+PR8c2a2 adds `requestintent.Dispatcher.One(ctx)` over independently authorized,
+immutable provider/principal scope, request issuer, lease and trusted clock. Only
+previously approved frozen work may enter storage. Offline provider preflight
+precedes issuer-filtered acquisition; a lease never grants approval. Fence one may
+submit exact bytes once while request/lease remain live, with a context bounded by
+both. The configured Perfeng bridge validates correlation and returns owned
+accepted/rejected evidence for fenced settlement and uncertain-write readback.
+
+Reacquisitions and expired work use lookup-only recovery. Errors preserve leases
+until expiry; there is no automatic release, retry or identity generation. A crash
+before POST or lost acquisition acknowledgement can strand absent work; 404 never
+authorizes replay. Provider admission and database fences remain authoritative
+despite context bounds. No schema/wire change or worker activation occurs here;
+PR8c2b retains runtime composition. See [ADR-0064](../decisions/0064-submit-performance-work-only-from-first-acquisitions.md).
+Run application/HTTP and database dispatch tests, `make validate`, `make db-validate`.

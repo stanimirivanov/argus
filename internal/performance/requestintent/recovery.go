@@ -53,7 +53,13 @@ func Recover(ctx context.Context, store RecoveryStore, provider RecoveryProvider
 	if _, err := recoveryEvidence(outcome, scope, claim.Pending.Child); err != nil {
 		return Outcome{}, err
 	}
-	_, err = store.SettleRequest(ctx, scope, claim, outcome)
+
+	return settleOutcome(ctx, store, scope, claim, outcome)
+}
+
+// Both submission and lookup must recover uncertain settlement identically.
+func settleOutcome(ctx context.Context, store RecoveryStore, scope Scope, claim Claim, outcome Outcome) (Outcome, error) {
+	_, err := store.SettleRequest(ctx, scope, claim, outcome)
 	if ctx.Err() != nil {
 		return Outcome{}, ctx.Err()
 	}

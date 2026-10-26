@@ -162,3 +162,4 @@ How will the assumptions and consequences be verified?
 | [ADR-0061](0061-settle-performance-dispatch-under-live-fences.md) | Settle performance dispatch under live fences | Proposed | 2026-10-26 |
 | [ADR-0062](0062-recover-performance-admission-through-scoped-readback.md) | Recover performance admission through scoped readback | Proposed | 2026-10-26 |
 | [ADR-0063](0063-acquire-performance-work-by-authorized-request-issuer.md) | Acquire performance work by authorized request issuer | Proposed | 2026-10-26 |
+| [ADR-0064](0064-submit-performance-work-only-from-first-acquisitions.md) | Submit performance work only from first acquisitions | Proposed | 2026-10-26 |

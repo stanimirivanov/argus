@@ -1,5 +1,5 @@
-// Package requestintent owns immutable reviewed evidence and admission recovery.
-// Wire validation stays at adapters; recovery performs I/O through consumer-owned ports.
+// Package requestintent owns immutable reviewed evidence and admission dispatch/recovery.
+// Wire validation stays at adapters; I/O uses consumer-owned ports.
 package requestintent
 
 import (
