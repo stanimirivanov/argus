@@ -16,6 +16,22 @@ import (
 // uncertain: do not send; let the bounded lease expire and recover with frozen IDs.
 // A concurrent settlement can return ErrConflict without acquiring ownership.
 func (store *PerformanceStore) ClaimRequest(ctx context.Context, scope requestintent.Scope, lease time.Duration) (requestintent.Claim, error) {
+	return store.claimRequest(ctx, scope, "", lease)
+}
+
+// ClaimRequestForIssuer additionally requires both frozen request/attempt issuers
+// to match independently authorized configuration, before acquiring any lease.
+// Other issuers keep their first-acquisition eligibility. Legacy ClaimRequest
+// remains unfiltered; all ownership, expiry and uncertainty guarantees are shared.
+func (store *PerformanceStore) ClaimRequestForIssuer(ctx context.Context, scope requestintent.Scope, issuer string, lease time.Duration) (requestintent.Claim, error) {
+	if !requestintent.ValidRequestIssuer(issuer) {
+		return requestintent.Claim{}, requestintent.ErrInvalid
+	}
+
+	return store.claimRequest(ctx, scope, issuer, lease)
+}
+
+func (store *PerformanceStore) claimRequest(ctx context.Context, scope requestintent.Scope, issuer string, lease time.Duration) (requestintent.Claim, error) {
 	if !requestintent.ValidScope(scope) || lease < time.Second || lease > 5*time.Minute || lease%time.Microsecond != 0 {
 		return requestintent.Claim{}, requestintent.ErrInvalid
 	}
@@ -30,9 +46,10 @@ func (store *PerformanceStore) ClaimRequest(ctx context.Context, scope requestin
         FROM argus_catalog.performance_pending_dispatches p
         LEFT JOIN argus_catalog.performance_dispatch_claims c ON c.position=p.position
         WHERE p.issuer=$1 AND p.principal_issuer=$2 AND p.principal_id=$3
+        AND ($4::text='' OR (p.request_issuer=$4 AND p.attempt_issuer=$4))
         AND NOT EXISTS (SELECT 1 FROM argus_catalog.performance_dispatch_outcomes o WHERE o.position=p.position)
         AND (c.position IS NULL OR c.available_at<=clock_timestamp())
-        ORDER BY p.position LIMIT 1 FOR UPDATE OF p SKIP LOCKED`, scope.Issuer, scope.PrincipalIssuer, scope.PrincipalID), &claim.Pending.After, &claim.Pending.IntentID)
+        ORDER BY p.position LIMIT 1 FOR UPDATE OF p SKIP LOCKED`, scope.Issuer, scope.PrincipalIssuer, scope.PrincipalID, issuer), &claim.Pending.After, &claim.Pending.IntentID)
 	if err != nil {
 		return requestintent.Claim{}, requestError(err)
 	}
