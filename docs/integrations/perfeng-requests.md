@@ -247,3 +247,18 @@ identities. Expired requests remain claimable only for lookup recovery.
 Apply `20261026092008_add_performance_dispatch_claims.sql` before callers; no worker
 is enabled. PR8b2 adds outcomes, PR8c the worker. [ADR-0059](../decisions/0059-lease-performance-dispatch-with-monotonic-fencing.md)
 documents privileges, migration locks/headroom, retry uncertainty, rollback and tests.
+
+## Validated dispatch outcomes
+
+PR8b2a adds `perfeng.DispatchOutcome(frozen, reply, provider)` to convert schema-valid
+accepted/rejected admission responses or lifecycle lookup snapshots. The original
+must be requested.v1; every context field, provider source and run issuer must match.
+Pass independently authenticated provider configuration and provenance. Invalid
+inputs return zero evidence and a redacted `ErrIntegration`.
+
+The owned `requestintent.Outcome` retains identities, source/event ID, kind and
+canonical provider message bytes with a versioned fingerprint. It does not preserve
+HTTP formatting, order run lifecycle, grant approval, persist evidence or enable a
+worker. [ADR-0060](../decisions/0060-validate-immutable-performance-dispatch-outcomes.md)
+defines the projection and dependent PR8b2b/PR8c responsibilities. Run focused
+requestintent/Perfeng tests and `make validate`.
