@@ -262,3 +262,15 @@ HTTP formatting, order run lifecycle, grant approval, persist evidence or enable
 worker. [ADR-0060](../decisions/0060-validate-immutable-performance-dispatch-outcomes.md)
 defines the projection and dependent PR8b2b/PR8c responsibilities. Run focused
 requestintent/Perfeng tests and `make validate`.
+
+## Durable dispatch settlement
+
+PR8b2b adds `PerformanceStore.SettleRequest(scope, claim, outcome)` and
+`RequestOutcome(scope, position)`. Settlement requires live database ownership;
+exact winning-owner replay returns false even after expiry. Changed evidence,
+scope/child or ownership conflicts; malformed proof/provider evidence is invalid.
+Scoped reads hide absence/wrong scope and redact corrupt evidence. Settled work
+cannot be claimed or released, while pending inspection preserves its history.
+These APIs perform no provider calls and enable no worker. [ADR-0061](../decisions/0061-settle-performance-dispatch-under-live-fences.md)
+records migration locks, required privileges, uncertainty and rollback. Apply the
+outcome migration before callers; verify with `make validate` and `make db-validate`.

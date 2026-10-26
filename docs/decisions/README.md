@@ -159,3 +159,4 @@ How will the assumptions and consequences be verified?
 | [ADR-0058](0058-retain-performance-intent-and-pending-dispatch-atomically.md) | Retain performance intent and pending dispatch atomically | Proposed | 2026-10-25 |
 | [ADR-0059](0059-lease-performance-dispatch-with-monotonic-fencing.md) | Lease performance dispatch with monotonic fencing | Proposed | 2026-10-26 |
 | [ADR-0060](0060-validate-immutable-performance-dispatch-outcomes.md) | Validate immutable performance dispatch outcomes | Proposed | 2026-10-26 |
+| [ADR-0061](0061-settle-performance-dispatch-under-live-fences.md) | Settle performance dispatch under live fences | Proposed | 2026-10-26 |
