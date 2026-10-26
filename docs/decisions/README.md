@@ -160,3 +160,4 @@ How will the assumptions and consequences be verified?
 | [ADR-0059](0059-lease-performance-dispatch-with-monotonic-fencing.md) | Lease performance dispatch with monotonic fencing | Proposed | 2026-10-26 |
 | [ADR-0060](0060-validate-immutable-performance-dispatch-outcomes.md) | Validate immutable performance dispatch outcomes | Proposed | 2026-10-26 |
 | [ADR-0061](0061-settle-performance-dispatch-under-live-fences.md) | Settle performance dispatch under live fences | Proposed | 2026-10-26 |
+| [ADR-0062](0062-recover-performance-admission-through-scoped-readback.md) | Recover performance admission through scoped readback | Proposed | 2026-10-26 |

@@ -1,5 +1,5 @@
-// Package requestintent owns immutable reviewed intent and pending-work vocabulary.
-// Wire validation and authentication remain at driving boundaries; no I/O occurs here.
+// Package requestintent owns immutable reviewed evidence and admission recovery.
+// Wire validation stays at adapters; recovery performs I/O through consumer-owned ports.
 package requestintent
 
 import (
