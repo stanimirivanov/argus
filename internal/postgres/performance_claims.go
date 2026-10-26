@@ -9,11 +9,12 @@ import (
 )
 
 // ClaimRequest atomically leases one eligible child in an independently authorized
-// scope. Locked children are skipped; no candidate returns ErrNotFound, including
+// scope. Settled/locked children are skipped; no candidate returns ErrNotFound, including
 // wrong scope. Lease is 1s..5m in whole microseconds. Expired request evidence remains
 // claimable for readback recovery, never automatic resubmission. There is no I/O
 // outside PostgreSQL in the transaction. A lost commit response leaves ownership
 // uncertain: do not send; let the bounded lease expire and recover with frozen IDs.
+// A concurrent settlement can return ErrConflict without acquiring ownership.
 func (store *PerformanceStore) ClaimRequest(ctx context.Context, scope requestintent.Scope, lease time.Duration) (requestintent.Claim, error) {
 	if !requestintent.ValidScope(scope) || lease < time.Second || lease > 5*time.Minute || lease%time.Microsecond != 0 {
 		return requestintent.Claim{}, requestintent.ErrInvalid
@@ -29,6 +30,7 @@ func (store *PerformanceStore) ClaimRequest(ctx context.Context, scope requestin
         FROM argus_catalog.performance_pending_dispatches p
         LEFT JOIN argus_catalog.performance_dispatch_claims c ON c.position=p.position
         WHERE p.issuer=$1 AND p.principal_issuer=$2 AND p.principal_id=$3
+        AND NOT EXISTS (SELECT 1 FROM argus_catalog.performance_dispatch_outcomes o WHERE o.position=p.position)
         AND (c.position IS NULL OR c.available_at<=clock_timestamp())
         ORDER BY p.position LIMIT 1 FOR UPDATE OF p SKIP LOCKED`, scope.Issuer, scope.PrincipalIssuer, scope.PrincipalID), &claim.Pending.After, &claim.Pending.IntentID)
 	if err != nil {
@@ -67,7 +69,8 @@ func (store *PerformanceStore) ReleaseRequest(ctx context.Context, scope request
 	result, err := store.runtime.pool.Exec(ctx, `UPDATE argus_catalog.performance_dispatch_claims
         SET token=NULL,available_at=clock_timestamp()+$7*INTERVAL '1 microsecond'
         WHERE issuer=$1 AND principal_issuer=$2 AND principal_id=$3 AND position=$4
-        AND fence=$5 AND token=$6 AND available_at>clock_timestamp()`, scope.Issuer, scope.PrincipalIssuer, scope.PrincipalID, claim.Pending.After, claim.Fence, token, delay.Microseconds())
+        AND fence=$5 AND token=$6 AND available_at>clock_timestamp()
+        AND NOT EXISTS (SELECT 1 FROM argus_catalog.performance_dispatch_outcomes o WHERE o.position=performance_dispatch_claims.position)`, scope.Issuer, scope.PrincipalIssuer, scope.PrincipalID, claim.Pending.After, claim.Fence, token, delay.Microseconds())
 	if err != nil {
 		return requestError(err)
 	}

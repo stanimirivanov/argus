@@ -200,7 +200,7 @@ func requestError(err error) error {
 	}
 	var database *pgconn.PgError
 	if errors.As(err, &database) {
-		if database.Code == "23505" || database.ConstraintName == "ck_performance_request_catalog" || database.ConstraintName == "ck_performance_claim_transition" {
+		if database.Code == "23505" || database.ConstraintName == "ck_performance_request_catalog" || database.ConstraintName == "ck_performance_claim_transition" || database.ConstraintName == "ck_performance_outcome_ownership" {
 			return requestintent.ErrConflict
 		}
 		if database.ConstraintName == "ck_performance_request_freshness" {
