@@ -44,8 +44,17 @@ Its local diagnostic output retains the inward evidence projection and base64
 binary fields, following catalog CLI diagnostics without publishing a portable
 data contract. New independently consumed contracts follow ADR-0003. Scope
 configuration and
-database authorization govern access. Reviewed write activation follows in PR7d2;
+database authorization govern access. PR7d2 enables an explicit creation option;
 inspection supplies no approval, processing claim or execution authority.
+
+By owner decision, creation reads a protected authenticated operator/CI approval
+file from ARGUS_PERFORMANCE_REQUEST_APPROVAL_FILE. It independently pins the review
+hash, reviewer, principal, request issuer, owner routes and provider settings. The
+host authenticates the approval issuer and protects file origin/ACLs; the command
+cannot substitute submitted claims or verify signatures. Local artifacts use bounded
+canonical internal Go projections. Creation revalidates current evidence at actual
+time; uncertain/expired retries recover history through scoped inspection. No
+provider call, schema change, approval service or dispatch activation is introduced.
 
 The migration is additive, transactional and has no backfill. Apply it before a new
 writer; old binaries continue to work. Rollback disables creation and retains the

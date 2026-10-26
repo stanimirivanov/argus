@@ -55,8 +55,9 @@ The composition root must authenticate the reviewer, obtain the approved SHA-256
 of `json.Marshal(RequestReview)` independently, and supply the authorized principal,
 request issuer and exact owner-route versions. Hashing a submitted review and
 passing its own claims as authority is invalid integration. These internal Go
-values introduce no public review-file format or credential mechanism. The future
-operator entry point must establish this boundary before enabling creation.
+values introduce no portable review contract or credential mechanism. The operator
+creation path below delegates authenticated approval issuance to trusted operator/CI
+configuration, independently of submitted files.
 
 The review supplies complete shared request messages, including explicit service,
 capability and evidence references, source/image pins and frozen request/attempt/event
@@ -114,9 +115,9 @@ Invalid input returns `ErrInvalid`; cancellation/deadlines propagate, and other
 storage failures return redacted `ErrUnavailable`. Reads and writes are bounded by
 the runtime operation timeout. These methods do not authenticate embedded claims.
 
-PR7d1 adds the read-only operator entry point below; PR7d2 adds independently
-authorized reviewed creation. PR8 owns dispatch progress separately from immutable
-work. No request-creation CLI activation or network dispatch is introduced here.
+PR7d1 adds inspection and PR7d2 adds independently authorized reviewed creation below.
+PR8 owns dispatch progress separately from immutable work; creation never contacts
+the provider or claims processing work.
 
 Apply migration `20261025093826_add_performance_request_intents.sql` before new
 writers. No backfill or existing-table rewrite is required. Rollback disables new
@@ -142,7 +143,7 @@ Replace `-pending -after 0 -limit 25` with `-review-sha256 <lowercase-64-hex-dig
 to inspect one complete intent. Scope arguments must come from trusted operator/CI
 configuration independently of submitted evidence; they do not authenticate the
 caller. Database credentials and scope authorization remain deployment duties.
-The command has no creation, dispatch, acknowledgement or cancellation operation.
+These inspection modes never create, dispatch, acknowledge or cancel work.
 
 Success emits one local diagnostic JSON document with the exact `scope`, and either
 `fingerprint` plus
@@ -162,3 +163,46 @@ after a failed read or observed cancellation. Output errors may leave partial by
 consume only after exit 0. Ctrl+C/SIGTERM cancels reads. `--help`/`--version` require no
 credentials. Run `make validate` and `make db-validate`; tests include a connection
 with `default_transaction_read_only=on`.
+
+## Reviewed operator creation
+
+The explicit leading `-create` option enables creation. The authenticated owner/CI
+approval process must independently authorize the reviewer, principal, request issuer,
+exact owner-route references and canonical review SHA-256. It supplies a protected
+file via `ARGUS_PERFORMANCE_REQUEST_APPROVAL_FILE`, outside untrusted checkout/input
+control, mounted read-only or protected by deployment ACLs. File bytes do not prove
+authentication; trusted origin, permissions and approval issuance are host duties.
+There is no authority flag, signature verifier or fallback to review claims.
+
+The local approval artifact is `json.Marshal(selectionio.RequestApproval)`: `Authority`
+contains `RequestAuthority` and `Expected` contains independently trusted provider,
+principal and producer expectations. The submitted review is canonical
+`json.Marshal(selectionio.RequestReview)`. These are internal operator artifacts,
+not portable contracts. The approval hash pins the marshaled typed review, not a
+hash computed by this command to manufacture approval. Inputs accept surrounding
+whitespace but reject noncanonical fields/order, duplicate keys, aliases, invalid
+Unicode and files larger than 16 MiB. Original policy bytes retain their exact hash.
+
+Configure `ARGUS_DATABASE_URL` for the existing scoped evidence reads and request
+inserts, with the PR7c1 migration already applied, then invoke:
+
+```sh
+go run ./cmd/performance-requests -create -delivery-id delivery-42 \
+  -policy reviewed-policy.json -review reviewed-request.json
+```
+
+Provider settings come only from the approval file. Creation reloads the exact GitHub
+delivery and current scoped catalog, rechecks provenance and approval through the
+existing compiler at actual time after reads, then atomically retains intent and all
+children. No identities are regenerated. Success emits local diagnostic JSON with
+`created`, `fingerprint` and `reviewSha256`; repeated live creation returns
+`created: false`. Invalid/unapproved, stale, conflicting or cancelled work emits no
+success document. Exit codes match inspection.
+
+A commit response, cancellation or stdout failure can leave outcome uncertain. Retain
+the reviewed identities and inspect using the approved digest with `-review-sha256`
+and the independently authorized scope. Creation retries revalidate current evidence;
+after expiry/catalog changes, use inspection to recover retained history. Do not
+invent fresh identities to retry. Rollback disables the new option/configuration
+and retains all evidence; dispatch remains PR8. Testdata is synthetic and expired,
+not production approval. Run `make validate` and `make db-validate`.

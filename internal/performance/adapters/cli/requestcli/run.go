@@ -1,4 +1,4 @@
-// Package requestcli provides scoped, read-only performance request inspection.
+// Package requestcli provides reviewed creation and scoped performance inspection.
 package requestcli
 
 import (
