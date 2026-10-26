@@ -24,10 +24,11 @@ PR7c was split into two reviewable slices by owner agreement. PR7c1 is a shared
 schema/evidence foundation consumed by storage/dispatch and operator composition;
 it does not expose persistence methods or claim that intent creation is enabled.
 PR7c2 supplies the atomic store and scoped reads on that foundation. Operator
-creation remains deferred to PR7d2; pending reads do not claim or dispatch work.
+creation is exposed only by PR7d2's explicit option; pending reads do not claim or dispatch work.
 PR7d is delivered as two independently usable slices to keep operator reads and
 reviewed write activation within the agreed review-size band. PR7d1 does not enable
-creation; PR7d2 completes that outcome and must establish independent owner approval.
+creation; PR7d2 completes that outcome with protected operator/CI approval configuration,
+chosen by the owner independently of submitted reviews. Dispatch remains PR8.
 
 Compilation must independently revalidate source/catalog/policy and owner authority;
 recommendation metadata alone cannot authorize requests. Preserve exact source,
