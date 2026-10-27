@@ -16,6 +16,30 @@ import (
 )
 
 var _ requestintent.RecoveryProvider = IntegrationHTTP{}
+var _ requestintent.DispatchProvider = IntegrationHTTP{}
+
+func TestDispatchPreflightRejectsMalformedConfigurationOffline(t *testing.T) {
+	t.Parallel()
+	for _, field := range []string{"valid", "endpoint", "token", "scope"} {
+		source, scope, _ := recoveryHTTPFixture(t)
+		switch field {
+		case "endpoint":
+			source.Endpoint = "http://untrusted.example/integration/v1/requests"
+		case "token":
+			source.Token = ""
+		case "scope":
+			scope.PrincipalID += "-other"
+		}
+		source.Client = &http.Client{Transport: integrationRoundTrip(func(*http.Request) (*http.Response, error) {
+			t.Fatal("preflight performed I/O")
+			return nil, ErrIntegration
+		})}
+		err := source.ValidateDispatch(scope)
+		if (field == "valid" && err != nil) || (field != "valid" && !errors.Is(err, ErrIntegration)) {
+			t.Fatal("incorrect preflight", field, err)
+		}
+	}
+}
 
 func recoveryHTTPFixture(t *testing.T) (IntegrationHTTP, requestintent.Scope, requestintent.Child) {
 	t.Helper()
@@ -39,7 +63,7 @@ func recoveryHTTPFixture(t *testing.T) (IntegrationHTTP, requestintent.Scope, re
 	return source, requestintent.Scope{Issuer: source.Provider, PrincipalIssuer: source.Principal.Issuer, PrincipalID: source.Principal.ID}, child
 }
 
-func TestLookupOutcomeChecksFrozenEvidenceBeforeNetwork(t *testing.T) {
+func TestOutcomeOperationsCheckFrozenEvidenceBeforeNetwork(t *testing.T) {
 	t.Parallel()
 	for _, change := range []func(*requestintent.Scope, *requestintent.Child){
 		func(s *requestintent.Scope, _ *requestintent.Child) { s.Issuer += "-other" },
@@ -62,6 +86,35 @@ func TestLookupOutcomeChecksFrozenEvidenceBeforeNetwork(t *testing.T) {
 		})}
 		if got, err := source.LookupOutcome(t.Context(), scope, child); !errors.Is(err, ErrIntegration) || got.Fingerprint() != "" {
 			t.Fatal("invalid correlation accepted", err)
+		}
+		if got, err := source.SubmitOutcome(t.Context(), scope, child); !errors.Is(err, ErrIntegration) || got.Fingerprint() != "" {
+			t.Fatal("invalid submission correlation accepted", err)
+		}
+	}
+}
+
+func TestSubmitOutcomePreservesFrozenBytesAndDisposition(t *testing.T) {
+	t.Parallel()
+	for _, kind := range []string{"accepted", "rejected"} {
+		source, scope, child := recoveryHTTPFixture(t)
+		name, status := "completed", http.StatusAccepted
+		if kind == "rejected" {
+			name, status = "rejected", http.StatusUnprocessableEntity
+		}
+		exchange := integrationExchange(t, name)
+		calls := 0
+		source.Client = &http.Client{Transport: integrationRoundTrip(func(r *http.Request) (*http.Response, error) {
+			calls++
+			body, err := io.ReadAll(r.Body)
+			if err != nil || r.Method != http.MethodPost || r.Header.Get("Authorization") != "Bearer secret" || string(body) != string(child.Payload) {
+				t.Fatal("submission changed frozen bytes", err)
+			}
+
+			return &http.Response{StatusCode: status, Header: http.Header{"Content-Type": {"application/json"}}, Body: io.NopCloser(strings.NewReader(string(exchange[1])))}, nil
+		})}
+		got, err := source.SubmitOutcome(t.Context(), scope, child)
+		if err != nil || calls != 1 || got.Data().Kind != kind || got.Data().Request != child.Request {
+			t.Fatal("submission lost disposition", err)
 		}
 	}
 }
