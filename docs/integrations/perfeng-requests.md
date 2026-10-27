@@ -338,3 +338,38 @@ authorizes replay. Provider admission and database fences remain authoritative
 despite context bounds. No schema/wire change or worker activation occurs here;
 PR8c2b retains runtime composition. See [ADR-0064](../decisions/0064-submit-performance-work-only-from-first-acquisitions.md).
 Run application/HTTP and database dispatch tests, `make validate`, `make db-validate`.
+
+## Opt-in control-plane worker
+
+PR8c2b enables dispatch only when `ARGUS_PERFORMANCE_DISPATCH_ENABLED=true`.
+Empty/`false` leaves existing server behavior unchanged and ignores other worker
+settings. Invalid opt-in or enabled configuration fails before database startup.
+Supply these environment settings through the trusted operator/secret process;
+no endpoint, token or authority is taken from retained messages.
+
+| `ARGUS_PERFORMANCE_DISPATCH_` suffix | Enabled configuration |
+|:--|:--|
+| `URL` | Required `/integration/v1/requests` endpoint; HTTPS, or literal loopback IP for local HTTP |
+| `TOKEN` | Required bearer token; never pass it as a command argument |
+| `PROVIDER` | Required independently authorized provider issuer URI |
+| `PRINCIPAL_ISSUER`, `PRINCIPAL_ID` | Required provider-authenticated principal binding |
+| `REQUEST_ISSUER` | Required independently authorized request/attempt issuer URI |
+| `LEASE` | Default `30s`; `1s..5m` in whole microseconds |
+| `POLL_INTERVAL` | Default `5s`; `1s..1m` in whole microseconds |
+
+Run the existing `control-plane` command after explicit migrations; startup does
+not migrate or add grants. Use existing runtime privileges, never a migrator role.
+One binding runs per process. Calls are serial: immediately, then at most once per
+tick (slow calls coalesce ticks). Idle/error results wait for a tick, without
+automatic POST replay or release. Prefer a lease exceeding the HTTP ten-second
+bound. Other issuers retain eligibility; replicas coordinate through fenced claims.
+
+Shutdown cancels polling/provider I/O immediately, while HTTP/DBOS retain their
+existing drain lifetime. Cleanup joins the worker before closing database resources.
+Logs identify the worker and retained outcome kind or unresolved operation, without
+raw errors, credentials, bodies or identities. Inspect scoped pending/outcome
+evidence to investigate; lookup absence cannot prove an uncertain POST never committed.
+Disable the flag and restart to roll back without deleting evidence/fences. Lifecycle
+ordering, cancellation/reruns and M10 recovery remain separate. See
+[ADR-0065](../decisions/0065-opt-in-to-configured-performance-workers.md).
+Run worker/configuration/shutdown tests, `make validate` and `make db-validate`.
