@@ -267,7 +267,7 @@ The M04 change-impact slice applies the same hexagonal rule to change evidence:
 | `internal/change/adapters/httpapi` | Bounded webhook HTTP input, provider headers, versioned JSON output, and safe error mapping | Provider resolution, SQL, or domain policy |
 | `internal/change/adapters/contract` | Change-domain to `argus.dev/change-set/v1` conversion | Provider or persistence behavior |
 | `internal/postgres` (`ChangeStore`) | Atomic delivery and impact claims, typed immutable evidence rows, fingerprints, and reconstruction | Webhook parsing, GitHub calls, or OpenAPI semantics |
-| `cmd/control-plane` | Secret/configuration loading, concrete adapter composition, HTTP lifecycle, and graceful shutdown | Change policy or SQL orchestration |
+| `cmd/control-plane` | Secret/configuration loading, concrete adapter composition, opt-in performance worker, HTTP lifecycle, and graceful shutdown | Change policy or SQL orchestration |
 
 The service checks durable delivery identity before calling GitHub. The
 PostgreSQL port performs the final atomic claim, so simultaneous first attempts

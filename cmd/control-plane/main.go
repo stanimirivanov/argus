@@ -63,6 +63,9 @@ func realMain() int {
 			return managedApplication{}, err
 		}
 
+		// Dispatch uses the signal context; HTTP/DBOS resources retain their drain lifetime.
+		application.worker = application.performance.start(ctx, application.runtime.Performance(), logger.With("component", componentName, "worker", "performance-dispatch"))
+
 		return managedApplication{server: application.server, close: application.Close}, nil
 	})
 }
@@ -105,9 +108,11 @@ func runControlPlane(
 }
 
 type application struct {
-	server  *http.Server
-	runtime *postgres.Runtime
-	durable dbosgo.Context
+	server      *http.Server
+	runtime     *postgres.Runtime
+	durable     dbosgo.Context
+	performance performanceWorkerConfig
+	worker      *performanceWorker
 }
 
 func newApplication(ctx context.Context, getenv func(string) string, local bool) (*application, error) {
@@ -167,10 +172,13 @@ func newApplication(ctx context.Context, getenv func(string) string, local bool)
 		IdleTimeout:       60 * time.Second,
 	}
 
-	return &application{server: server, runtime: runtime, durable: durable}, nil
+	return &application{server: server, runtime: runtime, durable: durable, performance: config.performance}, nil
 }
 
 func (application *application) Close() error {
+	if application.worker != nil {
+		application.worker.close()
+	}
 	var shutdownErr error
 	if application.durable != nil {
 		shutdownErr = dbosgo.Shutdown(application.durable, shutdownPeriod)
@@ -225,6 +233,7 @@ type config struct {
 	githubToken    string
 	webhookSecret  string
 	dbosEvaluation bool
+	performance    performanceWorkerConfig
 }
 
 func loadConfig(getenv func(string) string, local bool) (config, error) {
@@ -276,6 +285,12 @@ func loadConfig(getenv func(string) string, local bool) (config, error) {
 	default:
 		return config{}, errors.New("ARGUS_DBOS_EVALUATION must be true or false")
 	}
+
+	performance, err := loadPerformanceWorker(getenv)
+	if err != nil {
+		return config{}, err
+	}
+	result.performance = performance
 
 	return result, nil
 }
