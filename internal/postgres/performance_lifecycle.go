@@ -70,7 +70,8 @@ func (store *PerformanceStore) AppendLifecycle(ctx context.Context, scope reques
 }
 
 func lifecycleContext(ctx context.Context, tx pgx.Tx, scope requestintent.Scope, position int64, admission requestintent.LifecycleAdmission, lock bool) (requestintent.Child, error) {
-	query := `SELECT o.kind,o.event_id,o.payload,o.fingerprint,` + dispatchColumns + `
+	query := `SELECT o.kind,o.event_id,o.payload,o.fingerprint,
+        p.request_issuer,p.request_id,p.attempt_issuer,p.attempt_id,p.event_id,p.requested_at,p.deadline,p.payload,p.payload_sha256,p.reasons
         FROM argus_catalog.performance_pending_dispatches p JOIN argus_catalog.performance_dispatch_outcomes o ON o.position=p.position
         WHERE p.position=$1 AND p.issuer=$2 AND p.principal_issuer=$3 AND p.principal_id=$4`
 	if lock {
