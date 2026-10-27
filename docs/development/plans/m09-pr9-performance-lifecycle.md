@@ -9,9 +9,10 @@
 | Slice | Observable scope | Depends on | Gate |
 |:--|:--|:--|:--|
 | PR9a | Owned lifecycle observations, pinned conversion and deterministic bounded history projection | PR8c2b | Published exchange, ordering, conflict, terminal and late-evidence tests; `make validate` |
-| PR9b | Atomically retain scoped lifecycle history and expose its validated projection, preserving admission/run binding | PR9a | Replay, event/revision conflict, concurrent writes, reopen and scoped reads; `make validate`, `make db-validate` |
-| PR9c | Authenticated bounded runtime consumption into durable history, including shutdown and uncertain persistence | PR9b | HTTP/storage composition, provider failure, lost acknowledgement and late delivery; `make validate`, `make db-validate` |
-| PR9d | Consume versioned analysis verdict references as decision evidence, preserving quality/SLO/regression/uncertainty distinctions | PR9b | Reviewed contract conformance, correlation, missing/invalid evidence and decision tests; `make validate` |
+| PR9b1 | Owned admission binding and append-only lifecycle schema guards | PR9a | Pinned admission conformance, concurrent schema guards, capacity, upgrade and immutability; `make validate`, `make db-validate` |
+| PR9b2 | Atomic append and scoped history/projection reads, preserving authoritative admission/run binding | PR9b1 | Exact replay, rollback, corruption, concurrent append, reopen and scoped projection; `make validate`, `make db-validate` |
+| PR9c | Authenticated bounded runtime consumption into durable history, including shutdown and uncertain persistence | PR9b2 | HTTP/storage composition, provider failure, lost acknowledgement and late delivery; `make validate`, `make db-validate` |
+| PR9d | Consume versioned analysis verdict references as decision evidence, preserving quality/SLO/regression/uncertainty distinctions | PR9b2 | Reviewed contract conformance, correlation, missing/invalid evidence and decision tests; `make validate` |
 
 PR9a is a shared foundation for both durable lifecycle consumption and decision
 evidence. Its callable projection does not activate polling, receive events or

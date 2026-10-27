@@ -393,3 +393,14 @@ This callable foundation changes no wire, schema, worker or deployment behavior.
 Durable storage and authenticated runtime consumption follow the
 [PR9 delivery plan](../development/plans/m09-pr9-performance-lifecycle.md).
 Run focused requestintent/Perfeng tests, `make architecture-check`, and `make validate`.
+
+PR9b1 adds `BindLifecycleAdmission`: it revalidates canonical retained settlement
+and frozen request bytes, yielding an owned run binding and initial snapshot for
+lifecycle admission. The additive lifecycle history table guards scope/admission,
+event reuse, run identity, revision order, terminal immutability and 1000 rows per
+request. Its recording instant is database-owned; late provider evidence remains
+valid. These are foundations for PR9b2 atomic append/scoped projection, not a new
+writer or polling path. Apply explicit migrations first; retain the additive schema
+on application rollback. See [ADR-0067](../decisions/0067-bind-lifecycle-history-to-retained-admission.md)
+for trust, privileges and lock behavior. Run `make validate` and `make db-validate`;
+busy-host verification may run on existing CI with results reported separately.
