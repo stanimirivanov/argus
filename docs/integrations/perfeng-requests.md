@@ -404,3 +404,18 @@ writer or polling path. Apply explicit migrations first; retain the additive sch
 on application rollback. See [ADR-0067](../decisions/0067-bind-lifecycle-history-to-retained-admission.md)
 for trust, privileges and lock behavior. Run `make validate` and `make db-validate`;
 busy-host verification may run on existing CI with results reported separately.
+
+PR9b2 exposes `PerformanceStore.AppendLifecycle`, `LifecycleHistory` and
+`LifecycleProjection`. Supply independently authorized scope and admission plus a
+pure `LifecycleVerifier` closure over `BindLifecycleAdmission` using the exact
+stored request bytes/provider. The store rechecks authoritative settlement and
+frozen work, then validates canonical bytes against every stored metadata field.
+Appends atomically seed recovery evidence and recognize exact retry before the
+1000-row bound. History reads are owned, revision/event-ID ordered and consistent;
+known empty history returns an empty slice and no projection (`ErrNotFound`).
+Wrong/missing scope is not found, invalid arguments are invalid, contradictory
+input conflicts, and corrupt storage is unavailable with no partial evidence.
+Cancellation/deadlines propagate. Reconcile unknown commit outcomes through exact
+retry/readback without provider resubmission. See [ADR-0068](../decisions/0068-append-and-read-scoped-lifecycle-evidence.md).
+This adds no migration, grants, wire change or runtime consumer. Run local format,
+lint, compilation and focused tests; `make validate`/`make db-validate` may run in CI.

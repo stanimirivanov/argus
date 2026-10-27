@@ -36,6 +36,18 @@ type LifecycleData struct {
 // valid values; authentication and complete wire correlation belong to adapters.
 type LifecycleEvent struct{ data LifecycleData }
 
+// LifecycleVerifier revalidates retained admission/lifecycle bytes into a binding
+// and its optional initial snapshot. It must be pure, bounded, concurrent-safe and
+// perform no I/O, using independently authenticated provider/frozen request pins.
+type LifecycleVerifier func(Outcome) (LifecycleAdmission, error)
+
+// Equal compares complete projected metadata and canonical evidence identity.
+func (event LifecycleEvent) Equal(other LifecycleEvent) bool {
+	a, b := event.data, other.data
+
+	return a.Evidence.fingerprint == b.Evidence.fingerprint && a.Run == b.Run && a.RequestSHA256 == b.RequestSHA256 && a.Revision == b.Revision && a.State == b.State && a.OccurredAt.Equal(b.OccurredAt) && a.Deadline.Equal(b.Deadline)
+}
+
 // NewLifecycleEvent checks inward bounds without parsing provider payloads.
 // Completion, cancellation intent and deadline expiry grant no decision authority.
 func NewLifecycleEvent(data LifecycleData) (LifecycleEvent, error) {
