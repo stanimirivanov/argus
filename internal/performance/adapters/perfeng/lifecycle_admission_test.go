@@ -24,7 +24,7 @@ func TestLifecycleAdmissionBindsExactRetainedRunAndInitialSnapshot(t *testing.T)
 		if bound.Data().Evidence.Data().Payload[0] != '{' {
 			t.Fatal("aliased admission")
 		}
-		for _, invalid := range []requestintent.Outcome{requestintent.Outcome{}, changedAdmission(t, retained)} {
+		for _, invalid := range []requestintent.Outcome{{}, changedAdmission(t, retained)} {
 			if got, err := BindLifecycleAdmission(messages[0], invalid, reply.Source); err == nil || got.Data().Evidence.Fingerprint() != "" {
 				t.Fatal("forged admission accepted", err)
 			}

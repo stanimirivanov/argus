@@ -200,17 +200,21 @@ func TestPerformanceOutcomeRollbackAndDatabaseGuards(t *testing.T) {
 	if created, err := capability.SettleRequest(t.Context(), data.Scope, claim, outcome); err != nil || !created {
 		t.Fatal("recovery failed", err)
 	}
-	for _, statement := range []string{
-		`UPDATE argus_catalog.performance_dispatch_outcomes SET kind='rejected'`,
-		`DELETE FROM argus_catalog.performance_dispatch_outcomes`,
-		`TRUNCATE argus_catalog.performance_dispatch_outcomes`,
-		`UPDATE argus_catalog.performance_dispatch_claims SET token=NULL,available_at=clock_timestamp()`,
+	for _, probe := range []struct{ statement, code string }{
+		{`UPDATE argus_catalog.performance_dispatch_outcomes SET kind='rejected'`, "55000"},
+		{`DELETE FROM argus_catalog.performance_dispatch_outcomes`, "55000"},
+		{`TRUNCATE argus_catalog.performance_dispatch_outcomes`, "0A000"},
+		{`TRUNCATE argus_catalog.performance_dispatch_outcomes CASCADE`, "55000"},
+		{`UPDATE argus_catalog.performance_dispatch_claims SET token=NULL,available_at=clock_timestamp()`, "55000"},
 	} {
-		_, err := store.pool.Exec(t.Context(), statement)
+		_, err := store.pool.Exec(t.Context(), probe.statement)
 		var failure *pgconn.PgError
-		if !errors.As(err, &failure) || failure.Code != "55000" {
-			t.Fatal("SQL settlement mutation accepted", err)
+		if !errors.As(err, &failure) || failure.Code != probe.code {
+			t.Fatalf("settlement mutation %q: want SQLSTATE %s, got %v", probe.statement, probe.code, err)
 		}
+	}
+	if retained, err := capability.RequestOutcome(t.Context(), data.Scope, claim.Pending.After); err != nil || retained.Fingerprint() != outcome.Fingerprint() {
+		t.Fatal("rejected mutations changed settlement", err)
 	}
 }
 
