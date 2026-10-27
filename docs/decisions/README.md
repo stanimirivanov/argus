@@ -164,3 +164,4 @@ How will the assumptions and consequences be verified?
 | [ADR-0063](0063-acquire-performance-work-by-authorized-request-issuer.md) | Acquire performance work by authorized request issuer | Proposed | 2026-10-26 |
 | [ADR-0064](0064-submit-performance-work-only-from-first-acquisitions.md) | Submit performance work only from first acquisitions | Proposed | 2026-10-26 |
 | [ADR-0065](0065-opt-in-to-configured-performance-workers.md) | Opt in to configured performance workers | Proposed | 2026-10-27 |
+| [ADR-0066](0066-project-performance-lifecycle-by-provider-revision.md) | Project performance lifecycle by provider revision | Proposed | 2026-10-27 |
