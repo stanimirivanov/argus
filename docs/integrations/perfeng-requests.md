@@ -373,3 +373,23 @@ Disable the flag and restart to roll back without deleting evidence/fences. Life
 ordering, cancellation/reruns and M10 recovery remain separate. See
 [ADR-0065](../decisions/0065-opt-in-to-configured-performance-workers.md).
 Run worker/configuration/shutdown tests, `make validate` and `make db-validate`.
+
+## Ordered lifecycle observations
+
+PR9a adds `perfeng.LifecycleObservation` and `requestintent.ProjectLifecycle`.
+The adapter validates the pinned message and complete frozen context before
+constructing owned evidence; callers must authenticate the configured provider
+and principal independently. The projection accepts 1..1000 observations from one
+exact frozen request/run binding, sorts a copy by revision, and returns zero on
+any conflict. Equal state/revision snapshots can repeat under new envelopes;
+reused event IDs require identical canonical evidence. Contradictory historical
+revisions reject the whole projection rather than silently disappearing.
+
+Skipped states and repeated nonterminal states at increasing revisions are valid.
+Terminal snapshots are immutable, including their revision. Arrival and event
+time do not establish ordering; `Late` compares provider occurrence with the
+frozen deadline and never discards valid evidence. COMPLETED does not mean PASS.
+This callable foundation changes no wire, schema, worker or deployment behavior.
+Durable storage and authenticated runtime consumption follow the
+[PR9 delivery plan](../development/plans/m09-pr9-performance-lifecycle.md).
+Run focused requestintent/Perfeng tests, `make architecture-check`, and `make validate`.
