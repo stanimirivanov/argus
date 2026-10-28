@@ -170,3 +170,4 @@ How will the assumptions and consequences be verified?
 | [ADR-0069](0069-consume-authenticated-lifecycle-snapshots.md) | Consume authenticated lifecycle snapshots | Proposed | 2026-10-28 |
 | [ADR-0070](0070-bind-cancellation-http-to-frozen-request-context.md) | Bind cancellation HTTP to frozen request context | Proposed | 2026-10-28 |
 | [ADR-0071](0071-retain-cancellation-before-local-first-acquisition.md) | Retain cancellation before local first acquisition | Proposed | 2026-10-28 |
+| [ADR-0072](0072-pin-operator-cancellation-to-host-approval.md) | Pin operator cancellation to host approval | Proposed | 2026-10-28 |
