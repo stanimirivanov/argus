@@ -6,6 +6,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"strconv"
 	"sync/atomic"
 	"testing"
@@ -14,6 +16,59 @@ import (
 	"github.com/stanimirivanov/argus/internal/performance/adapters/perfeng"
 	"github.com/stanimirivanov/argus/internal/performance/requestintent"
 )
+
+func TestAuthenticatedLifecycleRuntimeTraversesAndPersistsScopedEvidence(t *testing.T) {
+	store, scope, claim, admission, verify := lifecycleStoreFixture(t, "accepted")
+	issuer := claim.Pending.Child.Request.Issuer
+	for _, wrong := range []requestintent.Scope{
+		{Issuer: scope.Issuer + "/other", PrincipalIssuer: scope.PrincipalIssuer, PrincipalID: scope.PrincipalID},
+		{Issuer: scope.Issuer, PrincipalIssuer: scope.PrincipalIssuer + "/other", PrincipalID: scope.PrincipalID},
+		{Issuer: scope.Issuer, PrincipalIssuer: scope.PrincipalIssuer, PrincipalID: scope.PrincipalID + "-other"},
+	} {
+		if _, err := store.NextLifecycle(t.Context(), wrong, issuer, 0); !errors.Is(err, requestintent.ErrNotFound) {
+			t.Fatal("cross-scope traversal", err)
+		}
+	}
+	if _, err := store.NextLifecycle(t.Context(), scope, issuer+"/other", 0); !errors.Is(err, requestintent.ErrNotFound) {
+		t.Fatal("cross-issuer traversal", err)
+	}
+	pending, err := store.NextLifecycle(t.Context(), scope, issuer, 0)
+	if err != nil || pending.After != claim.Pending.After {
+		t.Fatal("settled traversal", err)
+	}
+	if _, err := store.NextLifecycle(t.Context(), scope, issuer, pending.After); !errors.Is(err, requestintent.ErrNotFound) {
+		t.Fatal("unsettled child was eligible", err)
+	}
+	reply := lifecycleMessage(t, scope, claim, "runtime-completed", 4, "COMPLETED")
+	reply.Time = claim.Pending.Child.Deadline.Format(time.RFC3339Nano)
+	raw, err := perfeng.EncodeIntegration(reply)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var calls atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls.Add(1)
+		if r.Method != http.MethodGet || r.Header.Get("Authorization") != "Bearer runtime-test" || r.URL.Query().Get("issuer") != issuer {
+			t.Error("unauthenticated or changed lookup")
+		}
+		w.Header().Set("Content-Type", "application/json")
+		if _, err := w.Write(raw); err != nil {
+			t.Error(err)
+		}
+	}))
+	defer server.Close()
+	source := perfeng.IntegrationHTTP{Endpoint: server.URL + "/integration/v1/requests", Token: "runtime-test", Provider: scope.Issuer, Principal: perfeng.IntegrationIdentity{Issuer: scope.PrincipalIssuer, ID: scope.PrincipalID}}
+	for range 2 {
+		event, err := source.ConsumeLifecycle(t.Context(), store, scope, pending)
+		if err != nil || !event.Late() || event.Data().State != requestintent.LifecycleCompleted {
+			t.Fatal("runtime consumption", err)
+		}
+	}
+	history, err := store.LifecycleHistory(t.Context(), scope, pending.After, admission, verify)
+	if err != nil || len(history) != 1 || calls.Load() != 1 {
+		t.Fatal("terminal polling/replay", len(history), calls.Load(), err)
+	}
+}
 
 func lifecycleMessage(t *testing.T, scope requestintent.Scope, claim requestintent.Claim, id string, revision int64, state string) perfeng.IntegrationMessage {
 	t.Helper()

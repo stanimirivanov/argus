@@ -298,7 +298,7 @@ Lookup absence (including 404), provider/storage failures and stale ownership le
 unresolved evidence intact. The operation never submits, generates identities,
 acquires/releases leases, retries provider calls or schedules work. It cannot
 resolve an unsubmitted request absent at the provider. No command or worker is
-activated, and ordered lifecycle remains PR9. PR8c2 owns initial-send/crash policy
+activated by default. PR8c2 owns initial-send/crash policy
 and opt-in composition. Rollback removes callers without altering retained data.
 Run focused recovery/Perfeng tests and `make validate`; there are no schema/query
 changes or new database privileges in this slice.
@@ -419,3 +419,36 @@ Cancellation/deadlines propagate. Reconcile unknown commit outcomes through exac
 retry/readback without provider resubmission. See [ADR-0068](../decisions/0068-append-and-read-scoped-lifecycle-evidence.md).
 This adds no migration, grants, wire change or runtime consumer. Run local format,
 lint, compilation and focused tests; `make validate`/`make db-validate` may run in CI.
+
+## Authenticated runtime lifecycle consumption
+
+With dispatch configured and enabled, set
+`ARGUS_PERFORMANCE_DISPATCH_LIFECYCLE_ENABLED=true` to enable lifecycle reads.
+The flag defaults to false and accepts only true/false; it is ignored when dispatch
+is disabled, like other worker settings. Credentials and independently configured
+provider/principal/request issuer remain those of the dispatch worker.
+
+Each serial iteration handles admission first, then at most one settled
+accepted/lifecycle candidate. Scoped position traversal wraps at the end; provider
+failures advance the cursor, so another request can progress on the next tick.
+Restart begins at zero and safely revisits immutable evidence. Rejected and
+unsettled requests are excluded. Terminal positions are still visited for history
+validation but do not contact the provider. Poll latency grows with the number of
+settled requests; a durable scheduler and fleet-wide throttling remain M10 work.
+
+`IntegrationHTTP.ConsumeLifecycle` validates canonical admission, the complete
+frozen request and retained history, then performs one authenticated GET outside
+storage transactions. HTTP retains its ten-second bound and redirect prohibition.
+Late snapshots remain eligible. Terminal recovery evidence is retained directly as
+an anchor. Atomic append preserves run/revision/terminal and exact replay guards.
+An uncertain append gets one scoped history readback: only the identical complete
+event proves retention. A newer revision alone does not. Absence, provider failure,
+invalid/corrupt evidence and conflicts produce unresolved diagnostics, never POST,
+new identity, immediate retry or a fabricated verdict.
+
+Healthy logs include `performance lifecycle retained`; failures use the redacted
+`performance lifecycle unresolved` message. Inspect authorized durable history for
+details; do not infer success from admission, elapsed deadline or COMPLETED.
+Shutdown cancels active work and joins the existing worker before pool closure.
+Disable the lifecycle flag to roll back; stored evidence and schema remain intact.
+See [ADR-0069](../decisions/0069-consume-authenticated-lifecycle-snapshots.md).
