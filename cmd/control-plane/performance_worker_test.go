@@ -55,8 +55,80 @@ func TestPerformanceWorkerConfigurationIsExplicitAndBounded(t *testing.T) {
 	}
 }
 
+type lifecycleCandidates struct {
+	workerClaim
+	next func(context.Context, requestintent.Scope, string, int64) (requestintent.Pending, error)
+}
+
+func (s lifecycleCandidates) NextLifecycle(ctx context.Context, scope requestintent.Scope, issuer string, after int64) (requestintent.Pending, error) {
+	return s.next(ctx, scope, issuer, after)
+}
+
+func TestLifecycleWorkerOptInCursorRotationAndFailureFairness(t *testing.T) {
+	values := workerEnvironment()
+	if workerConfiguration(t, values).lifecycle {
+		t.Fatal("lifecycle enabled by default")
+	}
+	values["LIFECYCLE_ENABLED"] = "true"
+	c := workerConfiguration(t, values)
+	if !c.lifecycle {
+		t.Fatal("explicit lifecycle flag ignored")
+	}
+	store := lifecycleCandidates{next: func(_ context.Context, scope requestintent.Scope, issuer string, after int64) (requestintent.Pending, error) {
+		if scope != c.dispatch.Scope || issuer != c.dispatch.RequestIssuer {
+			t.Fatal("scope changed")
+		}
+		if after == 9 {
+			return requestintent.Pending{}, requestintent.ErrNotFound
+		}
+
+		return requestintent.Pending{After: 9}, nil // Bad child must fail without pinning the cursor.
+	}}
+	after, err := c.consumeLifecycle(t.Context(), store, 0)
+	if after != 9 || err == nil {
+		t.Fatal("bad candidate blocked traversal", after, err)
+	}
+	after, err = c.consumeLifecycle(t.Context(), store, after)
+	if after != 0 || !errors.Is(err, requestintent.ErrNotFound) {
+		t.Fatal("cursor did not wrap", after, err)
+	}
+	values["LIFECYCLE_ENABLED"] = "yes"
+	if _, err := loadPerformanceWorker(func(name string) string { return values[strings.TrimPrefix(name, "ARGUS_PERFORMANCE_DISPATCH_")] }); err == nil {
+		t.Fatal("invalid lifecycle flag accepted")
+	}
+}
+
+func TestLifecycleWorkerCancelsTraversalAndJoins(t *testing.T) {
+	values := workerEnvironment()
+	values["LIFECYCLE_ENABLED"] = "true"
+	entered := make(chan struct{})
+	store := lifecycleCandidates{
+		workerClaim: workerClaim{claim: func(context.Context) (requestintent.Claim, error) {
+			return requestintent.Claim{}, requestintent.ErrNotFound
+		}},
+		next: func(ctx context.Context, _ requestintent.Scope, _ string, _ int64) (requestintent.Pending, error) {
+			close(entered)
+			<-ctx.Done()
+			return requestintent.Pending{}, ctx.Err()
+		},
+	}
+	worker := workerConfiguration(t, values).start(t.Context(), store, slog.Default())
+	defer worker.close()
+	select {
+	case <-entered:
+	case <-time.After(testTimeout):
+		t.Fatal("lifecycle traversal did not start")
+	}
+	worker.close()
+	select {
+	case <-worker.done:
+	default:
+		t.Fatal("lifecycle worker was not joined")
+	}
+}
+
 type workerClaim struct {
-	requestintent.DispatchStore
+	performanceRuntimeStore
 	claim func(context.Context) (requestintent.Claim, error)
 }
 

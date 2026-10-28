@@ -18,8 +18,8 @@ PR9a is a shared foundation for both durable lifecycle consumption and decision
 evidence. Its callable projection does not activate polling, receive events or
 replace immutable admission settlement. Split later slices further if needed;
 analysis requires its published compatible contract before consumption, never
-invented fields or a COMPLETED-to-PASS shortcut. The existing worker settles
-admission only; settled requests are not implicitly polled for lifecycle updates.
+invented fields or a COMPLETED-to-PASS shortcut. The worker remains admission-only
+by default; PR9c explicitly opts in to authenticated bounded lifecycle polling.
 
 All observations require independently authenticated provider/principal scope and
 the entire original immutable context. Provider revisions order snapshots, not
