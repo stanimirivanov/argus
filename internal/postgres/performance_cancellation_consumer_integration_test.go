@@ -16,6 +16,8 @@ import (
 	"github.com/stanimirivanov/argus/internal/performance/requestintent"
 )
 
+var _ perfeng.CancellationPollStore = (*PerformanceStore)(nil)
+
 func TestCancellationConsumerPersistsProgressWithoutChangingIntentOrAdmission(t *testing.T) {
 	store, scope, claim, admission, verify := lifecycleStoreFixture(t, "accepted")
 	original := lifecycleReplyForStore(t, claim.Pending.Child.Payload)

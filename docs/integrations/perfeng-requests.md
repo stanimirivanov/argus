@@ -577,3 +577,32 @@ and stop older lifecycle/cancellation pollers because their selectors ignore it.
 This PR activates no cancellation worker. PR10d2b adds a bounded pass; PR10d2c adds
 opt-in composition and admission recovery coordination. See
 [ADR-0074](../decisions/0074-retain-monotonic-cancellation-cooldown.md).
+
+## Callable bounded cancellation polling
+
+PR10d2b exposes `perfeng.CancellationPoller{Source, Store, Scope, RequestIssuer,
+Interval}.One(ctx, after)`. Configure the HTTP source and scope/issuer independently;
+the store must implement `CancellationPollStore` (the PostgreSQL PerformanceStore
+does). Interval is a positive whole-second baseline. This API activates no worker.
+
+Each call selects once and returns `(nextCursor, retainedObservation, error)`.
+Preserve the returned cursor even on error: malformed/failed candidates advance,
+including partial reads with a usable position. End returns not found and resets
+to zero without an immediate wraparound query. A read failure without position
+cannot advance; recover storage before retrying. Nonadvancing results fail closed.
+
+Baseline cooldown must commit before authenticated consumption. A lost/failed
+deferral acknowledgement permits no provider I/O. Consumption performs at most
+one GET and one cancellation POST using retained intent/identities. Success and
+generic failures retain the baseline; longer valid HTTP 429/503 RetryAfter hints
+extend it. Extension errors preserve the provider error too (`errors.Is/As`).
+No sleep or automatic retry occurs inside the step. Cancellation propagates to
+active ports; remote outcomes can remain uncertain.
+
+Callers own serial scheduling, fair cursor reuse, bounded contexts and joining
+I/O before storage closes. The deadline is no lease or global rate limiter;
+already selected/in-flight work is not revoked. Failure to extend a long hint
+requires operator/runtime recovery before more provider polling. PR10d2c owns
+runtime activation and unresolved-admission coordination. No migration/config/wire
+change here; keep migration 21 and its cooldown data on rollback. See
+[ADR-0075](../decisions/0075-poll-cancellation-with-durable-baseline-cooldown.md).

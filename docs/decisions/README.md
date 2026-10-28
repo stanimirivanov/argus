@@ -173,3 +173,4 @@ How will the assumptions and consequences be verified?
 | [ADR-0072](0072-pin-operator-cancellation-to-host-approval.md) | Pin operator cancellation to host approval | Proposed | 2026-10-28 |
 | [ADR-0073](0073-reconcile-cancellation-through-admitted-lifecycle.md) | Reconcile cancellation through admitted lifecycle | Proposed | 2026-10-28 |
 | [ADR-0074](0074-retain-monotonic-cancellation-cooldown.md) | Retain monotonic cancellation cooldown | Proposed | 2026-10-28 |
+| [ADR-0075](0075-poll-cancellation-with-durable-baseline-cooldown.md) | Poll cancellation with durable baseline cooldown | Proposed | 2026-10-28 |
