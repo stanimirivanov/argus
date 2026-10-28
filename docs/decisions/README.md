@@ -171,3 +171,4 @@ How will the assumptions and consequences be verified?
 | [ADR-0070](0070-bind-cancellation-http-to-frozen-request-context.md) | Bind cancellation HTTP to frozen request context | Proposed | 2026-10-28 |
 | [ADR-0071](0071-retain-cancellation-before-local-first-acquisition.md) | Retain cancellation before local first acquisition | Proposed | 2026-10-28 |
 | [ADR-0072](0072-pin-operator-cancellation-to-host-approval.md) | Pin operator cancellation to host approval | Proposed | 2026-10-28 |
+| [ADR-0073](0073-reconcile-cancellation-through-admitted-lifecycle.md) | Reconcile cancellation through admitted lifecycle | Proposed | 2026-10-28 |

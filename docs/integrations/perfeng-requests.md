@@ -539,3 +539,16 @@ explicitly with the same approved target or replay the same approved message.
 There is no automatic retry or identity generation. Keep approval issuance/audit
 in the authenticated host workflow; changing/removing the protected file revokes
 future invocations. See [ADR-0072](../decisions/0072-pin-operator-cancellation-to-host-approval.md).
+
+## Callable cancellation consumption
+
+PR10d1 exposes `IntegrationHTTP.ConsumeCancellation` under independently configured
+scope and caller-authorized frozen work. It revalidates intent, admission/run and
+history. Missing/rejected admission requires fenced recovery first; local cutoff
+is not CANCELLED. Each call uses at most one GET and one cancellation POST, never
+an original submission. GET reconciles uncertain prior delivery; known terminal
+history skips I/O, and current/newer CANCELLING/terminal evidence skips POST.
+The returned observation may be stale; use scoped LifecycleProjection for latest state.
+Lookup/cancellation 429/503 errors expose RetryAfter hints without sleeping/retrying.
+No worker activates here: PR10d2 owns traversal, backoff and admission coordination.
+See [ADR-0073](../decisions/0073-reconcile-cancellation-through-admitted-lifecycle.md).
