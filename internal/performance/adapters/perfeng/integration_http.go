@@ -30,7 +30,7 @@ type IntegrationHTTP struct {
 
 // IntegrationHTTPStatusError exposes status and an optional validated retry delay,
 // never remote bodies or credentials. RetryAfter is zero when absent or invalid;
-// cancellation exchanges populate it for 429/503 without automatically retrying.
+// Cancellation and lookup exchanges populate it for 429/503 without retrying.
 // A failed POST can still have committed; status alone never authorizes a new ID.
 type IntegrationHTTPStatusError struct {
 	Code       int
@@ -153,7 +153,12 @@ func integrationResponse(response *http.Response, method string, original Integr
 		expected = "dev.perfeng.integration.lifecycle.v1"
 	} else if status != http.StatusUnprocessableEntity {
 		_ = response.Body.Close() //nolint:errcheck // Status takes precedence; no remote diagnostic is exposed.
-		return IntegrationMessage{}, &IntegrationHTTPStatusError{Code: status}
+		var retryAfter time.Duration
+		if method == http.MethodGet {
+			retryAfter = cancellationRetryAfter(response)
+		}
+
+		return IntegrationMessage{}, &IntegrationHTTPStatusError{Code: status, RetryAfter: retryAfter}
 	}
 	raw, readErr := io.ReadAll(io.LimitReader(response.Body, IntegrationMaximumBytes+1))
 	closeErr := response.Body.Close()
