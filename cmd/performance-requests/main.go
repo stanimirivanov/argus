@@ -13,7 +13,7 @@ import (
 	"github.com/stanimirivanov/argus/internal/postgres"
 )
 
-var commandSpec = commandline.Spec{Name: "performance-requests", Role: "opt-in reviewed performance request creation and scoped inspection", Synopsis: "performance-requests (-review-sha256 <digest>|-pending [-after N] [-limit 1..100]) -issuer <URI> -principal-issuer <URI> -principal-id <ID>; performance-requests -create -delivery-id <ID> -policy <file> -review <file>"}
+var commandSpec = commandline.Spec{Name: "performance-requests", Role: "opt-in reviewed request creation, cancellation intent and scoped inspection", Synopsis: "performance-requests (-review-sha256 <digest>|-pending [-after N] [-limit 1..100]) -issuer <URI> -principal-issuer <URI> -principal-id <ID>; performance-requests -create -delivery-id <ID> -policy <file> -review <file>; performance-requests (-cancel -message <file>|-cancellation) -position <N>"}
 
 func main() {
 	if code, handled := commandline.HandleMeta(os.Args[1:], os.Stdout, os.Stderr, commandSpec); handled {
@@ -21,6 +21,12 @@ func main() {
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	if len(os.Args) > 1 && (os.Args[1] == "-cancel" || os.Args[1] == "-cancellation") {
+		if err := requestcli.RunCancellation(ctx, os.Args[1:], os.Stdout, cancellationOperation); err != nil {
+			os.Exit(commandline.Report(os.Stderr, err))
+		}
+		return
+	}
 	if len(os.Args) > 1 && os.Args[1] == "-create" {
 		if err := requestcli.RunCreate(ctx, os.Args[2:], os.Stdout, createOperation, time.Now); err != nil {
 			os.Exit(commandline.Report(os.Stderr, err))

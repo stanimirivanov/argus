@@ -501,3 +501,41 @@ reruns. Heavy PostgreSQL/race suites remain CI gates on the busy local host.
 Native request-event, claim and cancellation inserts require READ COMMITTED
 (SQLSTATE 25000 otherwise), matching application writes; old transaction snapshots
 must not bypass intent/event reservations. Read-only projections are unaffected.
+
+## Approved operator cancellation and inspection
+
+PR10c adds two explicit modes (neither calls the provider):
+
+```sh
+go run ./cmd/performance-requests -cancel -position 42 -message cancellation.json
+go run ./cmd/performance-requests -cancellation -position 42
+```
+
+An authenticated owner/CI issuer supplies a protected file through host-only
+`ARGUS_PERFORMANCE_CANCELLATION_APPROVAL_FILE`, outside submitted checkout/input
+control, using read-only mounts or deployment ACLs. Reuse the existing protected
+approval trust model; file bytes alone are not authentication. Its canonical local
+shape is `json.Marshal(cancellationApproval)` (see
+[command source](../../cmd/performance-requests/cancellation.go)):
+
+- `scope`: `Issuer`, `PrincipalIssuer`, `PrincipalID` from independent authority.
+- `position`: exact pending position; IDs/cursors never grant authority.
+- `requestSha256`: SHA256 of the exact stored frozen requested.v1 bytes.
+- Optional `cancellationSha256`: SHA256 of `perfeng.EncodeIntegration` canonical
+  cancel-requested.v1 bytes. Omit this field for inspection-only authority.
+
+Canonical field order/encoding is required (surrounding whitespace is allowed);
+unknown/duplicate fields, aliases, invalid Unicode and mismatched input/position
+fail before storage opens. Configure `ARGUS_DATABASE_URL` independently. Inspection
+profiles may use `default_transaction_read_only=on`; no flag supplies scope or
+approval, and read-only profiles cannot record intent. The root also revalidates
+stored frozen hash/principal, exact position and complete cancellation context.
+
+Success emits one local JSON document with scope, position, fingerprint and inward
+intent data (payload bytes are base64). For recording only, `created=true` means
+new intent and `false` exact replay; it never means a stopped run. Require exit zero.
+A commit error, cancellation or partial stdout can leave retained intent: inspect
+explicitly with the same approved target or replay the same approved message.
+There is no automatic retry or identity generation. Keep approval issuance/audit
+in the authenticated host workflow; changing/removing the protected file revokes
+future invocations. See [ADR-0072](../decisions/0072-pin-operator-cancellation-to-host-approval.md).
