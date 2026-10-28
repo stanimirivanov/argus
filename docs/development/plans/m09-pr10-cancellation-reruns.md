@@ -15,7 +15,10 @@
 | PR10d2a | Scoped due cancellation selection and durable monotonic cooldown, respected by lifecycle selection | PR10d1 | Scope/issuer isolation, expiry, concurrent deferral, native guards, populated upgrade and restart tests; `make validate`, `make db-validate` |
 | PR10d2b | Bounded callable cancellation polling pass with fair traversal and retry deferral | PR10d2a | Cursor rotation, malformed work, backoff, error recovery and bounded provider calls; `make validate`, `make db-validate` |
 | PR10d2c | Opt-in cancellation worker composition and pre-admission recovery coordination | PR10d2b | Configuration, admission uncertainty, shutdown and restart tests; `make validate`, `make db-validate` |
-| PR10e | Explicit reviewed reruns with durable parent lineage and fresh request/attempt/event identities | PR10b, PR7d2, PR9b2 | Fresh approval/source/catalog/policy, identity reuse/conflict, unresolved predecessor, lineage, replay and rollback tests; `make validate`, `make db-validate` |
+| PR10e1 | Immutable rerun evidence binding terminal parents to fresh successor reviews/identities | PR10b, PR7d2, PR9b2 | Terminal-only eligibility, binding/history conflicts, fresh identities, immutable versioned evidence; `make validate` |
+| PR10e2 | Additive immutable lineage schema with scoped bindings and one-successor guards | PR10e1 | Native immutable/scope/cardinality guards, populated upgrade, migration chain; `make validate`, `make db-validate` |
+| PR10e3 | Atomic rerun intent/lineage retention and scoped lineage reads | PR10e2 | Authoritative terminal recheck, fresh identities, single-successor concurrency, replay, rollback and reopen; `make validate`, `make db-validate` |
+| PR10e4 | Explicit owner-approved rerun creation and lineage inspection | PR10e3 | Fresh approval/source/catalog/policy compilation, parent pins, invalid input before effects, output/commit recovery; `make validate`, `make db-validate` |
 
 Split later slices if they exceed the agreed size band. PR10a supplies shared
 operator/recovery transport without activation. PR10b must serialize intent against
@@ -28,6 +31,7 @@ preserves event/context; lost acknowledgement requires readback/reconciliation.
 The provider owns overdue-run cancellation; Argus cannot infer termination.
 
 PR10e requires fresh compilation/approval without mutating prior requests or late
-evidence. Review terminal eligibility/overlap and parent lineage policy before
-implementation; this does not block transport. Analysis verdicts remain PR9d;
+evidence. Owner-confirmed policy: only retained provider COMPLETED/FAILED/CANCELLED
+predecessors qualify; one direct successor per parent, with further reruns forming
+a chain. No active/unresolved overlap or branching. Analysis verdicts remain PR9d;
 general scheduling, retention and operational recovery remain M10.
