@@ -168,3 +168,4 @@ How will the assumptions and consequences be verified?
 | [ADR-0067](0067-bind-lifecycle-history-to-retained-admission.md) | Bind lifecycle history to retained admission | Proposed | 2026-10-27 |
 | [ADR-0068](0068-append-and-read-scoped-lifecycle-evidence.md) | Append and read scoped lifecycle evidence | Proposed | 2026-10-27 |
 | [ADR-0069](0069-consume-authenticated-lifecycle-snapshots.md) | Consume authenticated lifecycle snapshots | Proposed | 2026-10-28 |
+| [ADR-0070](0070-bind-cancellation-http-to-frozen-request-context.md) | Bind cancellation HTTP to frozen request context | Proposed | 2026-10-28 |

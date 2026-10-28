@@ -66,6 +66,7 @@ overview are always relevant.
 | Milestone or issue planning | [Milestones](roadmap/milestones.md), [CONTRIBUTING.md](../CONTRIBUTING.md) | [M01–M07 completion plan](development/plans/m01-m07-implementation-completion.md), relevant product and architecture sources |
 | Research or competitive claims | [Research landscape](research/landscape.md) | Primary sources recorded with the claim |
 | Vulnerability reporting or security-sensitive behavior | [Security policy](../SECURITY.md) | Product safety rules, relevant ADRs and integration guides |
+| M09 cancellation and explicit reruns | [Request integration](integrations/perfeng-requests.md), [ADR-0070](decisions/0070-bind-cancellation-http-to-frozen-request-context.md), [PR10 delivery plan](development/plans/m09-pr10-cancellation-reruns.md) | Cancellation correlation, status/state, late delivery, terminal races and fresh-identity review; `make validate` |
 
 ## Canonical collections
 

@@ -5,6 +5,7 @@
 - M09-PR7a pins messages; PR7b compiles explicitly approved request evidence.
 - Decode/encode checks consistency, never authentication or execution authority.
 - PR7 completes through reviewed compilation, durable intent/outbox and operator CLI.
+- PR10 cancellation and explicit reruns follow the [delivery plan](../development/plans/m09-pr10-cancellation-reruns.md).
 
 ## Pinned interchange
 
@@ -452,3 +453,23 @@ details; do not infer success from admission, elapsed deadline or COMPLETED.
 Shutdown cancels active work and joins the existing worker before pool closure.
 Disable the lifecycle flag to roll back; stored evidence and schema remain intact.
 See [ADR-0069](../decisions/0069-consume-authenticated-lifecycle-snapshots.md).
+
+## Cancellation transport
+
+PR10a exposes `IntegrationHTTP.Cancel(ctx, frozen, cancellation)`. Supply the exact
+original request and independently authorized cancel-requested.v1 bytes. Principal
+and complete immutable context must match before one authenticated POST to the
+escaped original identity. Provision provider cancellation permission separately;
+body claims and IDs grant no authority.
+
+Only a correlated lifecycle snapshot is accepted: 202 means CANCELLING, while 200
+requires CANCELLED, COMPLETED or FAILED. Completion/failure can win concurrently.
+Late cancellation is valid. `IntegrationHTTPStatusError` retains status and, for
+cancellation 429/503, a valid positive seconds-based `RetryAfter`; zero means no
+valid hint. Calls never retry/sleep, expose diagnostics, mutate history or grant
+rerun authority. On failure reconcile original identities through scoped lookup;
+404/410 and acknowledgements never establish termination or permit a rerun.
+
+No command/worker activates this transport. Durable intents, first-send cutoff,
+operator/recovery handling and reviewed reruns remain subsequent
+[PR10 slices](../development/plans/m09-pr10-cancellation-reruns.md).

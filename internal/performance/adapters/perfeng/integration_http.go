@@ -16,7 +16,7 @@ import (
 	"time"
 )
 
-// IntegrationHTTP submits frozen requests and reads scoped provider snapshots.
+// IntegrationHTTP exchanges frozen requests, cancellations and scoped snapshots.
 // Configuration must be independently authorized, never derived from wire claims.
 // Client is an optional trusted dependency. Calls clone it, disable cookies and
 // redirects, and bound each exchange to ten seconds. No call retries or grants
@@ -28,9 +28,14 @@ type IntegrationHTTP struct {
 	Client                    *http.Client
 }
 
-// IntegrationHTTPStatusError exposes only status, not remote bodies or credentials.
+// IntegrationHTTPStatusError exposes status and an optional validated retry delay,
+// never remote bodies or credentials. RetryAfter is zero when absent or invalid;
+// cancellation exchanges populate it for 429/503 without automatically retrying.
 // A failed POST can still have committed; status alone never authorizes a new ID.
-type IntegrationHTTPStatusError struct{ Code int }
+type IntegrationHTTPStatusError struct {
+	Code       int
+	RetryAfter time.Duration
+}
 
 func (err *IntegrationHTTPStatusError) Error() string {
 	return fmt.Sprintf("performance integration HTTP status %d", err.Code)
