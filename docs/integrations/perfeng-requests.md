@@ -606,3 +606,37 @@ requires operator/runtime recovery before more provider polling. PR10d2c owns
 runtime activation and unresolved-admission coordination. No migration/config/wire
 change here; keep migration 21 and its cooldown data on rollback. See
 [ADR-0075](../decisions/0075-poll-cancellation-with-durable-baseline-cooldown.md).
+
+## Opt-in cancellation worker and admission coordination
+
+After migration 21, set `ARGUS_PERFORMANCE_DISPATCH_ENABLED=true` and
+`ARGUS_PERFORMANCE_DISPATCH_CANCELLATION_ENABLED=true` to activate cancellation in
+the existing serial worker. Cancellation defaults off. Optional
+`ARGUS_PERFORMANCE_DISPATCH_CANCELLATION_INTERVAL` defaults to `5s`, accepting
+`1s..1m` whole seconds; it is ignored when cancellation is disabled. The existing
+poll interval and lease retain their bounds. Lifecycle polling remains a separate
+opt-in. Use the same independently configured provider/principal/request issuer.
+
+Each iteration runs admission dispatch/recovery first, then one cancellation pass,
+then optional lifecycle polling with independent cursors. Existing prior claims
+recover by GET at higher fences before cancellation becomes eligible. Unclaimed
+cancelled work stays locally cut off. A 404, timeout, lease expiry or cancellation
+intent never permits original resubmission or proves provider termination.
+
+With cancellation enabled, valid 429/503 retry hints from recovery, cancellation
+or lifecycle pause all provider stages in this process until the trusted clock
+allows another iteration. Later stages are skipped immediately. This protects
+unresolved admission and failed cooldown-extension cases too. Cancellation errors
+skip same-iteration lifecycle polling; fixed warning messages expose no raw errors,
+payloads, identities or credentials. Shutdown cancels active ports and joins the
+worker before storage closes.
+The fixed `performance provider paused` warning records safe `retry_after_seconds`.
+
+Admitted per-request cooldown persists across restart; the process-wide wait and
+cursors do not. Honor unresolved provider wait windows before restarting, especially
+after failed durable extension. Cursor reset only revisits evidence; it grants no
+new execution. Serialize the worker binding operationally: replicas may duplicate
+cancellation, and a deadline does not revoke already selected work. This is no
+fleet-wide throttle. Disable cancellation to roll back and stop old pollers that
+ignore cooldown, retaining migration/evidence. See
+[ADR-0076](../decisions/0076-compose-cancellation-after-admission-recovery.md).
