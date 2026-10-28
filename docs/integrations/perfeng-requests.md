@@ -552,3 +552,28 @@ The returned observation may be stale; use scoped LifecycleProjection for latest
 Lookup/cancellation 429/503 errors expose RetryAfter hints without sleeping/retrying.
 No worker activates here: PR10d2 owns traversal, backoff and admission coordination.
 See [ADR-0073](../decisions/0073-reconcile-cancellation-through-admitted-lifecycle.md).
+
+## Durable cancellation polling cooldown
+
+PR10d2a adds `PerformanceStore.NextCancellation(scope, issuer, after)` for one due
+admitted cancellation under exact provider/principal and request/attempt issuer.
+The cursor is exclusive; callers own fair rotation. Missing/end/wrong scope is
+not found. Canonical intent/admission/history checks still precede provider effects.
+
+`DeferCancellation(scope, issuer, position, delay)` accepts positive whole-second
+Go durations (maximum 9,223,372,036 seconds). PostgreSQL time sets the deadline;
+an atomic maximum prevents concurrent/shorter deferrals from shortening it. Both
+cancellation and lifecycle selectors skip future deadlines; expired rows remain
+eligible. Selection/deadlines grant no lease, receipt or termination evidence and
+cannot revoke already selected/in-flight work. A failed acknowledgement returns no
+deadline; conservative repeat deferral may extend it. Direct callers must honor
+the schedule; this is no provider-wide rate limiter.
+
+Apply `20261028171732_add_performance_cancellation_delays.sql` before new selectors;
+no backfill or existing-table rewrite is required. The empty sidecar takes brief
+foreign-key locks on intent/pending tables; pause workers for migration. Retain
+operational state and immutable evidence on rollback,
+and stop older lifecycle/cancellation pollers because their selectors ignore it.
+This PR activates no cancellation worker. PR10d2b adds a bounded pass; PR10d2c adds
+opt-in composition and admission recovery coordination. See
+[ADR-0074](../decisions/0074-retain-monotonic-cancellation-cooldown.md).
