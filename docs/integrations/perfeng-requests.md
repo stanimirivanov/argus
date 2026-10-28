@@ -6,6 +6,7 @@
 - Decode/encode checks consistency, never authentication or execution authority.
 - PR7 completes through reviewed compilation, durable intent/outbox and operator CLI.
 - PR10 cancellation and explicit reruns follow the [delivery plan](../development/plans/m09-pr10-cancellation-reruns.md).
+- PR10b stores cancellation intent and cuts off unclaimed first sends; see [ADR-0071](../decisions/0071-retain-cancellation-before-local-first-acquisition.md).
 
 ## Pinned interchange
 
@@ -473,3 +474,30 @@ rerun authority. On failure reconcile original identities through scoped lookup;
 No command/worker activates this transport. Durable intents, first-send cutoff,
 operator/recovery handling and reviewed reruns remain subsequent
 [PR10 slices](../development/plans/m09-pr10-cancellation-reruns.md).
+
+## Durable cancellation intent and local cutoff
+
+`perfeng.BindCancellation(frozen, raw)` produces owned canonical intent after full
+pinned-context validation. Independently authorized callers pass that value and
+the pure verifier to `PerformanceStore.RequestCancellation`; `GetCancellation`
+returns owned revalidated scoped evidence. One immutable intent exists per pending
+position. Exact replay is read-only; changed intent/event reuse conflicts. Missing
+or wrong scope is not found; corrupt evidence is unavailable, never partial output.
+Neither operation performs provider I/O or changes admission/lifecycle evidence.
+
+If intent commits before a first claim, both claim selection and native SQL guards
+prevent fence-1 acquisition. Already acquired work remains uncertain: its retained
+claim may have sent, and later acquisitions remain lookup-only at higher fences.
+Cancellation does not revoke a live claim, stop a run or fabricate CANCELLED.
+Rollback removes the intent and cutoff together; on lost acknowledgement use exact
+replay or scoped readback, preserving all original identities.
+
+Apply migration `20261028113837_add_performance_cancellation_intents.sql` before
+starting the new binary; pause workers for the upgrade. No backfill is required.
+Retain append-only data/guards on rollback and disable old workers, whose selection
+query may repeatedly encounter a cut-off row. Never delete intent to authorize a
+send. PR10c/PR10d own operator/provider activation; PR10e owns explicit reviewed
+reruns. Heavy PostgreSQL/race suites remain CI gates on the busy local host.
+Native request-event, claim and cancellation inserts require READ COMMITTED
+(SQLSTATE 25000 otherwise), matching application writes; old transaction snapshots
+must not bypass intent/event reservations. Read-only projections are unaffected.

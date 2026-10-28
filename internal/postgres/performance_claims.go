@@ -48,6 +48,7 @@ func (store *PerformanceStore) claimRequest(ctx context.Context, scope requestin
         WHERE p.issuer=$1 AND p.principal_issuer=$2 AND p.principal_id=$3
         AND ($4::text='' OR (p.request_issuer=$4 AND p.attempt_issuer=$4))
         AND NOT EXISTS (SELECT 1 FROM argus_catalog.performance_dispatch_outcomes o WHERE o.position=p.position)
+        AND (c.position IS NOT NULL OR NOT EXISTS (SELECT 1 FROM argus_catalog.performance_cancellations x WHERE x.position=p.position))
         AND (c.position IS NULL OR c.available_at<=clock_timestamp())
         ORDER BY p.position LIMIT 1 FOR UPDATE OF p SKIP LOCKED`, scope.Issuer, scope.PrincipalIssuer, scope.PrincipalID, issuer), &claim.Pending.After, &claim.Pending.IntentID)
 	if err != nil {

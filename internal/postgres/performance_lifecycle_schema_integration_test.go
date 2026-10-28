@@ -41,7 +41,7 @@ func lifecycleSchemaFixture(t *testing.T, kind string) (*PerformanceStore, reque
 	if _, err := capability.CreateRequest(t.Context(), inwardRequest(t, data)); err != nil {
 		t.Fatal(err)
 	}
-	claim, err := capability.ClaimRequest(t.Context(), data.Scope, time.Minute)
+	claim, err := seedReleasedClaim(t, capability, data.Scope)
 	if err != nil {
 		t.Fatal(err)
 	}
