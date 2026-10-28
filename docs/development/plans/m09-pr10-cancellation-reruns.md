@@ -12,7 +12,9 @@
 | PR10b | Durable scoped cancellation intent with exact replay and atomic local first-send cutoff | PR10a, PR8b2b | Live concurrent cancellation/acquisition, rollback, immutable intent and reopen tests; `make validate`, `make db-validate` |
 | PR10c | Explicit operator cancellation and scoped intent inspection using independently authenticated operator authority | PR10b | Authorization, invalid input before effects, exact replay and uncertain commit/output tests; `make validate`, `make db-validate` |
 | PR10d1 | Callable authenticated cancellation consumption for admitted requests, with GET reconciliation and ordered durable history | PR10c, PR9c | HTTP/storage composition, remote/local lost acknowledgements, stale/conflicting revisions, terminal races and missing admission; `make validate`, `make db-validate` |
-| PR10d2 | Scoped candidate selection, backoff and opt-in cancellation worker composition (split further if needed) | PR10d1 | Issuer isolation, fair traversal, backoff, pre-admission recovery coordination, shutdown and restart tests; `make validate`, `make db-validate` |
+| PR10d2a | Scoped due cancellation selection and durable monotonic cooldown, respected by lifecycle selection | PR10d1 | Scope/issuer isolation, expiry, concurrent deferral, native guards, populated upgrade and restart tests; `make validate`, `make db-validate` |
+| PR10d2b | Bounded callable cancellation polling pass with fair traversal and retry deferral | PR10d2a | Cursor rotation, malformed work, backoff, error recovery and bounded provider calls; `make validate`, `make db-validate` |
+| PR10d2c | Opt-in cancellation worker composition and pre-admission recovery coordination | PR10d2b | Configuration, admission uncertainty, shutdown and restart tests; `make validate`, `make db-validate` |
 | PR10e | Explicit reviewed reruns with durable parent lineage and fresh request/attempt/event identities | PR10b, PR7d2, PR9b2 | Fresh approval/source/catalog/policy, identity reuse/conflict, unresolved predecessor, lineage, replay and rollback tests; `make validate`, `make db-validate` |
 
 Split later slices if they exceed the agreed size band. PR10a supplies shared

@@ -10,6 +10,7 @@ import (
 // independently authorized scope and request issuer. Missing/end is ErrNotFound.
 // Immutable settlement makes traversal restartable; this read grants no claim or
 // submission rights. Callers rotate/reset cursors and validate history separately.
+// Future cancellation cooldowns suppress polling; already selected work is not revoked.
 func (store *PerformanceStore) NextLifecycle(ctx context.Context, scope requestintent.Scope, issuer string, after int64) (requestintent.Pending, error) {
 	if !requestintent.ValidScope(scope) || !requestintent.ValidRequestIssuer(issuer) || after < 0 {
 		return requestintent.Pending{}, requestintent.ErrInvalid
@@ -22,6 +23,7 @@ func (store *PerformanceStore) NextLifecycle(ctx context.Context, scope requesti
         FROM argus_catalog.performance_pending_dispatches p
         WHERE issuer=$1 AND principal_issuer=$2 AND principal_id=$3 AND request_issuer=$4 AND attempt_issuer=$4 AND position>$5
         AND EXISTS (SELECT 1 FROM argus_catalog.performance_dispatch_outcomes o WHERE o.position=p.position AND o.kind IN ('accepted','lifecycle'))
+        AND NOT EXISTS (SELECT 1 FROM argus_catalog.performance_cancellation_delays d WHERE d.position=p.position AND d.not_before>clock_timestamp())
         ORDER BY position LIMIT 1`, scope.Issuer, scope.PrincipalIssuer, scope.PrincipalID, issuer, after)
 	child, err := scanDispatch(row, &pending.After, &pending.IntentID)
 	if err != nil {

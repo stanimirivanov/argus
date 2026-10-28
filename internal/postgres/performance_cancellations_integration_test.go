@@ -107,9 +107,14 @@ func assertCancellationDatabaseGuards(t *testing.T, c *PerformanceStore, data re
 	if !errors.As(err, &sqlErr) || sqlErr.ConstraintName != "ck_performance_cancellation_cutoff" {
 		t.Fatal("native first claim bypassed cutoff", err)
 	}
-	for _, mutation := range []string{`UPDATE argus_catalog.performance_cancellations SET fingerprint=fingerprint`, `DELETE FROM argus_catalog.performance_cancellations`, `TRUNCATE argus_catalog.performance_cancellations`} {
-		_, err := c.runtime.pool.Exec(t.Context(), mutation)
-		if !errors.As(err, &sqlErr) || sqlErr.Code != "55000" {
+	for _, mutation := range []struct{ sql, code string }{
+		{`UPDATE argus_catalog.performance_cancellations SET fingerprint=fingerprint`, "55000"},
+		{`DELETE FROM argus_catalog.performance_cancellations`, "55000"},
+		{`TRUNCATE argus_catalog.performance_cancellations`, "0A000"},
+		{`TRUNCATE argus_catalog.performance_cancellations CASCADE`, "55000"},
+	} {
+		_, err := c.runtime.pool.Exec(t.Context(), mutation.sql)
+		if !errors.As(err, &sqlErr) || sqlErr.Code != mutation.code {
 			t.Fatal("mutable cancellation", err)
 		}
 	}
