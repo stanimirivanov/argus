@@ -3,6 +3,7 @@ package main
 
 import (
 	"context"
+	"io"
 	"os"
 	"os/signal"
 	"syscall"
@@ -13,7 +14,7 @@ import (
 	"github.com/stanimirivanov/argus/internal/postgres"
 )
 
-var commandSpec = commandline.Spec{Name: "performance-requests", Role: "opt-in reviewed request creation, cancellation intent and scoped inspection", Synopsis: "performance-requests (-review-sha256 <digest>|-pending [-after N] [-limit 1..100]) -issuer <URI> -principal-issuer <URI> -principal-id <ID>; performance-requests -create -delivery-id <ID> -policy <file> -review <file>; performance-requests (-cancel -message <file>|-cancellation) -position <N>"}
+var commandSpec = commandline.Spec{Name: "performance-requests", Role: "opt-in reviewed creation/reruns, cancellation and scoped inspection", Synopsis: "performance-requests (-review-sha256 <digest>|-pending [-after N] [-limit 1..100]) -issuer <URI> -principal-issuer <URI> -principal-id <ID>; performance-requests (-create|-rerun) -delivery-id <ID> -policy <file> -review <file>; performance-requests (-cancel -message <file>|-cancellation|-lineage) -position <N>"}
 
 func main() {
 	if code, handled := commandline.HandleMeta(os.Args[1:], os.Stdout, os.Stderr, commandSpec); handled {
@@ -21,6 +22,12 @@ func main() {
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	if handled, err := runRerunMode(ctx, os.Args[1:], os.Stdout); handled {
+		if err != nil {
+			os.Exit(commandline.Report(os.Stderr, err))
+		}
+		return
+	}
 	if len(os.Args) > 1 && (os.Args[1] == "-cancel" || os.Args[1] == "-cancellation") {
 		if err := requestcli.RunCancellation(ctx, os.Args[1:], os.Stdout, cancellationOperation); err != nil {
 			os.Exit(commandline.Report(os.Stderr, err))
@@ -44,5 +51,19 @@ func main() {
 	}
 	if err := requestcli.Run(ctx, os.Args[1:], os.Stdout, open); err != nil {
 		os.Exit(commandline.Report(os.Stderr, err))
+	}
+}
+
+func runRerunMode(ctx context.Context, args []string, output io.Writer) (bool, error) {
+	if len(args) == 0 {
+		return false, nil
+	}
+	switch args[0] {
+	case "-lineage":
+		return true, requestcli.RunLineage(ctx, args[1:], output, lineageOperation)
+	case "-rerun":
+		return true, requestcli.RunCreate(ctx, args[1:], output, rerunOperation, time.Now)
+	default:
+		return false, nil
 	}
 }

@@ -721,3 +721,47 @@ No migration, provider calls or rerun command activates here. Keep migration 22 
 evidence on rollback; disable embedding callers. PR10e4 supplies protected owner/CI
 approval, fresh compilation and operator inspection. See
 [ADR-0080](../decisions/0080-retain-rerun-work-and-lineage-in-one-transaction.md).
+
+## Approved operator reruns and lineage inspection
+
+After migration 22, the authenticated owner/CI process supplies a protected
+`ARGUS_PERFORMANCE_RERUN_APPROVAL_FILE` outside submitted checkout/input control
+(deployment ACLs or read-only mounts). File bytes alone are not authentication.
+Its internal canonical shape is `json.Marshal(rerunApproval)` in
+[command source](../../cmd/performance-requests/rerun.go), with fields in that order:
+
+- `request`: existing `selectionio.RequestApproval` (Authority and Expectations),
+  independently pinning the new canonical review, reviewer, principal and routes.
+- `parents`: 1..1000 unique `position`, `reviewSha256` (old review locator),
+  `ordinal` (zero-based successor child) and optional `rerunSha256`.
+- Each write fingerprint is `requestintent.NewRerun(...).Fingerprint()` for the
+  complete proposed parent/admission/terminal and compiled successor binding.
+  The trusted issuer prepares/approves these from retained evidence, never by
+  accepting submitted hashes as authority. Every new child needs a unique pin.
+
+Unknown/duplicate/aliased fields, invalid Unicode and noncanonical JSON fail closed;
+surrounding whitespace is allowed. Omit `rerunSha256` for inspection-only authority.
+Inspection does not require a live creation approval or current catalog; it stays
+limited to the independently approved scope/parent/review and any supplied proof pin.
+
+```sh
+go run ./cmd/performance-requests -rerun -delivery-id DELIVERY -policy policy.json -review review.json
+go run ./cmd/performance-requests -lineage -position 42
+```
+
+Creation freshly compiles current source/catalog/policy, checks the independent
+new-review hash before opening storage, reconstructs complete wire-verified parent
+evidence, compares every full proof and calls atomic CreateReruns. Scope comes from
+protected configuration; flags cannot override it. Configure `ARGUS_DATABASE_URL`
+independently. Read-only connections can inspect but cannot create work.
+
+Creation emits the existing created/fingerprint/reviewSha256 JSON receipt;
+inspection emits scope, successorPosition, fingerprint and lineage metadata.
+Require exit zero and complete output. `created=true` proves retention only;
+an enabled worker can later dispatch it. No provider calls happen in these commands.
+After timeout, lost acknowledgement or short output, inspect with original pins;
+fresh compilation may expire or conflict after later history, so never regenerate
+identities to resolve uncertainty. Each chain hop needs its own approved parent.
+Disable these modes on rollback and retain schema/evidence. Approval issuance and
+host isolation remain deployment duties. See
+[ADR-0081](../decisions/0081-authorize-operator-reruns-with-protected-proof-pins.md).
