@@ -179,3 +179,4 @@ How will the assumptions and consequences be verified?
 | [ADR-0078](0078-seal-rerun-lineage-with-successor-assembly.md) | Seal rerun lineage with successor assembly | Proposed | 2026-10-29 |
 | [ADR-0079](0079-read-historical-rerun-pins-without-renewing-eligibility.md) | Read historical rerun pins without renewing eligibility | Proposed | 2026-10-29 |
 | [ADR-0080](0080-retain-rerun-work-and-lineage-in-one-transaction.md) | Retain rerun work and lineage in one transaction | Proposed | 2026-10-29 |
+| [ADR-0081](0081-authorize-operator-reruns-with-protected-proof-pins.md) | Authorize operator reruns with protected proof pins | Proposed | 2026-10-29 |

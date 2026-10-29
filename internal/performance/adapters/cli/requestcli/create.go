@@ -44,7 +44,7 @@ func ReadCreationFile(path string) ([]byte, error) {
 	return raw, nil
 }
 
-// RunCreate handles options after leading -create; no argument supplies authority.
+// RunCreate handles options after -create or -rerun; no argument supplies authority.
 // Output failure/cancellation after success cannot roll back committed work.
 func RunCreate(ctx context.Context, args []string, output io.Writer, create Create, now func() time.Time) error {
 	if output == nil || create == nil || now == nil {
@@ -83,7 +83,7 @@ func RunCreate(ctx context.Context, args []string, output io.Writer, create Crea
 }
 
 func creationInput(ctx context.Context, args []string) (Creation, error) {
-	flags := flag.NewFlagSet("performance-requests -create", flag.ContinueOnError)
+	flags := flag.NewFlagSet("performance-requests creation", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
 	var request Creation
 	policy := flags.String("policy", "", "original reviewed policy file")
