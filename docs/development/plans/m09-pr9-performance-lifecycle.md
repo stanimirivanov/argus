@@ -12,7 +12,9 @@
 | PR9b1 | Owned admission binding and append-only lifecycle schema guards | PR9a | Pinned admission conformance, concurrent schema guards, capacity, upgrade and immutability; `make validate`, `make db-validate` |
 | PR9b2 | Atomic append and scoped history/projection reads, preserving authoritative admission/run binding | PR9b1 | Exact replay, rollback, corruption, concurrent append, reopen and scoped projection; `make validate`, `make db-validate` |
 | PR9c | Authenticated bounded runtime consumption into durable history, including shutdown and uncertain persistence | PR9b2 | HTTP/storage composition, provider failure, lost acknowledgement and late delivery; `make validate`, `make db-validate` |
-| PR9d | Consume versioned analysis verdict references as decision evidence, preserving quality/SLO/regression/uncertainty distinctions | PR9b2 | Reviewed contract conformance, correlation, missing/invalid evidence and decision tests; `make validate` |
+| PR9d1 | Strict offline published analysis/v1 artifact validation with independent outcomes | PR9b2 | Pinned examples, quality/SLO/regression distinctions, reference consistency, malformed and contradictory claims; `make validate` |
+| PR9d2 | Bind authenticated immutable analysis references to admitted runs and reviewed frozen resource/policy/baseline associations | PR9d1, reviewed provider mapping | Wrong scope/run/resource/policy, missing rules, checksum/size, unsupported versions and untrusted references; `make validate` |
+| PR9d3 | Retain correlated analysis decision evidence and opt into bounded runtime consumption | PR9d2 | Replay/conflict, independent outcomes, scoped projection, rollback/reopen and end-to-end evidence; `make validate`, `make db-validate` |
 
 PR9a is a shared foundation for both durable lifecycle consumption and decision
 evidence. Its callable projection does not activate polling, receive events or
