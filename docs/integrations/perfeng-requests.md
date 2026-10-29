@@ -681,3 +681,21 @@ send. SQL cannot authenticate canonical Go/wire fingerprints or owner approval;
 PR10e3/PR10e4 must revalidate those and expose atomic creation/scoped inspection.
 No rerun command or provider execution is enabled by this migration. See
 [ADR-0078](../decisions/0078-seal-rerun-lineage-with-successor-assembly.md).
+
+## Scoped historical lineage readback
+
+PR10e3a adds `PerformanceStore.RerunSuccessor(ctx, scope, parentPosition)` and
+`RerunPredecessor(ctx, scope, successorPosition)`. Both return one `RerunRecord`
+containing successor position and immutable `Evidence`; its data pins the parent
+position. Use independently authorized scope, never a submitted position as authority.
+Missing/wrong scope is not found. Corrupt bounds, fingerprints or referenced pins
+are unavailable, with no partial record. One coherent SQL read works on read-only
+connections and keeps the original terminal observation even after later history.
+
+`requestintent.RestoreRerun` validates canonical v1 metadata integrity only. It
+does not authenticate referenced raw provider payloads, prove complete history or
+renew approval/eligibility. Atomic new creation must revalidate current parent
+state and owner approval, not infer permission from restored historical evidence.
+No schema change or rerun command activates here. PR10e3b adds atomic retention and
+replay; PR10e4 adds approved operator creation/inspection. See
+[ADR-0079](../decisions/0079-read-historical-rerun-pins-without-renewing-eligibility.md).

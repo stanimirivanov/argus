@@ -43,7 +43,8 @@ type RerunData struct {
 }
 
 // Rerun is immutable inward evidence, separate from the original intent and wire
-// messages. Its zero value grants no authority; only NewRerun constructs it.
+// messages. Its zero value grants no authority. NewRerun checks creation inputs;
+// RestoreRerun rehydrates historical records without renewing their eligibility.
 type Rerun struct {
 	data        RerunData
 	fingerprint string
@@ -73,15 +74,57 @@ func NewRerun(parent RerunParent, successor Intent, ordinal int) (Rerun, error) 
 		ParentRequestSHA256: child.SHA256, ParentAdmissionSHA256: parent.Admission.data.Evidence.fingerprint,
 		Terminal: terminal, SuccessorIntentSHA256: successor.fingerprint, SuccessorReviewSHA256: next.ReviewSHA256,
 		SuccessorOrdinal: ordinal, SuccessorRequestSHA256: next.Children[ordinal].SHA256}
-	raw, err := json.Marshal(struct {
-		Version string
-		Data    RerunData
-	}{"argus.performance-rerun/v1", d})
+	fingerprint, err := rerunFingerprint(d)
 	if err != nil {
 		return Rerun{}, ErrInvalid
 	}
 
-	return Rerun{data: d, fingerprint: sum(raw)}, nil
+	return Rerun{data: d, fingerprint: fingerprint}, nil
+}
+
+// RerunRecord is scoped storage readback, not execution or approval authority.
+// SuccessorPosition supports one-hop traversal; Evidence pins the parent position.
+type RerunRecord struct {
+	SuccessorPosition int64
+	Evidence          Rerun
+}
+
+// RestoreRerun checks immutable record bounds and its canonical v1 fingerprint.
+// It does not prove referenced rows exist, history is complete, or approval is
+// current. Storage must verify relational pins; new creation must use NewRerun
+// with authoritative inputs, never infer eligibility from restored evidence.
+func RestoreRerun(data RerunData, fingerprint string) (Rerun, error) {
+	if !ValidScope(data.Scope) || data.ParentPosition <= 0 || data.SuccessorOrdinal < 0 || data.SuccessorOrdinal >= 1000 || data.ParentIntentSHA256 == data.SuccessorIntentSHA256 {
+		return Rerun{}, ErrInvalid
+	}
+	for _, value := range []string{data.ParentIntentSHA256, data.ParentRequestSHA256, data.ParentAdmissionSHA256, data.Terminal.EvidenceSHA256, data.SuccessorIntentSHA256, data.SuccessorReviewSHA256, data.SuccessorRequestSHA256, fingerprint} {
+		if !digest(value) {
+			return Rerun{}, ErrInvalid
+		}
+	}
+	t := data.Terminal
+	if lifecycleRank(t.State) != 4 || t.Run.Issuer != data.Scope.Issuer || !text(t.Run.ID, 256) || t.Revision < 0 || t.Revision > 9007199254740991 || t.OccurredAt.IsZero() || t.Deadline.IsZero() || t.OccurredAt.Nanosecond()%1000 != 0 || t.Deadline.Nanosecond()%1000 != 0 {
+		return Rerun{}, ErrInvalid
+	}
+	data.Terminal.OccurredAt, data.Terminal.Deadline = t.OccurredAt.UTC(), t.Deadline.UTC()
+	computed, err := rerunFingerprint(data)
+	if err != nil || computed != fingerprint {
+		return Rerun{}, ErrInvalid
+	}
+
+	return Rerun{data: data, fingerprint: fingerprint}, nil
+}
+
+func rerunFingerprint(data RerunData) (string, error) {
+	raw, err := json.Marshal(struct {
+		Version string
+		Data    RerunData
+	}{"argus.performance-rerun/v1", data})
+	if err != nil {
+		return "", ErrInvalid
+	}
+
+	return sum(raw), nil
 }
 
 func rerunTerminal(parent RerunParent, scope Scope) (RerunTerminal, error) {
