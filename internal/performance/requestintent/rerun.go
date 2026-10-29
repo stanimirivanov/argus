@@ -89,6 +89,16 @@ type RerunRecord struct {
 	Evidence          Rerun
 }
 
+// RerunCreation carries one independently approved prepared parent/proof binding.
+// Verify must be a trusted, pure, bounded wire verifier for that frozen parent.
+// Keep all inputs immutable during storage calls; supplied history is only a
+// preparation snapshot and must be reread for new writes, not trusted as current.
+type RerunCreation struct {
+	Parent   RerunParent
+	Evidence Rerun
+	Verify   LifecycleVerifier
+}
+
 // RestoreRerun checks immutable record bounds and its canonical v1 fingerprint.
 // It does not prove referenced rows exist, history is complete, or approval is
 // current. Storage must verify relational pins; new creation must use NewRerun

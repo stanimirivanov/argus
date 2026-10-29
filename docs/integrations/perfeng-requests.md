@@ -699,3 +699,25 @@ state and owner approval, not infer permission from restored historical evidence
 No schema change or rerun command activates here. PR10e3b adds atomic retention and
 replay; PR10e4 adds approved operator creation/inspection. See
 [ADR-0079](../decisions/0079-read-historical-rerun-pins-without-renewing-eligibility.md).
+
+## Atomic rerun retention and exact replay
+
+PR10e3b exposes `PerformanceStore.CreateReruns(ctx, successor, bindings)`. Each
+`RerunCreation` supplies a prepared parent snapshot, exact `Evidence` and trusted
+pure `Verify` callback. Every child ordinal needs one independently approved proof;
+parent positions must be unique. Keep inputs immutable during the call. The caller
+must freshly compile source/catalog/policy and independently authorize all pins.
+
+The store serializes the authority scope and resolves exact historical replay
+before current catalog/deadline/history checks. New writes lock parents in order,
+validate retained intent/admission and complete wire-verified history, and reconstruct
+each proof. Stale proof conflicts; restoration alone cannot authorize new work.
+Terminal recovery anchors, successor intent/work and all links commit together.
+`created=true` means new retention, `false` exact replay; neither proves execution.
+Unknown commit outcome requires exact replay or scoped readback with original
+identities. Context cancellation and SQL failures grant no new send permission.
+
+No migration, provider calls or rerun command activates here. Keep migration 22 and
+evidence on rollback; disable embedding callers. PR10e4 supplies protected owner/CI
+approval, fresh compilation and operator inspection. See
+[ADR-0080](../decisions/0080-retain-rerun-work-and-lineage-in-one-transaction.md).
