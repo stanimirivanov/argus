@@ -665,3 +665,19 @@ a chain. PR10e2 adds schema/guards, PR10e3 atomic retention/scoped reads and PR1
 the operator rerun/inspection flow. This foundation persists no lineage and enables
 no rerun command or provider execution. Existing intent/wire formats stay unchanged.
 See [ADR-0077](../decisions/0077-bind-reruns-to-reviewed-terminal-predecessors.md).
+
+## Immutable rerun lineage schema
+
+PR10e2 adds migration `20261029063757_add_performance_rerun_lineage.sql` (22).
+Pause writers for brief FK locks; no existing data scan, rewrite or backfill occurs.
+Apply before rerun APIs; startup does not migrate. Retain schema/data on rollback.
+Each link pins scoped parent/successor evidence and permits one direct successor,
+one parent and increasing positions. Only a fresh successor assembly transaction
+may attach links; every child in a linked batch needs a link at commit. Retrospective
+attachment is rejected. Recovered terminal anchors must first be retained in history.
+Use READ COMMITTED and lock batch parents in position order before successor assembly.
+Preserve linked evidence together on restore; never delete links to permit another
+send. SQL cannot authenticate canonical Go/wire fingerprints or owner approval;
+PR10e3/PR10e4 must revalidate those and expose atomic creation/scoped inspection.
+No rerun command or provider execution is enabled by this migration. See
+[ADR-0078](../decisions/0078-seal-rerun-lineage-with-successor-assembly.md).
