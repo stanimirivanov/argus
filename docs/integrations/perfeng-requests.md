@@ -640,3 +640,28 @@ cancellation, and a deadline does not revoke already selected work. This is no
 fleet-wide throttle. Disable cancellation to roll back and stop old pollers that
 ignore cooldown, retaining migration/evidence. See
 [ADR-0076](../decisions/0076-compose-cancellation-after-admission-recovery.md).
+
+## Reviewed rerun evidence foundation
+
+PR10e1 adds pure `requestintent.NewRerun(parent, successor, ordinal)` with immutable
+`Rerun` evidence and a versioned fingerprint. `RerunParent` carries a retained
+intent/pending child, authoritative admission and complete adapter-validated history.
+Only provider COMPLETED/FAILED/CANCELLED qualifies. A retained terminal recovery
+anchor may stand alone; supplied history must include its anchor and project
+without conflicts. Scope stays fixed; successor review and all request/attempt/event
+identities must be fresh, including reuse across siblings and identity roles.
+Ordinal is zero-based and selects one child from the fresh successor intent.
+
+The projection pins parent position/intent/request/admission, terminal metadata and
+evidence fingerprint, and successor intent/review/ordinal/request. Position and
+fingerprints grant no authority. The pure constructor cannot prove complete history,
+database existence, fresh approval or lineage cardinality. Storage must revalidate
+those bindings atomically; the operator must compile current source/catalog/policy
+and independently approve both parent pins and the new review. Cancellation intent,
+expiry, rejection, local cutoff or unresolved provider state never permits overlap.
+
+Confirmed lineage policy is one direct successor per parent; further reruns form
+a chain. PR10e2 adds schema/guards, PR10e3 atomic retention/scoped reads and PR10e4
+the operator rerun/inspection flow. This foundation persists no lineage and enables
+no rerun command or provider execution. Existing intent/wire formats stay unchanged.
+See [ADR-0077](../decisions/0077-bind-reruns-to-reviewed-terminal-predecessors.md).
