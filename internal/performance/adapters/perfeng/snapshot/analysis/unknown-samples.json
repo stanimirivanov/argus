@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "kind": "AnalysisResult",
+  "contractsVersion": "0.4.0",
+  "runId": "perf-20260902-120000-a1b2c3d4",
+  "testId": "checkout-api",
+  "createdAt": "2026-09-02T12:03:00Z",
+  "producer": {
+    "name": "perfeng-analysis",
+    "version": "0.1.0",
+    "image": "ghcr.io/example/perfeng-analysis@sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+  },
+  "policy": {
+    "id": "checkout-api",
+    "version": "1.0.0",
+    "sha256": "849fdf9a06eadb1aa296b2cac93b3444db98b0a2539e3d5e5c7617121413feb0",
+    "mode": "observe"
+  },
+  "candidateArtifact": {
+    "id": "33333333-3333-4333-8333-333333333333",
+    "runId": "perf-20260902-120000-a1b2c3d4",
+    "kind": "normalized",
+    "uri": "s3://perfeng-example/runs/perf-20260902-120000-a1b2c3d4/normalized/k6.json",
+    "sha256": "03164445ec1983ddbcbbabf14506b3db27632cc365580f1043406f59b0f741e5",
+    "sizeBytes": 1413,
+    "mediaType": "application/json",
+    "format": "normalized-result/v1"
+  },
+  "referenceArtifacts": [],
+  "blocking": false,
+  "evaluations": [
+    {
+      "ruleId": "checkout-latency",
+      "metric": {
+        "name": "api.http.duration",
+        "statistic": "p95",
+        "unit": "ms"
+      },
+      "quality": {
+        "status": "INCONCLUSIVE",
+        "reasons": [
+          "The summary does not provide the sample count required by the policy."
+        ]
+      },
+      "slo": {
+        "status": "INCONCLUSIVE",
+        "reasons": [
+          "Measurement quality is inconclusive."
+        ],
+        "value": 260
+      },
+      "regression": {
+        "status": "INCONCLUSIVE",
+        "reasons": [
+          "Measurement quality is inconclusive."
+        ],
+        "candidateValue": 260
+      }
+    }
+  ]
+}
