@@ -3,6 +3,8 @@ package postgres
 import (
 	"context"
 
+	"github.com/jackc/pgx/v5"
+
 	"github.com/stanimirivanov/argus/internal/performance/requestintent"
 )
 
@@ -30,6 +32,15 @@ func (store *PerformanceStore) readRerun(ctx context.Context, scope requestinten
 	}
 	ctx, cancel := context.WithTimeout(ctx, operationTimeout)
 	defer cancel()
+
+	return readRerunRow(ctx, store.runtime.pool, scope, position, reverse)
+}
+
+type rerunRowReader interface {
+	QueryRow(context.Context, string, ...any) pgx.Row
+}
+
+func readRerunRow(ctx context.Context, reader rerunRowReader, scope requestintent.Scope, position int64, reverse bool) (requestintent.RerunRecord, error) {
 	// Choose only fixed predicates; no supplied identifier is interpolated.
 	predicate := "l.parent_position=$4"
 	if reverse {
@@ -40,7 +51,7 @@ func (store *PerformanceStore) readRerun(ctx context.Context, scope requestinten
 	var successor int64
 	var fingerprint string
 	var bound bool
-	err := store.runtime.pool.QueryRow(ctx, `SELECT l.parent_position,l.successor_position,l.parent_intent_sha256,l.parent_request_sha256,l.parent_admission_sha256,
+	err := reader.QueryRow(ctx, `SELECT l.parent_position,l.successor_position,l.parent_intent_sha256,l.parent_request_sha256,l.parent_admission_sha256,
         l.parent_lifecycle_sha256,l.parent_run_id,l.parent_revision,l.parent_state,l.parent_occurred_at,l.parent_deadline,
         l.successor_intent_sha256,l.successor_review_sha256,l.successor_ordinal,l.successor_request_sha256,l.fingerprint,
         COALESCE((pi.fingerprint,p.payload_sha256,a.fingerprint,p.deadline)=(l.parent_intent_sha256,l.parent_request_sha256,l.parent_admission_sha256,l.parent_deadline)
