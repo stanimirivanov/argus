@@ -17,8 +17,9 @@
 | PR10d2c | Opt-in cancellation worker composition and pre-admission recovery coordination | PR10d2b | Configuration, admission uncertainty, shutdown and restart tests; `make validate`, `make db-validate` |
 | PR10e1 | Immutable rerun evidence binding terminal parents to fresh successor reviews/identities | PR10b, PR7d2, PR9b2 | Terminal-only eligibility, binding/history conflicts, fresh identities, immutable versioned evidence; `make validate` |
 | PR10e2 | Additive immutable lineage schema with scoped bindings and one-successor guards | PR10e1 | Native immutable/scope/cardinality guards, populated upgrade, migration chain; `make validate`, `make db-validate` |
-| PR10e3 | Atomic rerun intent/lineage retention and scoped lineage reads | PR10e2 | Authoritative terminal recheck, fresh identities, single-successor concurrency, replay, rollback and reopen; `make validate`, `make db-validate` |
-| PR10e4 | Explicit owner-approved rerun creation and lineage inspection | PR10e3 | Fresh approval/source/catalog/policy compilation, parent pins, invalid input before effects, output/commit recovery; `make validate`, `make db-validate` |
+| PR10e3a | Scoped historical lineage reads with canonical projection restoration | PR10e2 | Forward/reverse scope, fingerprint/pin integrity, later history, read-only access and reopen; `make validate`, `make db-validate` |
+| PR10e3b | Atomic rerun intent/lineage retention and exact replay | PR10e3a | Authoritative terminal recheck, fresh identities, single-successor concurrency, rollback, anchor seeding and replay; `make validate`, `make db-validate` |
+| PR10e4 | Explicit owner-approved rerun creation and lineage inspection | PR10e3b | Fresh approval/source/catalog/policy compilation, parent pins, invalid input before effects, output/commit recovery; `make validate`, `make db-validate` |
 
 Split later slices if they exceed the agreed size band. PR10a supplies shared
 operator/recovery transport without activation. PR10b must serialize intent against
