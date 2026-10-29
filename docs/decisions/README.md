@@ -176,3 +176,4 @@ How will the assumptions and consequences be verified?
 | [ADR-0075](0075-poll-cancellation-with-durable-baseline-cooldown.md) | Poll cancellation with durable baseline cooldown | Proposed | 2026-10-28 |
 | [ADR-0076](0076-compose-cancellation-after-admission-recovery.md) | Compose cancellation after admission recovery | Proposed | 2026-10-28 |
 | [ADR-0077](0077-bind-reruns-to-reviewed-terminal-predecessors.md) | Bind reruns to reviewed terminal predecessors | Proposed | 2026-10-28 |
+| [ADR-0078](0078-seal-rerun-lineage-with-successor-assembly.md) | Seal rerun lineage with successor assembly | Proposed | 2026-10-29 |
