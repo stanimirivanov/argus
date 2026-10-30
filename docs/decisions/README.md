@@ -184,3 +184,4 @@ How will the assumptions and consequences be verified?
 | [ADR-0083](0083-pin-request-linked-analysis-publications.md) | Pin request-linked analysis publications | Proposed | 2026-10-30 |
 | [ADR-0084](0084-bind-publications-to-frozen-admission.md) | Bind publications to frozen admission | Proposed | 2026-10-30 |
 | [ADR-0085](0085-validate-frozen-native-policy-claims.md) | Validate frozen native policy claims | Proposed | 2026-10-30 |
+| [ADR-0086](0086-load-protected-native-review-bundles.md) | Load protected native review bundles | Proposed | 2026-10-30 |

@@ -116,8 +116,44 @@ with bounded exact rationals rather than rounding. No report outcome is recomput
 
 Hash the original bytes against an independently trusted frozen policy pin before
 consumption; decoding grants no approval or request association. This foundation
-serves the upcoming review-input loader and report conformance verifier. Review
-source selection, native/policy/baseline binding, complete rule checks, artifact
+serves the protected review-input loader below and upcoming report conformance verifier.
+Complete report/native/policy/baseline rule checks, artifact
 retrieval and durable decisions remain separate. There is no encoder, network,
 clock, persistence or activation. See
 [ADR-0085](../decisions/0085-validate-frozen-native-policy-claims.md).
+
+## Protected native review bundle
+
+`LoadNativeReview` consumes the selected protected operator/CI source. The trusted
+host authenticates issuance, protects the file path/parents/access and supplies
+the expected reviewer independently of provider/agent input. Do not authenticate
+review authority by echoing a publication or reading its reviewer from the bundle.
+File mode or metadata alone is not proof of protection. The host opens and closes
+the regular file; the loader accepts its reader without taking ownership.
+
+Generate canonical `json.Marshal(perfeng.NativeReviewBundle)` bytes; outer whitespace
+is allowed. Unknown/duplicate/case-aliased or reformatted fields are rejected.
+The internal format contains:
+
+| Field | Meaning |
+|:--|:--|
+| `apiVersion` | `argus.dev/performance-native-review/v1` |
+| `reviewId`, `reviewedBy` | Host-issued review identity and independently expected reviewer |
+| `provider`, `principal` | Exact authenticated provider and principal issuer/ID |
+| `requestSha256` | SHA-256 of the exact frozen request bytes |
+| `admissionSha256` | Authoritative retained outcome's `Fingerprint()` |
+| `native` | Independently reviewed full native Run/test/workload/policy/baseline binding |
+| `policyBytes` | Base64 of exact original native policy bytes; never re-encode before hashing |
+| `producer`, `contractsVersion` | Reviewed native analysis producer name/version/image and bundle provenance |
+
+Reads are limited to 2 MiB, policy bytes to 1 MiB. Match all request/admission/scope/
+native pins to `PublicationAdmission`, then decode policy and check native ID/version/
+SHA-256. Returned opaque evidence owns policy and baseline data and includes SHA-256
+of the exact input file bytes, including outer whitespace. Zero review has no digest.
+Read errors and cancellation return no partial review or private diagnostics.
+
+This is historical review validation, not OS authentication, current approval
+eligibility, artifact access or report verdict verification. PR9d2b2c still checks
+complete report/native/policy/baseline/rule associations; PR9d2c authenticates byte
+retrieval. No CLI/runtime wiring, clock, network or persistence is introduced.
+See [ADR-0086](../decisions/0086-load-protected-native-review-bundles.md).
