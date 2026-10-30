@@ -178,3 +178,25 @@ zero evidence grants nothing. This is offline conformance, not authenticated fet
 current eligibility or durable decision projection. PR9d2c still owns authenticated
 origin/redirect/response bounds and PR9d3 durable consumption. See
 [ADR-0087](../decisions/0087-verify-reviewed-analysis-conformance.md).
+
+## Authenticated publication lookup
+
+`IntegrationHTTP.LookupPublication` performs one GET of
+`/integration/v1/requests/{requestId}/analysis?issuer=...` after validating the
+original frozen request and authoritative retained admission. Host configuration
+supplies the protected token, provider, principal and trusted endpoint/client.
+The separate `snapshot/publication/read-openapi.json` pins API 1.1 from contracts
+bundle 0.26.0, commit `5bbeceec61f0ddd8922f27ceb6d4968cbdfef3ac`; older payload,
+schema and native pins remain unchanged.
+
+The client disables redirects and ambient cookies, sends no body, and bounds each
+exchange to ten seconds and 64 KiB. Only JSON with the full admitted context and
+public Run becomes owned `PublicationAdmission` evidence with original bytes.
+Failures return no admission. HTTP statuses remain inspectable; positive integer
+Retry-After seconds are advisory only for 429/503. The caller owns any retry policy.
+A 404 means unavailable within the authorized scope, never terminal state or proof
+that execution did not occur. Cancellation and body/read/close errors fail safely.
+
+This callable boundary does not read artifact URIs or activate polling. Separately
+authorized S3 access and `VerifyReviewedAnalysis` conformance belong to PR9d2c2;
+durable retention/runtime consumption belong to PR9d3. See [ADR-0088](../decisions/0088-fetch-authenticated-analysis-publications.md).
