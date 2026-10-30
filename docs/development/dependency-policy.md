@@ -303,3 +303,21 @@ review:
 
 This review is evidence for dependency health, not a mandate to upgrade every
 package. Stability, compatibility, and security determine update priority.
+
+### Reviewed S3 report retrieval
+
+M09-PR9d2c2 admits runtime modules `github.com/aws/aws-sdk-go-v2` v1.47.4 and
+`github.com/aws/aws-sdk-go-v2/service/s3` v1.114.5, aligned with the provider's pins.
+The maintained [official SDK](https://github.com/aws/aws-sdk-go-v2) implements
+SigV4, AWS endpoints and S3 protocol handling; duplicating these with the standard
+library would create a larger authentication surface. Core/S3, Smithy and their
+AWS internal/eventstream modules use Apache-2.0 licenses compatible with the
+runtime allowlist ([upstream license](https://github.com/aws/aws-sdk-go-v2/blob/main/LICENSE.txt)).
+The SDK remains private to the Perfeng adapter. No config/credential discovery
+module is added: protected host code supplies dedicated read-only credentials.
+Its access is one signed HTTPS GetObject; there is no process execution, list,
+write, custom endpoint or integration-token forwarding. Explicitly disable
+[SDK retries](https://docs.aws.amazon.com/sdk-for-go/v2/developer-guide/configure-retries-timeouts.html)
+and enforce context/body limits. Existing CI license/vulnerability gates must
+validate these pins; this change does not claim unexecuted advisory scans passed.
+Removing this callable adapter permits removing the SDK graph without migrations.
