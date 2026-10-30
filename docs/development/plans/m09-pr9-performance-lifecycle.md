@@ -14,8 +14,9 @@
 | PR9c | Authenticated bounded runtime consumption into durable history, including shutdown and uncertain persistence | PR9b2 | HTTP/storage composition, provider failure, lost acknowledgement and late delivery; `make validate`, `make db-validate` |
 | PR9d1 | Strict offline published analysis/v1 artifact validation with independent outcomes | PR9b2 | Pinned examples, quality/SLO/regression distinctions, reference consistency, malformed and contradictory claims; `make validate` |
 | PR9d2a | Pin and validate the published request-linked analysis envelope as owned offline claims | PR9d1, shared publication contract/provider support | Exact upstream bytes, closed family, native/context/time consistency, ownership and malformed/version tests; `make validate` |
-| PR9d2b | Bind authenticated publication claims to admitted runs and reviewed frozen native resource/policy/baseline/rule associations | PR9d2a | Wrong full scope/context/run/resource/policy, missing rules and baseline authority tests; `make validate` |
-| PR9d2c | Fetch authorized publication references and bounded exact analysis bytes for verified correlation | PR9d2a, PR9d2b | Auth/origin, checksum/size, timeout/cancellation, provider errors and unsupported version tests; `make validate` |
+| PR9d2b1 | Bind authenticated publication context/public Run to authoritative frozen request/admission and retain exact owned bytes/digest | PR9d2a | Wrong full scope/context/run, forged/rejected settlement, known acceptance timing, lifecycle recovery and ownership tests; `make validate` |
+| PR9d2b2 | Verify independently reviewed frozen native resource/policy/baseline/rule associations | PR9d2b1 | Wrong native/resource/policy, exact policy bytes, missing rules, baseline and configured-section authority tests; `make validate` |
+| PR9d2c | Fetch authorized publication references and bounded exact analysis bytes for verified correlation | PR9d2a, PR9d2b2 | Auth/origin, checksum/size, timeout/cancellation, provider errors and unsupported version tests; `make validate` |
 | PR9d3 | Retain correlated analysis decision evidence and opt into bounded runtime consumption | PR9d2c | Replay/conflict, independent outcomes, scoped projection, rollback/reopen and end-to-end evidence; `make validate`, `make db-validate` |
 
 PR9a is a shared foundation for both durable lifecycle consumption and decision
