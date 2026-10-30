@@ -182,3 +182,4 @@ How will the assumptions and consequences be verified?
 | [ADR-0081](0081-authorize-operator-reruns-with-protected-proof-pins.md) | Authorize operator reruns with protected proof pins | Proposed | 2026-10-29 |
 | [ADR-0082](0082-validate-native-analysis-with-independent-outcomes.md) | Validate native analysis with independent outcomes | Proposed | 2026-10-29 |
 | [ADR-0083](0083-pin-request-linked-analysis-publications.md) | Pin request-linked analysis publications | Proposed | 2026-10-30 |
+| [ADR-0084](0084-bind-publications-to-frozen-admission.md) | Bind publications to frozen admission | Proposed | 2026-10-30 |

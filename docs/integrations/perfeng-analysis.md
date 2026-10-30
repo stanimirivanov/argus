@@ -58,7 +58,8 @@ baseline-null consistency; reject credential-bearing/mutable artifact URLs. Late
 publication is valid. Exact numeric syntax and timestamp offsets remain unchanged.
 
 Decoded values own nested data and grant no authenticated reference, admission or
-fetch authority. PR9d2b supplies reviewed frozen association/rule coverage; PR9d2c
+fetch authority. PR9d2b1 supplies admission correlation; PR9d2b2 supplies independently
+reviewed frozen native association/rule coverage. PR9d2c
 supplies authenticated reference/byte retrieval. See
 [ADR-0083](../decisions/0083-pin-request-linked-analysis-publications.md).
 
@@ -76,3 +77,24 @@ and explicit runtime consumption. No fetches, persistence, commands, decision
 aggregation or runtime activation occur here. URI strings are retained references;
 Argus does not read raw k6 or normalized-result bytes. Revert removes only the
 callable decoder. See [ADR-0082](../decisions/0082-validate-native-analysis-with-independent-outcomes.md).
+
+## Publication admission binding
+
+`BindPublicationAdmission` takes the exact frozen request, authoritative retained
+settlement and independently authenticated provider/principal scope. It reuses the
+lifecycle admission binder, compares the entire original context and admitted public
+Run, and returns owned exact publication bytes/digest with the frozen request and
+settlement pins. Accessors copy bytes; reject the zero value (empty digest). Storage
+must compare those pins with its authoritative scoped rows before retaining evidence.
+
+Publication cannot precede a retained acceptance timestamp. Lifecycle-recovery
+snapshots do not expose the original admission time and can occur after publication;
+their event times are not substituted for it. Valid late evidence does not change
+lifecycle or imply a verdict. Inputs are bounded before copying and codecs perform
+no I/O, clock lookup or URI access.
+
+This binding grants no native resource/policy/baseline approval or artifact-fetch
+authority. PR9d2b2 must establish independently reviewed frozen native associations,
+exact policy bytes and complete rule coverage; PR9d2c must authenticate reference/
+byte retrieval and verify checksum/size. No identities are inferred from labels or
+public Run IDs. See [ADR-0084](../decisions/0084-bind-publications-to-frozen-admission.md).
