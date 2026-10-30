@@ -3,6 +3,7 @@
 ## TL;DR
 
 - PR9d1 validates published analysis/v1 claims offline, without fetching artifacts.
+- PR9d2a validates the separate request-linked publication claims before correlation.
 - Quality, SLO, regression and uncertainty stay independent; no overall PASS exists.
 - Authenticate/correlate evidence before later decision consumption or activation.
 
@@ -38,6 +39,28 @@ Only observe/inform with blocking=false is supported. Neither inform nor a compl
 run authorizes external statuses/comments, release blocking or an overall pass.
 
 ## Authority and remaining work
+
+### Request-linked publication claims
+
+`DecodePublication` and `EncodePublication` validate the separate
+performance-analysis/v1 envelope from
+[contracts commit cd2442f433ce93d9a886c14ad6ff8aa8488a623b](https://github.com/stanimirivanov/perfeng-contracts/tree/cd2442f433ce93d9a886c14ad6ff8aa8488a623b),
+bundle 0.25.0. Schema/example snapshots live in `snapshot/publication/`, covered by
+the parent snapshot Apache-2.0 license and exact checksum tests. Older pins remain
+unchanged. This family cannot enter the closed integration lifecycle decoder.
+
+The local metadata bound is 64 KiB, separate from the 1 MiB analysis artifact bound.
+Reuse unique-key/depth/Unicode validation and the numeric token/exponent limits
+above before offline schema arithmetic. Preserve original immutable context, scoped
+public Run, explicit native Run/test/workload/policy and nullable baseline identity/
+artifact claims. Enforce context/time, source/run issuer, report/native Run and
+baseline-null consistency; reject credential-bearing/mutable artifact URLs. Late
+publication is valid. Exact numeric syntax and timestamp offsets remain unchanged.
+
+Decoded values own nested data and grant no authenticated reference, admission or
+fetch authority. PR9d2b supplies reviewed frozen association/rule coverage; PR9d2c
+supplies authenticated reference/byte retrieval. See
+[ADR-0083](../decisions/0083-pin-request-linked-analysis-publications.md).
 
 Decoded producer/run/workload/policy/reference fields are claims. This artifact is
 not an analysis-completed request envelope. Before request-linked consumption,
