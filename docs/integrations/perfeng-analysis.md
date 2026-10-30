@@ -98,3 +98,26 @@ authority. PR9d2b2 must establish independently reviewed frozen native associati
 exact policy bytes and complete rule coverage; PR9d2c must authenticate reference/
 byte retrieval and verify checksum/size. No identities are inferred from labels or
 public Run IDs. See [ADR-0084](../decisions/0084-bind-publications-to-frozen-admission.md).
+
+## Native policy claims
+
+`DecodeNativePolicy` validates policy/v1 from contracts commit
+041273947703542f7fe22eab838c176df5517974, bundle 0.24.0. Exact schema and browser/
+checkout examples live in `snapshot/policy/`, covered by the parent Apache-2.0
+license and checksum tests. This is native performance policy, distinct from
+Argus selection policy or an authenticated review record.
+
+The 1 MiB offline decoder reuses Unicode/unique-key/depth and numeric-token limits.
+Owned fields preserve metadata, nonblocking mode/missing-data behavior, full rule
+IDs/selectors, optional quality/SLO and regression/baseline definitions. Numeric
+tokens remain exact; omitted sections and zero thresholds remain distinct. Reject
+duplicate IDs/selectors and reversed inclusive SLO ranges, comparing the latter
+with bounded exact rationals rather than rounding. No report outcome is recomputed.
+
+Hash the original bytes against an independently trusted frozen policy pin before
+consumption; decoding grants no approval or request association. This foundation
+serves the upcoming review-input loader and report conformance verifier. Review
+source selection, native/policy/baseline binding, complete rule checks, artifact
+retrieval and durable decisions remain separate. There is no encoder, network,
+clock, persistence or activation. See
+[ADR-0085](../decisions/0085-validate-frozen-native-policy-claims.md).
