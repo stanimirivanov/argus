@@ -18,8 +18,9 @@
 | PR9d2b2a | Pin/validate owned native policy claims for frozen-review loading and report conformance | PR9d2b1 | Published bytes, numeric precision, optional sections, ambiguous rules/bounds and malformed/version tests; `make validate` |
 | PR9d2b2b | Load protected operator/CI frozen native review bundles with independently authenticated reviewer and exact policy bytes | PR9d2b2a, protected-bundle decision | Full request/admission/native/policy pins, provenance, bounded reads, cancellation, ownership and safe failure tests; `make validate` |
 | PR9d2b2c | Verify native resource/policy/baseline and complete report rule/section associations | PR9d2b2b | Wrong native/resource/policy, exact policy bytes, missing rules, baseline and configured-section authority tests; `make validate` |
-| PR9d2c | Fetch authorized publication references and bounded exact analysis bytes for verified correlation | PR9d2a, PR9d2b2c | Auth/origin, checksum/size, timeout/cancellation, provider errors and unsupported version tests; `make validate` |
-| PR9d3 | Retain correlated analysis decision evidence and opt into bounded runtime consumption | PR9d2c | Replay/conflict, independent outcomes, scoped projection, rollback/reopen and end-to-end evidence; `make validate`, `make db-validate` |
+| PR9d2c1 | Fetch authenticated scoped publication references bound to frozen request/admission | PR9d2a, PR9d2b2c | Pinned API, preflight, opaque IDs, exact bytes, scope, HTTP status/retry hints, limits, redirects/cookies and cancellation; `make validate` |
+| PR9d2c2 | Access separately authorized bounded exact S3 report bytes and verify reviewed conformance | PR9d2c1 | Artifact authorization/origin, checksum/size, timeout/cancellation and reviewed report tests; `make validate` |
+| PR9d3 | Retain correlated analysis decision evidence and opt into bounded runtime consumption | PR9d2c2 | Replay/conflict, independent outcomes, scoped projection, rollback/reopen and end-to-end evidence; `make validate`, `make db-validate` |
 
 PR9a is a shared foundation for both durable lifecycle consumption and decision
 evidence. Its callable projection does not activate polling, receive events or
