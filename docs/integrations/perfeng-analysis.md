@@ -200,3 +200,28 @@ that execution did not occur. Cancellation and body/read/close errors fail safel
 This callable boundary does not read artifact URIs or activate polling. Separately
 authorized S3 access and `VerifyReviewedAnalysis` conformance belong to PR9d2c2;
 durable retention/runtime consumption belong to PR9d3. See [ADR-0088](../decisions/0088-fetch-authenticated-analysis-publications.md).
+
+## Scoped S3 report retrieval
+
+`NewAnalysisS3(AnalysisS3Config)` accepts a protected host region, dedicated AWS
+credential provider, exact bucket, nonempty slash-terminated key prefix and optional
+HTTP client. IAM must independently allow only `s3:GetObject` on the matching object
+prefix (for example `arn:aws:s3:::perfeng-artifacts/reports/*`), without list/write
+permission. The adapter performs no ambient credential discovery. Credential
+refresh and transport implementations must honor contexts and support concurrent
+calls. Provider integration Bearer tokens are never used for S3.
+
+`Fetch(ctx, admitted, review)` checks opaque admitted/reviewed scope and size before
+one signed GET of the admitted report URI. Only `s3://` in the configured bucket
+and directory prefix is accepted; reject dot/empty key segments, controls and
+backslashes after one URI decoding. No custom endpoint, redirect or candidate/
+baseline/raw download occurs. Each call has a ten-second deadline and 1 MiB report
+limit, disables SDK retries/cookies, closes its body and invokes
+`VerifyReviewedAnalysis` over original bytes. Wrong media, size/checksum, review,
+conformance, read/close or provider failures return zero evidence and safe errors;
+cancellation remains identifiable. Callers own retries; failure implies no verdict.
+
+This callable adapter is not activated by configuration or a background worker.
+Runtime/CLI credential composition and durable consumption remain PR9d3; scoped
+IAM provisioning/live S3 verification are deployment follow-ups. See
+[ADR-0089](../decisions/0089-retrieve-reviewed-reports-through-scoped-s3-access.md).
