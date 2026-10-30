@@ -116,7 +116,7 @@ with bounded exact rationals rather than rounding. No report outcome is recomput
 
 Hash the original bytes against an independently trusted frozen policy pin before
 consumption; decoding grants no approval or request association. This foundation
-serves the protected review-input loader below and upcoming report conformance verifier.
+serves the protected review-input loader and report conformance verifier below.
 Complete report/native/policy/baseline rule checks, artifact
 retrieval and durable decisions remain separate. There is no encoder, network,
 clock, persistence or activation. See
@@ -157,3 +157,24 @@ eligibility, artifact access or report verdict verification. PR9d2b2c still chec
 complete report/native/policy/baseline/rule associations; PR9d2c authenticates byte
 retrieval. No CLI/runtime wiring, clock, network or persistence is introduced.
 See [ADR-0086](../decisions/0086-load-protected-native-review-bundles.md).
+
+## Reviewed report conformance
+
+`VerifyReviewedAnalysis` rechecks admission/review pins and exact report size/hash,
+then validates native Run/test/policy/mode, reviewed producer/contracts provenance,
+candidate Run, time ordering and non-self artifact associations. Compare numeric
+artifact sizes exactly, preserving original tokens. Reference metadata must equal
+the admitted baseline, and configured policy baseline IDs/versions must match.
+
+Require complete unique rule coverage, exact selectors and configured versus
+NOT_EVALUATED sections. Quality PASS requires configured measurements to be present.
+Missing reference may remain inconclusive; no native baseline allows no comparison
+evidence. Preserve independent quality/SLO/regression/uncertainty outcomes, including
+SLO PASS with regression FAIL. Do not recalculate thresholds/statistics/effects or
+derive overall PASS. Late/terminal evidence stays valid without lifecycle projection.
+
+Returned opaque evidence owns report bytes and retains admission/review/report pins;
+zero evidence grants nothing. This is offline conformance, not authenticated fetch,
+current eligibility or durable decision projection. PR9d2c still owns authenticated
+origin/redirect/response bounds and PR9d3 durable consumption. See
+[ADR-0087](../decisions/0087-verify-reviewed-analysis-conformance.md).
