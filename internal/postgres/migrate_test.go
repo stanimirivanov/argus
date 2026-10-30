@@ -13,8 +13,8 @@ func TestEmbeddedMigrationChainLoadsInFilenameOrder(t *testing.T) {
 	if err != nil {
 		t.Fatalf("load embedded migrations: %v", err)
 	}
-	if len(migrations) != 22 {
-		t.Fatalf("migration count = %d, want 22", len(migrations))
+	if len(migrations) != 23 {
+		t.Fatalf("migration count = %d, want 23", len(migrations))
 	}
 	wantNames := []string{
 		"20260917052718_create_catalog.sql",
@@ -39,6 +39,7 @@ func TestEmbeddedMigrationChainLoadsInFilenameOrder(t *testing.T) {
 		"20261028113837_add_performance_cancellation_intents.sql",
 		"20261028171732_add_performance_cancellation_delays.sql",
 		"20261029063757_add_performance_rerun_lineage.sql",
+		"20261030195441_add_performance_analysis_evidence.sql",
 	}
 	for index, migration := range migrations {
 		if migration.name != wantNames[index] {

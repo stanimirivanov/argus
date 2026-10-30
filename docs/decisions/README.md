@@ -189,3 +189,4 @@ How will the assumptions and consequences be verified?
 | [ADR-0088](0088-fetch-authenticated-analysis-publications.md) | Fetch authenticated analysis publications | Proposed | 2026-10-30 |
 | [ADR-0089](0089-retrieve-reviewed-reports-through-scoped-s3-access.md) | Retrieve reviewed reports through scoped S3 access | Proposed | 2026-10-30 |
 | [ADR-0090](0090-preserve-inward-reviewed-analysis-evidence.md) | Preserve inward reviewed analysis evidence | Proposed | 2026-10-30 |
+| [ADR-0091](0091-guard-append-only-analysis-retention.md) | Guard append-only analysis retention | Proposed | 2026-10-30 |
