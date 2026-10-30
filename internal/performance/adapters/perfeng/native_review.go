@@ -39,20 +39,22 @@ type NativeReviewBundle struct {
 	ContractsVersion string                   `json:"contractsVersion"`
 }
 
-// NativeReviewData contains owned frozen configuration and its exact file digest.
+// NativeReviewData contains owned frozen configuration, original file bytes and digest.
 // It grants no artifact access, new execution or baseline promotion authority.
 type NativeReviewData struct {
-	Bundle NativeReviewBundle
-	SHA256 string
+	Bundle  NativeReviewBundle
+	SHA256  string
+	Payload []byte
 }
 
 // NativeReview is loaded only through the protected-source boundary below.
 // Its zero value has no digest and must not be consumed as reviewed evidence.
 type NativeReview struct{ data NativeReviewData }
 
-// Data copies policy bytes and nested baseline metadata for concurrent safe reads.
+// Data copies original file/policy bytes and baseline metadata for concurrent reads.
 func (review NativeReview) Data() NativeReviewData {
 	data := review.data
+	data.Payload = bytes.Clone(data.Payload)
 	data.Bundle.PolicyBytes = bytes.Clone(data.Bundle.PolicyBytes)
 	if baseline := data.Bundle.Native.Baseline; baseline != nil {
 		copy := *baseline
@@ -102,7 +104,7 @@ func LoadNativeReview(ctx context.Context, reader io.Reader, admitted Publicatio
 	}
 	digest := sha256.Sum256(raw)
 
-	return NativeReview{data: NativeReviewData{Bundle: bundle, SHA256: hex.EncodeToString(digest[:])}}, nil
+	return NativeReview{data: NativeReviewData{Bundle: bundle, SHA256: hex.EncodeToString(digest[:]), Payload: bytes.Clone(raw)}}, nil
 }
 
 func nativeReviewText(value string) bool {

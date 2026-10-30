@@ -225,3 +225,23 @@ This callable adapter is not activated by configuration or a background worker.
 Runtime/CLI credential composition and durable consumption remain PR9d3; scoped
 IAM provisioning/live S3 verification are deployment follow-ups. See
 [ADR-0089](../decisions/0089-retrieve-reviewed-reports-through-scoped-s3-access.md).
+
+## Inward reviewed analysis evidence
+
+`AnalysisObservation(ctx, checked)` converts opaque `ReviewedAnalysis` to
+`requestintent.AnalysisEvidence` after rechecking original publication, protected
+review and report pins/associations. `NativeReview.Data().Payload` now returns
+owned original file bytes, preserving whitespace alongside its existing SHA-256.
+
+The inward value owns all three bounded JSON buffers (64 KiB publication, 2 MiB
+review, 1 MiB report), immutable admission/request/Run, principal, event ID and
+full-precision UTC publication time. Its versioned fingerprint binds these pins
+and exact-byte digests. Every accessor copies mutable buffers. Inward construction
+checks bounds/invariants, while vendor validation and original authentication stay
+at the adapter boundary. It grants no persistence, execution or baseline authority.
+
+Independent outcomes remain in original report bytes; no aggregate verdict or
+lifecycle transition is synthesized. Storage must compare authorized scope and
+retained admission before accepting evidence. Atomic retention, scoped projection
+and opt-in consumption follow in PR9d3b onward. See
+[ADR-0090](../decisions/0090-preserve-inward-reviewed-analysis-evidence.md).
