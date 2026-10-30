@@ -20,7 +20,12 @@
 | PR9d2b2c | Verify native resource/policy/baseline and complete report rule/section associations | PR9d2b2b | Wrong native/resource/policy, exact policy bytes, missing rules, baseline and configured-section authority tests; `make validate` |
 | PR9d2c1 | Fetch authenticated scoped publication references bound to frozen request/admission | PR9d2a, PR9d2b2c | Pinned API, preflight, opaque IDs, exact bytes, scope, HTTP status/retry hints, limits, redirects/cookies and cancellation; `make validate` |
 | PR9d2c2 | Access separately authorized bounded exact S3 report bytes and verify reviewed conformance | PR9d2c1 | Artifact authorization/origin, checksum/size, timeout/cancellation and reviewed report tests; `make validate` |
-| PR9d3 | Retain correlated analysis decision evidence and opt into bounded runtime consumption | PR9d2c2 | Replay/conflict, independent outcomes, scoped projection, rollback/reopen and end-to-end evidence; `make validate`, `make db-validate` |
+| PR9d3a | Preserve exact protected-review bytes and own inward reviewed analysis evidence | PR9d2c2 | Ownership, deterministic pins, bounded inputs, original bytes, adapter conformance and cancellation; `make validate` |
+| PR9d3b1 | Add append-only analysis retention schema and database guards | PR9d3a | Admission/scope pins, immutability, empty/upgrade schema and direct mutation tests; `make validate`, `make db-validate` |
+| PR9d3b2 | Atomically append and read scoped original analysis evidence | PR9d3b1 | Exact replay/conflict, authoritative admission binding, concurrent append, rollback and reopen; `make validate`, `make db-validate` |
+| PR9d3c | Project scoped retained independent analysis decisions | PR9d3a, PR9d3b2 | Quality/SLO/regression separation, conflicts, missing/late evidence and scoped readback; `make validate`, `make db-validate` |
+| PR9d3d | Consume bounded authenticated publication/report evidence into retention | PR9d3b2, PR9d2c2 | Authenticated inputs, partial failure/recovery, cancellation and uncertain persistence; `make validate`, `make db-validate` |
+| PR9d3e | Opt into analysis consumption with protected operator/runtime configuration | PR9d3c, PR9d3d | Disabled defaults, scoped review/IAM composition, shutdown and end-to-end evidence; `make validate`, `make db-validate` |
 
 PR9a is a shared foundation for both durable lifecycle consumption and decision
 evidence. Its callable projection does not activate polling, receive events or
