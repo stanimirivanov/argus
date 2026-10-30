@@ -1,0 +1,40 @@
+{
+  "apiVersion": "performance.perfeng.io/v1",
+  "kind": "PerformancePolicy",
+  "metadata": {
+    "name": "checkout-api",
+    "version": "1.0.0",
+    "owner": "payments-team"
+  },
+  "spec": {
+    "mode": "observe",
+    "missingData": "inconclusive",
+    "rules": [
+      {
+        "id": "checkout-latency",
+        "metric": {
+          "name": "api.http.duration",
+          "statistic": "p95",
+          "unit": "ms"
+        },
+        "quality": {
+          "minSamples": 100
+        },
+        "slo": {
+          "max": 500
+        },
+        "regression": {
+          "direction": "lower-is-better",
+          "practicalDifference": {
+            "kind": "relative",
+            "value": 0.1
+          },
+          "reference": {
+            "baselineId": "approved-checkout",
+            "version": "1.0.0"
+          }
+        }
+      }
+    ]
+  }
+}
