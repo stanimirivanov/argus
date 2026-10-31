@@ -2,6 +2,7 @@ package requestintent
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"time"
 
@@ -75,3 +76,9 @@ func (evidence AnalysisEvidence) ReviewSHA256() string { return evidence.reviewS
 
 // ReportSHA256 returns the exact reviewed report-byte digest.
 func (evidence AnalysisEvidence) ReportSHA256() string { return evidence.reportSHA256 }
+
+// AnalysisVerifier revalidates original evidence against the authoritative stored
+// frozen child. It must be pure, bounded, context-aware, concurrent-safe and perform
+// no I/O. Expected review identity/authentication configuration is independently
+// supplied by the trusted host, never taken from untrusted review metadata.
+type AnalysisVerifier func(context.Context, Child, AnalysisData) (AnalysisEvidence, error)

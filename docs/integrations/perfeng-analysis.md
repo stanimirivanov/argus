@@ -269,3 +269,23 @@ paths require SELECT on this table: establish default privileges or pause worker
 migrate, reapply existing runtime grants, then resume. Later append writers also
 need INSERT; UPDATE/DELETE/TRUNCATE remain prohibited. No roles/grants are created
 by this migration. See [ADR-0091](../decisions/0091-guard-append-only-analysis-retention.md).
+
+## Atomic analysis append and exact reads
+
+`PerformanceStore.AppendAnalysis` locks scoped pending work, compares authoritative
+stored request/admission, and invokes a pure bounded `AnalysisVerifier` against the
+stored frozen child. Configure `perfeng.RevalidateAnalysis` with an independently
+trusted expected reviewer. The verifier performs no network/file I/O and returns
+revalidated inward evidence; fingerprints and recovery anchors must agree.
+
+An identical event retry returns `false, nil`, including at capacity. Changed reuse
+conflicts; corrupted retained evidence fails unavailable. A lost commit response
+requires exact retry or `PerformanceStore.AnalysisEvidence` for that event, never a
+fresh provider submission. Exact reads use a read-only repeatable-read snapshot,
+preserve original bytes/nanoseconds and return not found for unknown/wrong scope or
+event, conflict for a known mismatched admission, and no partial evidence on failure.
+
+Each read returns one bounded evidence bundle. Broader history traversal and
+independent decision projection follow in PR9d3c; network consumption and opt-in
+activation remain later slices. No migration or new approval authority is added.
+See [ADR-0092](../decisions/0092-append-and-read-scoped-analysis-evidence-atomically.md).

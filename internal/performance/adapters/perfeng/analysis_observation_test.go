@@ -8,6 +8,8 @@ import (
 	"errors"
 	"reflect"
 	"testing"
+
+	"github.com/stanimirivanov/argus/internal/performance/requestintent"
 )
 
 func reviewedObservationFixture(t *testing.T) ReviewedAnalysis {
@@ -86,5 +88,28 @@ func TestAnalysisObservationRejectsBrokenPinsAndCancellation(t *testing.T) {
 				t.Fatal(err)
 			}
 		})
+	}
+}
+
+func TestRevalidateAnalysisUsesStoredRequestAndIndependentReviewer(t *testing.T) {
+	checked := reviewedObservationFixture(t)
+	original, err := AnalysisObservation(t.Context(), checked)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f := conformanceFixture(t)
+	child := requestintent.Child{Payload: f.request.frozen}
+	reviewer := checked.Data().Review.Data().Bundle.ReviewedBy
+	restored, err := RevalidateAnalysis(t.Context(), child, original.Data(), reviewer)
+	if err != nil || restored.Fingerprint() != original.Fingerprint() {
+		t.Fatal("retained revalidation failed", err)
+	}
+	child.Payload = []byte(`{}`)
+	if got, err := RevalidateAnalysis(t.Context(), child, original.Data(), reviewer); err == nil || got.Fingerprint() != "" {
+		t.Fatal("wrong frozen bytes accepted")
+	}
+	child.Payload = f.request.frozen
+	if got, err := RevalidateAnalysis(t.Context(), child, original.Data(), "untrusted-reviewer"); err == nil || got.Fingerprint() != "" {
+		t.Fatal("self-declared reviewer accepted")
 	}
 }
