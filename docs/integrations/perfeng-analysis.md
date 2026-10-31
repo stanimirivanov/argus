@@ -245,3 +245,27 @@ lifecycle transition is synthesized. Storage must compare authorized scope and
 retained admission before accepting evidence. Atomic retention, scoped projection
 and opt-in consumption follow in PR9d3b onward. See
 [ADR-0090](../decisions/0090-preserve-inward-reviewed-analysis-evidence.md).
+
+## Analysis retention schema
+
+PR9d3b1 expands `argus_catalog.performance_analysis_events` with scoped original
+publication/review/report bytes, exact digests and inward fingerprint. Database
+checks require a retained non-rejected admission, original request SHA and matching
+Run. Provider event IDs cannot be reused across analysis, admission or lifecycle
+families; pending-row/event locks serialize those checks. Distinct analysis events
+can be retained up to 1000 per request for later conflict projection. The next
+atomic storage slice must reconcile exact retries before trying to append. Guards
+require READ COMMITTED, matching runtime writers; direct snapshot writes fail.
+
+Store publication time as microsecond-truncated `published_at` plus
+`published_submicro_ns` (0..999); reconstruct by addition without rounding. Keep
+`recorded_at` separate. Original-byte size/JSON/digest checks and immutable triggers
+do not replace native wire/review/fingerprint validation or authorize access.
+
+The additive transactional migration has no backfill or activation. Deploy it
+before later analysis writers; keep the table on application rollback. Trigger
+installation briefly locks admission/lifecycle tables. Existing runtime trigger
+paths require SELECT on this table: establish default privileges or pause workers,
+migrate, reapply existing runtime grants, then resume. Later append writers also
+need INSERT; UPDATE/DELETE/TRUNCATE remain prohibited. No roles/grants are created
+by this migration. See [ADR-0091](../decisions/0091-guard-append-only-analysis-retention.md).

@@ -200,7 +200,7 @@ func requestError(err error) error {
 	}
 	var database *pgconn.PgError
 	if errors.As(err, &database) {
-		if strings.HasPrefix(database.ConstraintName, "ck_performance_rerun_") {
+		if strings.HasPrefix(database.ConstraintName, "ck_performance_rerun_") || strings.HasPrefix(database.ConstraintName, "ck_performance_analysis_") {
 			return requestintent.ErrConflict
 		}
 		if database.Code == "23505" || database.ConstraintName == "ck_performance_request_catalog" || database.ConstraintName == "ck_performance_claim_transition" || database.ConstraintName == "ck_performance_outcome_ownership" || database.ConstraintName == "ck_performance_lifecycle_binding" || database.ConstraintName == "ck_performance_lifecycle_transition" || database.ConstraintName == "ck_performance_cancellation_binding" || database.ConstraintName == "ck_performance_cancellation_cutoff" || database.ConstraintName == "ck_performance_cancellation_event" || database.ConstraintName == "ck_performance_delay_transition" || database.ConstraintName == "ck_performance_delay_binding" || database.ConstraintName == "ck_performance_delay_bounds" {
