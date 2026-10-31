@@ -289,3 +289,27 @@ Each read returns one bounded evidence bundle. Broader history traversal and
 independent decision projection follow in PR9d3c; network consumption and opt-in
 activation remain later slices. No migration or new approval authority is added.
 See [ADR-0092](../decisions/0092-append-and-read-scoped-analysis-evidence-atomically.md).
+
+## Scoped independent analysis projection
+
+`PerformanceStore.AnalysisProjection` traverses one authorized request/admission
+under a read-only repeatable-read snapshot. It scans at most 1000 event IDs, then
+uses indexed exact-row verification one bundle at a time. Configure the existing
+pure verifier and `perfeng.ProjectAnalysisDecision`; neither callback may perform
+I/O or publish intermediate results. The existing operation deadline applies.
+Concurrent appends appear in the next snapshot. Any failure/corruption returns
+zero output; unknown scope is not found and known empty history returns an empty
+list, never a synthetic PASS.
+
+Results retain each publication's event/evidence/report pins, full provider time,
+lateness and independent per-rule quality/SLO/regression statuses and reasons.
+Sort by publication time then event ID, preserving late evidence. Different report
+byte identities set `Conflict`, conservatively including metadata differences;
+all events remain visible and no newest-wins or aggregate verdict is selected.
+Exact duplicates collapse; changed reuse fails. Measurements/effects remain in the
+pinned original report available through exact-event reads.
+
+The inward collector copies mutable data and caps serialized compact results at
+8 MiB; exceedance fails rather than returning a truncated projection. There is no
+runtime activation, migration or new approval/lifecycle authority. See
+[ADR-0093](../decisions/0093-project-bounded-scoped-analysis-history.md).
