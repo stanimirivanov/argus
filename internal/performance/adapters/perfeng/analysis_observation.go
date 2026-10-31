@@ -58,3 +58,24 @@ func analysisObservationError(ctx context.Context) error {
 
 	return ErrAnalysisConformance
 }
+
+// RevalidateAnalysis rechecks retained original bytes against the authoritative
+// stored child and admission, then reconstructs inward evidence. expectedReviewer
+// comes from independently trusted host policy; reloading stored review bytes
+// validates integrity/correlation, not renewed authentication. No I/O occurs.
+func RevalidateAnalysis(ctx context.Context, child requestintent.Child, data requestintent.AnalysisData, expectedReviewer string) (requestintent.AnalysisEvidence, error) {
+	bound, err := BindPublicationAdmission(child.Payload, data.Admission.Data().Evidence, data.Publication, data.Admission.Data().Evidence.Data().Source, data.Principal)
+	if err != nil {
+		return requestintent.AnalysisEvidence{}, analysisObservationError(ctx)
+	}
+	review, err := LoadNativeReview(ctx, bytes.NewReader(data.Review), bound, expectedReviewer)
+	if err != nil {
+		return requestintent.AnalysisEvidence{}, analysisObservationError(ctx)
+	}
+	checked, err := VerifyReviewedAnalysis(ctx, bound, review, data.Report)
+	if err != nil {
+		return requestintent.AnalysisEvidence{}, analysisObservationError(ctx)
+	}
+
+	return AnalysisObservation(ctx, checked)
+}
