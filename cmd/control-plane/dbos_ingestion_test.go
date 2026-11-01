@@ -15,8 +15,6 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"os"
-	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -345,14 +343,6 @@ func newWebhookEvaluationHarness(t *testing.T, durable bool) *dbosWebhookHarness
 	// credentials and application labels must not redirect this experiment.
 	for _, name := range []string{"DBOS__APPVERSION", "DBOS__VMID", "DBOS__APPID", "DBOS__CLOUD"} {
 		t.Setenv(name, "")
-	}
-	// The Linux Ryuk container needs the daemon's Unix socket, not the
-	// Windows named pipe used by the host client. Respect explicit overrides
-	// and remote daemon configuration; never disable the cleanup reaper.
-	if runtime.GOOS == "windows" && os.Getenv("TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE") == "" &&
-		(os.Getenv("DOCKER_HOST") == "" || strings.HasPrefix(os.Getenv("DOCKER_HOST"), "npipe:")) &&
-		(os.Getenv("DOCKER_CONTEXT") == "" || os.Getenv("DOCKER_CONTEXT") == "desktop-linux") {
-		t.Setenv("TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE", "/var/run/docker.sock")
 	}
 	password := randomHex(t, 24)
 	container, err := postgrescontainer.Run(t.Context(), "postgres:17.11",

@@ -27,7 +27,7 @@ func safetyCalibrationFixture(t *testing.T) (safetyArchive, contracts.Predictive
 	if err := contracts.ValidatePredictiveCalibrationV1(calibration); err != nil {
 		t.Fatal(err)
 	}
-	// Match RunSafety: resolve Windows short temp paths before containment checks.
+	// Match RunSafety: resolve temporary-directory links before containment checks.
 	root, err := filepath.EvalSymlinks(t.TempDir())
 	if err != nil {
 		t.Fatal(err)

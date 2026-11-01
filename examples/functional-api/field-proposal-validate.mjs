@@ -16,7 +16,6 @@ function command(executable, args, input) {
     cwd: workspace,
     input,
     encoding: "utf8",
-    windowsHide: true,
     maxBuffer: 8 << 20,
     timeout: 120000,
   });
@@ -32,9 +31,7 @@ async function install(args) {
     pnpmScript ? [pnpmScript, ...args] : args,
     {
       cwd: workspace,
-      windowsHide: true,
       stdio: "ignore",
-      shell: !pnpmScript && process.platform === "win32",
     },
   );
   const code = await new Promise((done, reject) => {
@@ -153,7 +150,6 @@ async function validate(executable, proposalPath, serviceURL) {
     ],
     {
       cwd: workspace,
-      windowsHide: true,
       env: { ...process.env, ARGUS_FIXTURE_URL: serviceURL },
     },
   );
@@ -251,17 +247,13 @@ test("response field [argus:orders-api:response-field]", async ({ request }) => 
   );
   if ((await readFile(sourcePath, "utf8")) !== source) throw new Error("proposal mutated source");
 
-  const validationCommand = resolve(
-    workspace,
-    process.platform === "win32" ? "field-validation.exe" : "field-validation",
-  );
+  const validationCommand = resolve(workspace, "field-validation");
   const built = spawnSync(
     "go",
     ["build", "-o", validationCommand, "./cmd/validate-functional-api-field-repair"],
     {
       cwd: resolve("."),
       encoding: "utf8",
-      windowsHide: true,
       timeout: 120000,
     },
   );

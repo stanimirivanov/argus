@@ -8,10 +8,7 @@ const allowedRuntimeLicenses = new Set([
   "MIT",
 ]);
 
-const result =
-  process.platform === "win32"
-    ? spawnSync("pnpm licenses list --prod --json", { encoding: "utf8", shell: true })
-    : spawnSync("pnpm", ["licenses", "list", "--prod", "--json"], { encoding: "utf8" });
+const result = spawnSync("pnpm", ["licenses", "list", "--prod", "--json"], { encoding: "utf8" });
 
 if (result.status !== 0) {
   process.stderr.write(result.stderr);

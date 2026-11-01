@@ -11,7 +11,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"runtime/debug"
 	"strings"
 	"testing"
@@ -52,9 +51,6 @@ func buildDBOSEvaluation(t *testing.T, candidate bool) evaluationBuild {
 	build := evaluationBuild{SDK: evaluationNewSDK, SchemaVersion: 123, RaceInstrumented: evaluationRaceEnabled()}
 	directory := t.TempDir()
 	build.executable = filepath.Join(directory, "control-plane.test")
-	if runtime.GOOS == "windows" {
-		build.executable += ".exe"
-	}
 	args := []string{"test", "-c", "-mod=readonly", "-tags=dbose2e", "-o", build.executable}
 	if build.RaceInstrumented {
 		args = append(args, "-race")

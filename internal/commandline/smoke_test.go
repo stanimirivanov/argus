@@ -5,7 +5,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"slices"
 	"strings"
 	"testing"
@@ -54,7 +53,7 @@ var commandNames = []string{
 }
 
 // TestExecutableMetadataAndExitCodes exercises actual command roots, including
-// Windows binaries, without a configured database, token, or adapter.
+// Linux binaries, without a configured database, token, or adapter.
 func TestExecutableMetadataAndExitCodes(t *testing.T) {
 	repositoryRoot := filepath.Clean(filepath.Join("..", ".."))
 	assertCommandCoverage(t, repositoryRoot)
@@ -142,9 +141,6 @@ func testExitCodes(t *testing.T, binDirectory string) {
 
 func commandBinary(binDirectory, name string) string {
 	binary := filepath.Join(binDirectory, name)
-	if runtime.GOOS == "windows" {
-		binary += ".exe"
-	}
 
 	return binary
 }

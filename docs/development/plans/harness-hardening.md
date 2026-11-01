@@ -27,7 +27,7 @@ thresholds remain part of M10.
 
 - **Objective & scope:** Add an offline check that compares the validation workflow with a versioned policy for job names, supported runners, and the Make command behind each job. Keep the check in the ordinary Go suite and expose it as a clear CI job for manual review.
 - **Target layers / files:** `tools/ci-policy-check/`, `.github/workflows/validate.yml`, `Makefile`, and the harness and developer guides.
-- **Contracts & boundaries:** The existing validation jobs and their Linux/Windows matrix remain visible under stable names. The check rejects missing pull-request triggers, unsupported matrix expansion, skipped or error-tolerant required steps, Make execution overrides, and renamed or removed Make targets. A reviewer still confirms actual CI results before merge.
+- **Contracts & boundaries:** The existing validation jobs and their Linux matrix remain visible under stable names. The check rejects missing pull-request triggers, unsupported matrix expansion, skipped or error-tolerant required steps, Make execution overrides, and renamed or removed Make targets. A reviewer still confirms actual CI results before merge.
 - **Harness gate:** `make ci-policy-check`, `make docs-check`, `make verify`, `make validate`, and `git diff --check` pass. The issue and branch are created by the reviewer after this slice is handed off.
 
 ### PR 2: Prove change-workflow retry safety

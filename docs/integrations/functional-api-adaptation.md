@@ -62,7 +62,7 @@ The edit uses UTF-8 byte offsets and includes:
 
 - a normalized repository-relative source path without drive or alternate-stream
   syntax (`:`), so disposable workspaces enforce the same containment policy on
-  Windows and Linux;
+  Linux;
 - the SHA-256 of the complete source file before editing;
 - half-open `startByte` and `endByte` offsets;
 - the exact original endpoint path;
