@@ -415,11 +415,9 @@ See [ADR-0096](../decisions/0096-support-protected-s3-compatible-endpoints.md).
 ## Protected analysis configuration validation
 
 `loadPerformanceAnalysis` in the control-plane composition root validates the
-reserved `ARGUS_PERFORMANCE_ANALYSIS_` settings below. This slice is a callable
-configuration boundary only: server startup does not yet invoke it, load files,
-start polling or enable analysis consumption. PR9d3e activation must wire it in
-and complete protected-resource checks before starting work. An enable value
-here does not itself activate a service in this release.
+`ARGUS_PERFORMANCE_ANALYSIS_` settings below. Startup now invokes it: explicit
+enablement prepares protected review resources and CA trust before database
+startup. Disabled mode opens no analysis resources and starts no analysis worker.
 
 | Suffix | Validation and meaning |
 |:--|:--|
@@ -446,7 +444,7 @@ session credentials need explicit configuration replacement when expired; no
 refresh/rotation authority is introduced here. Never log configuration objects.
 
 Path syntax is not authentication, protection, file existence or CA validity.
-Before activation, the host must authenticate review issuance and expected
+The host must authenticate review issuance and expected
 reviewer independently, protect the directory/files and parents from untrusted
 writers, open bounded regular review files safely and check exact scoped pins
 through the consumer. It must validate and load the selected CA material into a
@@ -459,3 +457,34 @@ secret-safe diagnostics. The parser does not prove endpoint reachability, grants
 or readiness. These requirements constrain later activation; they do not justify
 network probes, trust-store writes or credential provisioning during parsing.
 See [ADR-0097](../decisions/0097-validate-protected-analysis-configuration.md).
+
+## Bounded analysis runtime
+
+Explicit enablement starts analysis independently of dispatch. Linux startup pins
+an owner/root-controlled directory descriptor, rejecting symlink ancestors and
+untrusted writers (trusted sticky ancestors such as `/tmp` are allowed). The
+review root must be private (`0700` or stricter). Provision resources outside
+untrusted checkout/writable mounts; ownership/modes do not authenticate issuance.
+For each frozen request, provide `<request SHA-256>.json` containing its separately
+issued native review. Descriptor-relative no-follow/nonblocking opens require a
+private regular single-link file, bounded to 2 MiB. Missing/unsafe review is an
+unresolved observation, never permission to infer or generate approval.
+
+Optional CA files must be regular, single-link, owner/root-controlled and not
+writable by group/others, at most 64 KiB, without symlink ancestors. Valid PEM
+extends system trust in a private verified transport; system stores are not
+changed. Invalid resources fail startup before database access.
+
+Each tick attempts at most `MAX_PER_TICK` requests; selection plus consumption
+shares per-item `TIMEOUT`. Advance past individual failures and reset only on
+end/selection error for the next tick. Publication-provider 429/503 ends the batch and respects the
+larger of polling interval and Retry-After. Other unresolved work is revisited
+on later rotations; restart resets the process-local cursor/backoff. No in-call
+resubmission or implicit permanent completion occurs, including terminal Runs.
+
+Shutdown cancels and joins analysis work before closing its directory, idle TLS
+connections and database pool. Diagnostics contain fixed status messages, not
+errors, paths, identities or credentials. Disable/drain before changing mounts,
+credentials or source; retain evidence. Existing consumer exact-read recovery and
+idempotent retention remain authoritative. Real-provider/k6 acceptance remains
+the joint fixture's responsibility, not proof from resource/scheduling tests.

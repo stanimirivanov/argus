@@ -38,9 +38,9 @@ one minute in whole microseconds; work accepts one through one hundred items.
 These are resource ceilings, not performance or fairness guarantees. Activation
 must respect caller cancellation and the adapters' shorter deadlines.
 
-Analysis reads are independent of new-request dispatch enablement. The parser is
-not yet invoked by startup and starts no worker. Runtime wiring and protected
-resource loading remain the next PR9d3e slice. This adds no wire contract,
+Analysis reads are independent of new-request dispatch enablement. The parser itself starts no worker. PR9d3e runtime activation now invokes it
+at startup and enforces descriptor-relative Linux resource checks before opening
+the database; the integration guide records polling and shutdown behavior. This adds no wire contract,
 migration, dependency, roles or deployment mutation. Revert removes only this
 inactive boundary; existing dispatch and retained evidence remain unchanged.
 
