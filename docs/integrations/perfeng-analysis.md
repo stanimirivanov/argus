@@ -411,3 +411,51 @@ acceptance remain later composition slices. Rollback to AWS-only code requires
 removing custom endpoint/addressing configuration first; it cannot make local
 objects available through AWS. Retained references/evidence remain untouched.
 See [ADR-0096](../decisions/0096-support-protected-s3-compatible-endpoints.md).
+
+## Protected analysis configuration validation
+
+`loadPerformanceAnalysis` in the control-plane composition root validates the
+reserved `ARGUS_PERFORMANCE_ANALYSIS_` settings below. This slice is a callable
+configuration boundary only: server startup does not yet invoke it, load files,
+start polling or enable analysis consumption. PR9d3e activation must wire it in
+and complete protected-resource checks before starting work. An enable value
+here does not itself activate a service in this release.
+
+| Suffix | Validation and meaning |
+|:--|:--|
+| `ENABLED` | Empty/`false` returns inert configuration and reads no other settings; only `true` opts into validation. |
+| `URL`, `TOKEN` | Explicit integration endpoint and provider credential; reuse the existing integration transport policy. |
+| `PROVIDER`, `PRINCIPAL_ISSUER`, `PRINCIPAL_ID`, `REQUEST_ISSUER` | Independent host-selected provider/principal and absolute request issuer; no scope is inferred from retained/provider messages. |
+| `EXPECTED_REVIEWER` | Independently trusted reviewer identity, nonblank, no controls, at most 256 bytes; never read from the review bundle. |
+| `REVIEW_DIRECTORY` | Required clean absolute non-root path to protected per-request review material. |
+| `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | Required dedicated report-read credentials; never reuse the integration Bearer token as S3 credentials. |
+| `S3_SESSION_TOKEN` | Optional explicit static session token. Credential values are nonblank, control-free and at most 4096 bytes each. |
+| `S3_REGION`, `S3_BUCKET`, `S3_PREFIX` | Required signing region, exact bucket and slash-terminated report prefix, validated by the existing S3 adapter. |
+| `S3_ENDPOINT`, `S3_PATH_STYLE` | Optional protected HTTPS origin and boolean SDK path-style choice; omitted values retain AWS defaults. |
+| `CA_FILE` | Optional clean absolute non-root path to host-approved CA material; omission uses normal verified system trust. |
+| `POLL_INTERVAL` | Default `5s`; explicit values must be `1s`..`1m` in whole microseconds. |
+| `TIMEOUT` | Default `30s`; same bounds, intended as a total per-consumption deadline, preserving the adapters' shorter deadlines. |
+| `MAX_PER_TICK` | Default `1`; integer `1`..`100` to cap work attempted per tick. |
+
+Disabled configuration is independent of dispatch settings. Later analysis reads
+must remain possible with new-request dispatch disabled. Secrets and resource
+paths retain their original bytes; no trimming, shell expansion, ambient AWS
+credential chain, file reads or network calls occur during validation. The
+credential provider captures explicit values and honors cancellation. Static
+session credentials need explicit configuration replacement when expired; no
+refresh/rotation authority is introduced here. Never log configuration objects.
+
+Path syntax is not authentication, protection, file existence or CA validity.
+Before activation, the host must authenticate review issuance and expected
+reviewer independently, protect the directory/files and parents from untrusted
+writers, open bounded regular review files safely and check exact scoped pins
+through the consumer. It must validate and load the selected CA material into a
+verified transport before access. Scope and GetObject-only IAM grants must also
+be independently provisioned and checked. Do not infer approval from modes,
+file metadata or the bundle's self-declared reviewer.
+
+Every enabled validation failure returns zero configuration with constant,
+secret-safe diagnostics. The parser does not prove endpoint reachability, grants
+or readiness. These requirements constrain later activation; they do not justify
+network probes, trust-store writes or credential provisioning during parsing.
+See [ADR-0097](../decisions/0097-validate-protected-analysis-configuration.md).
