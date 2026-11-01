@@ -345,3 +345,31 @@ callable operation starts no worker or polling and grants no execution or
 baseline authority. PR9d3e still owns explicit runtime/credential composition;
 reverting this consumer leaves retained evidence untouched. See
 [ADR-0094](../decisions/0094-consume-one-reviewed-analysis-publication.md).
+
+## Admitted analysis traversal
+
+`PerformanceStore.NextAnalysis(ctx, scope, issuer, after)` selects at most one
+original frozen child with retained `accepted` or `lifecycle` admission, under
+exact provider/principal and request/attempt issuer. The exclusive database-local
+position cursor is not a public Run identity or processing claim. Invalid input
+fails before opening storage; missing/end/wrong scope returns `ErrNotFound`, and
+all failures return zero work. The existing operation deadline bounds the read.
+
+Calls see currently committed admission at each statement, not one snapshot for
+a whole campaign. Callers advance only with the returned position, reset to zero
+on a fair later traversal, and apply their own bounded retry policy. Admission
+that commits behind a cursor appears only after reset; zero is an explicit
+restart, not automatic wrap or proof that all future work is complete. Multiple
+readers may select the same request; retention must remain idempotent.
+
+Rejected/unsettled requests are excluded. Terminal execution, cancellation intent,
+future cancellation cooldown and prior analysis do not suppress selection: each
+may still receive late or conflicting analysis. This selector deliberately does
+not reuse `NextLifecycle`'s cooldown filter. Enumeration grants no credentials,
+report-read permission, claim, new submission or execution authority; consumers
+must still revalidate authoritative admission and protected review.
+
+Use the existing scoped pending-position index and settlement primary key; no
+schema or scheduling state is added. PR9d3e owns runtime cursor rotation and
+consumption. Revert removes the callable read without modifying retained work.
+See [ADR-0095](../decisions/0095-enumerate-admitted-analysis-work.md).
