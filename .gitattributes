@@ -1,6 +1,1 @@
-# Keep repository text identical across developer and CI operating systems.
 * text=auto eol=lf
-
-# Preserve native line endings for Windows command scripts when introduced.
-*.bat text eol=crlf
-*.cmd text eol=crlf

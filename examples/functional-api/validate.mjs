@@ -50,8 +50,6 @@ async function command(
     {
       cwd,
       env: { ...process.env, ...env },
-      windowsHide: true,
-      shell: executable === "pnpm" && !pnpmScript && process.platform === "win32",
     },
   );
   if (input !== undefined) child.stdin.end(input);
@@ -158,7 +156,7 @@ async function prepareTests(temp, entry) {
 }
 
 async function build(temp, name, path) {
-  const executable = join(temp, process.platform === "win32" ? `${name}.exe` : name);
+  const executable = join(temp, name);
   await command("go", ["build", "-o", executable, path]);
   return executable;
 }

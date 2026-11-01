@@ -569,7 +569,7 @@ different authorities:
 | Change understanding | Cross-family source, contract, configuration, and capability impact | Performance-specific workload validity checks |
 | Catalog | References to stable workload, environment, and baseline identities | Authoritative workload definitions, adapters, runtime requirements, and versions |
 | Decision | Whether a product change warrants performance evidence, with risk and priority | Whether and how an accepted request can execute safely |
-| Execution | Dispatch and lifecycle correlation | k6, Playwright/CDP, Kubernetes, Windows-worker, retry, and cancellation behavior |
+| Execution | Dispatch and lifecycle correlation | k6, Playwright/CDP, Kubernetes, native Linux worker, retry, and cancellation behavior |
 | Analysis | Consume a versioned verdict as decision evidence | Measurement quality, SLO evaluation, noise-aware regression, change-point analysis, and diagnosis |
 | Baselines | Reference an approved immutable baseline identity | Baseline creation, approval, versioning, and comparison semantics |
 | Artifacts | Store decision references and integrity metadata | Raw performance evidence, reports, provenance, and artifact registration |

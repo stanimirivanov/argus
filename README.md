@@ -12,7 +12,7 @@ are planned.
 Use the exact Go version in [go.mod](go.mod). From the repository root, start
 the database and apply the Argus and optional DBOS evaluation migrations:
 
-~~~powershell
+~~~sh
 docker compose -f compose.local.yaml up -d --wait
 go run ./cmd/migrate --local
 go run ./cmd/migrate --local --dbos-evaluation
@@ -21,10 +21,10 @@ go run ./cmd/migrate --local --dbos-evaluation
 To run the opt-in DBOS webhook path, supply your own GitHub read token and
 webhook secret, then start the control plane:
 
-~~~powershell
-$env:ARGUS_GITHUB_TOKEN = '<your repository-read token>'
-$env:ARGUS_GITHUB_WEBHOOK_SECRET = '<your own random webhook secret>'
-$env:ARGUS_DBOS_EVALUATION = 'true'
+~~~sh
+export ARGUS_GITHUB_TOKEN='<your repository-read token>'
+export ARGUS_GITHUB_WEBHOOK_SECRET='<your own random webhook secret>'
+export ARGUS_DBOS_EVALUATION='true'
 go run ./cmd/control-plane --local
 ~~~
 

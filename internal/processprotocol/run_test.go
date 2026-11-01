@@ -111,8 +111,7 @@ func TestRunDoesNotWaitIndefinitelyForDescendantPipes(t *testing.T) {
 		t.Errorf("kill descendant %d: %v", pid, killErr)
 	}
 	if _, waitErr := child.Wait(); waitErr != nil {
-		// A killed process exits non-zero on Windows; a non-child can return
-		// ECHILD on Unix. The call still releases the Windows process handle.
+		// A descendant is not our child, so waiting can return ECHILD.
 		t.Logf("wait for terminated descendant %d: %v", pid, waitErr)
 	}
 	if !errors.Is(err, ErrInheritedPipes) || time.Since(start) > 10*time.Second {

@@ -25,7 +25,7 @@ function fail(message) {
 }
 
 async function run(command, args, options = {}) {
-  const child = spawn(command, args, { cwd, windowsHide: true, ...options });
+  const child = spawn(command, args, { cwd, ...options });
   activeChild = child;
   const output = [];
   const errors = [];

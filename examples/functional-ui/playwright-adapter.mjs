@@ -26,7 +26,7 @@ function fail(message) {
   throw new Error(message);
 }
 async function run(command, args) {
-  const child = spawn(command, args, { cwd, windowsHide: true });
+  const child = spawn(command, args, { cwd });
   activeChild = child;
   const chunks = [];
   const errors = [];

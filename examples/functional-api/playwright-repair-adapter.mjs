@@ -37,7 +37,7 @@ async function revision() {
 }
 
 async function run(executable, args) {
-  const child = spawn(executable, args, { cwd, windowsHide: true });
+  const child = spawn(executable, args, { cwd });
   const stdout = [];
   const stderr = [];
   let size = 0;

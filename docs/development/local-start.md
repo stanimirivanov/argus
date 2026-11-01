@@ -31,21 +31,20 @@ instead of using `--local`.
 
 ## First local start
 
-From the repository root, in PowerShell 7:
+From the repository root, in Bash:
 
-~~~powershell
+~~~sh
 docker compose -f compose.local.yaml up -d --wait
 go run ./cmd/migrate --local
 go run ./cmd/migrate --local --dbos-evaluation
 
-$env:ARGUS_GITHUB_TOKEN = '<your repository-read token>'
-$env:ARGUS_GITHUB_WEBHOOK_SECRET = '<your own random webhook secret>'
-$env:ARGUS_DBOS_EVALUATION = 'true'
+export ARGUS_GITHUB_TOKEN='<your repository-read token>'
+export ARGUS_GITHUB_WEBHOOK_SECRET='<your own random webhook secret>'
+export ARGUS_DBOS_EVALUATION='true'
 go run ./cmd/control-plane --local
 ~~~
 
-The same `docker compose` and `go run` commands work in Bash; set the three
-variables with `export` instead. Omit the DBOS migration and flag for the
+Omit the DBOS migration and flag for the
 unchanged default webhook path. Both migrations are explicit and repeatable.
 The ordinary migration creates the authoritative catalog schema; the DBOS
 command prepares only the experimental `argus_dbos_eval` checkpoint schema.
@@ -81,15 +80,15 @@ listings. Set `ARGUS_DATABASE_URL` in the environment using the appropriate
 privileged identity for each migration, then a separately provisioned runtime
 identity for the server:
 
-~~~powershell
-$env:ARGUS_DATABASE_URL = 'postgres://<migration-role>:<secret>@<host>/argus?sslmode=verify-full'
+~~~sh
+export ARGUS_DATABASE_URL='postgres://<migration-role>:<secret>@<host>/argus?sslmode=verify-full'
 go run ./cmd/migrate
 go run ./cmd/migrate --dbos-evaluation
 
-$env:ARGUS_DATABASE_URL = 'postgres://<runtime-role>:<secret>@<host>/argus?sslmode=verify-full'
-$env:ARGUS_GITHUB_TOKEN = '<your repository-read token>'
-$env:ARGUS_GITHUB_WEBHOOK_SECRET = '<your shared webhook secret>'
-$env:ARGUS_DBOS_EVALUATION = 'true'
+export ARGUS_DATABASE_URL='postgres://<runtime-role>:<secret>@<host>/argus?sslmode=verify-full'
+export ARGUS_GITHUB_TOKEN='<your repository-read token>'
+export ARGUS_GITHUB_WEBHOOK_SECRET='<your shared webhook secret>'
+export ARGUS_DBOS_EVALUATION='true'
 go run ./cmd/control-plane
 ~~~
 

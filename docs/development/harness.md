@@ -87,7 +87,7 @@ handoff.
 | `make validate` | The complete non-database acceptance aggregate passes, including verification, race, supply-chain, and offline CI policy sensors | T2; bootstrapped workspaces and vulnerability data | Repository maintainers |
 | `make db-validate` | Migrations and PostgreSQL integration behavior pass against an isolated test database | T3; explicitly configured loopback PostgreSQL 17 | Persistence and affected capabilities |
 | `make dbos-evaluate` | Durable webhook safety, real two-SDK compatibility hazards, measured overhead and guarded test-only retention | T3; Docker and pinned Go/tool dependencies; self-provisioned database and synthetic GitHub | Change workflow and ADR-0028; [verdict](dbos-evaluation-verdict.md) |
-| CI platform jobs | The checked-in command surface behaves on supported Linux and Windows environments | T2/T3; hosted runners and network | Repository maintainers |
+| CI platform jobs | The checked-in command surface behaves on supported Linux environments | T2/T3; hosted runners and network | Repository maintainers |
 
 The `CI policy` job runs `make ci-policy-check` offline. Its expected job
 shapes are versioned in
@@ -174,7 +174,7 @@ records the remaining product slices and their dependency gates.
 
 Add a guide or sensor only when it closes a demonstrated gap. Prefer extending
 an existing command, checker, or canonical document over creating a parallel
-tool. New sensors MUST be cross-platform where `make verify` is cross-platform,
+tool. New sensors MUST run on the supported Linux host,
 pin their dependencies through repository-owned configuration, include tests
 for failure diagnostics, and state which aggregate command owns them.
 

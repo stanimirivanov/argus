@@ -47,10 +47,10 @@ func TestWorkflowDrift(t *testing.T) {
 		{"pull request removed", replaceOnce("  pull_request:\n", ""), "unfiltered pull_request trigger"},
 		{"pull request filtered", replaceOnce("  pull_request:\n", "  pull_request:\n    paths: [src/**]\n"), "unfiltered pull_request trigger"},
 		{"wrong runner", replaceOnce("runs-on: ${{ matrix.os }}", "runs-on: ubuntu-24.04"), "runs-on"},
-		{"OS matrix changed", replaceOnce("os: [ubuntu-24.04, windows-2025]", "os: [ubuntu-24.04]"), "matrix.os"},
-		{"matrix include", replaceOnce("        os: [ubuntu-24.04, windows-2025]", "        os: [ubuntu-24.04, windows-2025]\n        include: []"), "unexpected matrix axis \"include\""},
-		{"matrix exclude", replaceOnce("        os: [ubuntu-24.04, windows-2025]", "        os: [ubuntu-24.04, windows-2025]\n        exclude: []"), "unexpected matrix axis \"exclude\""},
-		{"extra matrix axis", replaceOnce("        os: [ubuntu-24.04, windows-2025]", "        os: [ubuntu-24.04, windows-2025]\n        arch: [amd64]"), "unexpected matrix axis \"arch\""},
+		{"OS matrix changed", replaceOnce("os: [ubuntu-24.04]", "os: [ubuntu-22.04]"), "matrix.os"},
+		{"matrix include", replaceOnce("        os: [ubuntu-24.04]", "        os: [ubuntu-24.04]\n        include: []"), "unexpected matrix axis \"include\""},
+		{"matrix exclude", replaceOnce("        os: [ubuntu-24.04]", "        os: [ubuntu-24.04]\n        exclude: []"), "unexpected matrix axis \"exclude\""},
+		{"extra matrix axis", replaceOnce("        os: [ubuntu-24.04]", "        os: [ubuntu-24.04]\n        arch: [amd64]"), "unexpected matrix axis \"arch\""},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

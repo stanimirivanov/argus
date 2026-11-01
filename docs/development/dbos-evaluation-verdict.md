@@ -23,7 +23,7 @@ Run `make dbos-evaluate` from the repository root. This is the complete race-ena
 go test -tags=dbose2e -run '^TestDBOSEvaluationCost$' -count=1 -timeout=5m ./cmd/control-plane
 ~~~
 
-Tests create isolated PostgreSQL 17.11 containers using Testcontainers, inject generated credentials directly into composition and child-process environments, and mock every GitHub request. On local Windows Docker Desktop, they select the Linux socket for Ryuk when no explicit/remote override is configured; the cleanup reaper stays enabled. Production migration files, database configuration and the root SDK pin are not changed.
+Tests create isolated PostgreSQL 17.11 containers using Testcontainers, inject generated credentials directly into composition and child-process environments, and mock every GitHub request. Production migration files, database configuration and the root SDK pin are not changed.
 
 Reports appear under ignored `.local/dbos-evaluation/` with unique filenames and are also emitted in verbose test output. CI retains only those JSON files for 30 days, including reports produced before another case fails. Absent reports mean missing evidence, not a pass. Source and manifest fingerprints, binary and SDK checksums, application versions, Go/platform/CPU counts, PostgreSQL image identity and server version distinguish runs. They contain synthetic metrics, not URLs, credentials, signed payloads or machine-specific paths.
 

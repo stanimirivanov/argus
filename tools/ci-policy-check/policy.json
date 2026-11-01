@@ -3,13 +3,13 @@
     "validate": {
       "name": "Validate (${{ matrix.os }})",
       "runs_on": "${{ matrix.os }}",
-      "matrix_os": ["ubuntu-24.04", "windows-2025"],
+      "matrix_os": ["ubuntu-24.04"],
       "make_target": "verify"
     },
     "race": {
       "name": "Race (${{ matrix.os }})",
       "runs_on": "${{ matrix.os }}",
-      "matrix_os": ["ubuntu-24.04", "windows-2025"],
+      "matrix_os": ["ubuntu-24.04"],
       "make_target": "race"
     },
     "supply-chain": {

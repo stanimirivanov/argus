@@ -86,10 +86,10 @@ export ARGUS_DATABASE_URL='postgres://argus_migrator:...@db.example/argus'
 go run ./cmd/migrate
 ~~~
 
-In PowerShell:
+In Bash:
 
-~~~powershell
-$env:ARGUS_DATABASE_URL = 'postgres://argus_migrator:...@db.example/argus'
+~~~sh
+export ARGUS_DATABASE_URL='postgres://argus_migrator:...@db.example/argus'
 go run ./cmd/migrate
 ~~~
 
