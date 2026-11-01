@@ -108,7 +108,11 @@ func (c *performanceAnalysisConfig) prepareAnalysis() (*os.File, perfeng.Analysi
 		return nil, perfeng.AnalysisConsumer{}, errAnalysisResource
 	}
 
-	return root, perfeng.AnalysisConsumer{Source: c.source, Reports: source, ExpectedReviewer: c.expectedReviewer}, nil
+	provider := c.source
+	if c.caFile != "" {
+		provider.Client = c.reports.Client
+	}
+	return root, perfeng.AnalysisConsumer{Source: provider, Reports: source, ExpectedReviewer: c.expectedReviewer}, nil
 }
 
 func analysisCAClient(path string) (*http.Client, error) {

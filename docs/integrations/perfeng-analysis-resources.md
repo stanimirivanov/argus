@@ -21,7 +21,8 @@ if a pathname changes; loosened root permissions are rejected on subsequent open
 
 Optional CA files must be regular, single-link, owner/root-controlled and not
 writable by group/others, at most 64 KiB, with protected no-link ancestors. Valid
-PEM extends system roots in a private verified transport; invalid data fails.
+PEM extends system roots in a private verified transport for both provider and
+report access; credentials remain separate per adapter. Invalid data fails.
 No global trust store is modified. Linux is the supported runtime boundary.
 
 Provision and authenticate review issuance and expected reviewer independently.
