@@ -194,3 +194,4 @@ How will the assumptions and consequences be verified?
 | [ADR-0093](0093-project-bounded-scoped-analysis-history.md) | Project bounded scoped analysis history | Proposed | 2026-10-31 |
 | [ADR-0094](0094-consume-one-reviewed-analysis-publication.md) | Consume one reviewed analysis publication | Proposed | 2026-11-01 |
 | [ADR-0095](0095-enumerate-admitted-analysis-work.md) | Enumerate admitted analysis work | Proposed | 2026-11-01 |
+| [ADR-0096](0096-support-protected-s3-compatible-endpoints.md) | Support protected S3-compatible endpoints | Proposed | 2026-11-01 |

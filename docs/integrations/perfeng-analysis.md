@@ -214,8 +214,8 @@ calls. Provider integration Bearer tokens are never used for S3.
 `Fetch(ctx, admitted, review)` checks opaque admitted/reviewed scope and size before
 one signed GET of the admitted report URI. Only `s3://` in the configured bucket
 and directory prefix is accepted; reject dot/empty key segments, controls and
-backslashes after one URI decoding. No custom endpoint, redirect or candidate/
-baseline/raw download occurs. Each call has a ten-second deadline and 1 MiB report
+backslashes after one URI decoding. No redirect or candidate/baseline/raw download occurs. Custom endpoints require
+the protected host configuration described below. Each call has a ten-second deadline and 1 MiB report
 limit, disables SDK retries/cookies, closes its body and invokes
 `VerifyReviewedAnalysis` over original bytes. Wrong media, size/checksum, review,
 conformance, read/close or provider failures return zero evidence and safe errors;
@@ -373,3 +373,41 @@ Use the existing scoped pending-position index and settlement primary key; no
 schema or scheduling state is added. PR9d3e owns runtime cursor rotation and
 consumption. Revert removes the callable read without modifying retained work.
 See [ADR-0095](../decisions/0095-enumerate-admitted-analysis-work.md).
+
+## Protected S3-compatible endpoints
+
+`AnalysisS3Config.Endpoint` optionally selects a host-approved root HTTPS origin,
+for example `https://localhost:9443`. Empty retains AWS-derived endpoints.
+`UsePathStyle: true` puts the configured bucket in the request path; false keeps
+normal SDK addressing, including virtual-host addressing when supported. DNS,
+certificate coverage and endpoint policy must account for the bucket subdomain
+in virtual-host mode. IP endpoints may use SDK path-style fallback. Region remains
+an explicit signing region, such as `us-east-1` for a compatible local store.
+
+Only HTTPS DNS/IP origins with optional valid port and optional trailing root
+slash are accepted. Reject userinfo, query/fragment (including empty markers),
+proxy path prefixes, encoded paths, zoned IPs and malformed host/port values.
+Endpoint/addressing must come from protected operator configuration, never the
+publication, report URI or agent input. `s3://bucket/key` evidence references do
+not change; configured bucket/prefix and reviewed conformance still gate access.
+This is an additive adapter configuration change, not runtime activation.
+
+Use a dedicated `GetObject` identity restricted to the reviewed report prefix.
+For a private CA, supply a trusted `http.Client` with a transport whose `RootCAs`
+contains the approved CA. Retain certificate and hostname verification. Custom
+endpoint configuration rejects standard transports with `InsecureSkipVerify` or
+an explicit `ServerName` override; certificate identity follows the resolved host.
+Arbitrary RoundTrippers remain trusted host code and must uphold TLS, deadlines
+and cancellation themselves. Protect configuration/transports from concurrent
+mutation. This adapter installs no CA and discovers no ambient credentials.
+
+The pinned AWS SDK handles endpoint resolution, addressing and SigV4. Existing
+single-attempt/ten-second/1 MiB limits, cookie removal, redirect rejection, exact
+checksums and review validation remain unchanged. Errors expose no remote details
+or partial evidence. Caller-supplied client state is not rewritten.
+
+Runtime enablement, secret delivery, object-store provisioning and real-store
+acceptance remain later composition slices. Rollback to AWS-only code requires
+removing custom endpoint/addressing configuration first; it cannot make local
+objects available through AWS. Retained references/evidence remain untouched.
+See [ADR-0096](../decisions/0096-support-protected-s3-compatible-endpoints.md).

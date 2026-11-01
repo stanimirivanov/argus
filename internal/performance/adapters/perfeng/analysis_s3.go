@@ -10,6 +10,7 @@ import (
 	"net/netip"
 	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 	"unicode"
@@ -24,12 +25,17 @@ var ErrAnalysisAccess = errors.New("analysis report access failed")
 
 // AnalysisS3Config is protected host policy, never publication-controlled input.
 // Credentials must independently grant only GetObject on Bucket/Prefix. No ambient
-// credential discovery, custom endpoint, integration token or write is supported.
+// credential discovery, integration token or write is supported.
 // Prefix is a nonempty slash-terminated directory; Region is an AWS region.
 // Client is optional trusted transport configuration, cloned without cookies or
-// redirects. Its transport and credential provider must honor request contexts.
+// redirects. Its transport and credential provider must honor request contexts
+// and enforce TLS peer/hostname verification; custom transports are trusted host code.
+// Endpoint optionally selects a root HTTPS origin; UsePathStyle controls SDK bucket
+// addressing. Neither is accepted from publication or other provider content.
 type AnalysisS3Config struct {
 	Region, Bucket, Prefix string
+	Endpoint               string
+	UsePathStyle           bool
 	Credentials            aws.CredentialsProvider
 	Client                 *http.Client
 }
@@ -46,7 +52,9 @@ var analysisS3Bucket = regexp.MustCompile(`^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$`)
 var analysisS3Region = regexp.MustCompile(`^[a-z]{2}(?:-[a-z]+)+-[0-9]+$`)
 
 // NewAnalysisS3 creates a one-attempt SigV4 client with AWS-derived HTTPS endpoints
-// and at most ten seconds per call, including credentials and body consumption.
+// by default or an explicitly protected HTTPS endpoint. Virtual-host addressing
+// may prefix the configured bucket to a DNS endpoint; TLS must cover that name.
+// Calls take at most ten seconds, including credentials and body consumption.
 // IAM enforcement remains the host's responsibility; this adds an independent
 // bucket/key-prefix check. Configuration errors return no client.
 func NewAnalysisS3(config AnalysisS3Config) (*AnalysisS3, error) {
@@ -54,17 +62,30 @@ func NewAnalysisS3(config AnalysisS3Config) (*AnalysisS3, error) {
 	if config.Credentials == nil || !analysisS3Region.MatchString(config.Region) || !analysisS3Bucket.MatchString(config.Bucket) || ipErr == nil || strings.Contains(config.Bucket, "..") || strings.Contains(config.Bucket, ".-") || strings.Contains(config.Bucket, "-.") || !strings.HasSuffix(config.Prefix, "/") || !analysisS3Key(strings.TrimSuffix(config.Prefix, "/")) {
 		return nil, ErrAnalysisAccess
 	}
+	endpoint, err := analysisS3Endpoint(config.Endpoint)
+	if err != nil {
+		return nil, err
+	}
 	client := &http.Client{}
 	if config.Client != nil {
 		copy := *config.Client
 		client = &copy
+	}
+	if endpoint != "" {
+		if transport, ok := client.Transport.(*http.Transport); ok && transport.TLSClientConfig != nil && (transport.TLSClientConfig.InsecureSkipVerify || transport.TLSClientConfig.ServerName != "") {
+			return nil, ErrAnalysisAccess
+		}
 	}
 	client.Jar = nil
 	client.CheckRedirect = func(*http.Request, []*http.Request) error { return errors.New("analysis redirect rejected") }
 	if client.Timeout <= 0 || client.Timeout > 10*time.Second {
 		client.Timeout = 10 * time.Second
 	}
-	sdk := s3.New(s3.Options{Region: config.Region, Credentials: config.Credentials, HTTPClient: client, Retryer: aws.NopRetryer{}})
+	options := s3.Options{Region: config.Region, Credentials: config.Credentials, HTTPClient: client, Retryer: aws.NopRetryer{}, UsePathStyle: config.UsePathStyle}
+	if endpoint != "" {
+		options.BaseEndpoint = aws.String(endpoint)
+	}
+	sdk := s3.New(options)
 
 	return &AnalysisS3{client: sdk, bucket: config.Bucket, prefix: config.Prefix}, nil
 }
@@ -138,3 +159,40 @@ func analysisAccessError(ctx context.Context) error {
 
 	return ErrAnalysisAccess
 }
+
+// analysisS3Endpoint validates a host-selected origin without DNS or other I/O.
+func analysisS3Endpoint(raw string) (string, error) {
+	if raw == "" {
+		return "", nil
+	}
+	u, err := url.Parse(raw)
+	if err != nil || u.Scheme != "https" || u.Host == "" || u.User != nil || u.Opaque != "" || (u.Path != "" && u.Path != "/") || u.RawPath != "" || strings.ContainsAny(raw, "?#") || strings.HasSuffix(u.Host, ":") {
+		return "", ErrAnalysisAccess
+	}
+	host := u.Hostname()
+	if addr, err := netip.ParseAddr(host); err == nil {
+		if addr.Zone() != "" {
+			return "", ErrAnalysisAccess
+		}
+	} else {
+		if len(host) > 253 || strings.ContainsAny(u.Host, "[]") {
+			return "", ErrAnalysisAccess
+		}
+		for _, label := range strings.Split(host, ".") {
+			if !analysisS3HostLabel.MatchString(label) {
+				return "", ErrAnalysisAccess
+			}
+		}
+	}
+	if u.Port() != "" {
+		port, err := strconv.Atoi(u.Port())
+		if err != nil || port < 1 || port > 65535 {
+			return "", ErrAnalysisAccess
+		}
+	}
+	u.Path = ""
+
+	return u.String(), nil
+}
+
+var analysisS3HostLabel = regexp.MustCompile(`^[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?$`)
