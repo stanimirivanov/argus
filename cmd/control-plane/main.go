@@ -25,6 +25,7 @@ import (
 	"github.com/stanimirivanov/argus/internal/change/ingest"
 	"github.com/stanimirivanov/argus/internal/change/workflow"
 	"github.com/stanimirivanov/argus/internal/commandline"
+	"github.com/stanimirivanov/argus/internal/performance/adapters/perfeng"
 	"github.com/stanimirivanov/argus/internal/postgres"
 )
 
@@ -64,6 +65,7 @@ func realMain() int {
 		}
 
 		// Dispatch uses the signal context; HTTP/DBOS resources retain their drain lifetime.
+		application.analysisWorker = application.analysis.startAnalysis(ctx, application.runtime.Performance(), application.analysisRoot, application.analysisConsumer, logger)
 		application.worker = application.performance.start(ctx, application.runtime.Performance(), logger.With("component", componentName, "worker", "performance-dispatch"))
 
 		return managedApplication{server: application.server, close: application.Close}, nil
@@ -108,11 +110,15 @@ func runControlPlane(
 }
 
 type application struct {
-	server      *http.Server
-	runtime     *postgres.Runtime
-	durable     dbosgo.Context
-	performance performanceWorkerConfig
-	worker      *performanceWorker
+	server           *http.Server
+	runtime          *postgres.Runtime
+	durable          dbosgo.Context
+	performance      performanceWorkerConfig
+	worker           *performanceWorker
+	analysis         performanceAnalysisConfig
+	analysisRoot     *os.File
+	analysisConsumer perfeng.AnalysisConsumer
+	analysisWorker   *performanceWorker
 }
 
 func newApplication(ctx context.Context, getenv func(string) string, local bool) (*application, error) {
@@ -131,6 +137,20 @@ func newApplication(ctx context.Context, getenv func(string) string, local bool)
 	if err != nil {
 		return nil, err
 	}
+	analysis, err := loadPerformanceAnalysis(getenv)
+	if err != nil {
+		return nil, err
+	}
+	root, consumer, err := analysis.prepareAnalysis()
+	if err != nil {
+		return nil, err
+	}
+	ready := false
+	defer func() {
+		if !ready && root != nil {
+			closeAnalysisFile(root)
+		}
+	}()
 	runtime, err := postgres.OpenRuntime(ctx, config.databaseURL)
 	if err != nil {
 		return nil, err
@@ -172,10 +192,21 @@ func newApplication(ctx context.Context, getenv func(string) string, local bool)
 		IdleTimeout:       60 * time.Second,
 	}
 
-	return &application{server: server, runtime: runtime, durable: durable, performance: config.performance}, nil
+	ready = true
+
+	return &application{analysis: analysis, analysisRoot: root, analysisConsumer: consumer, server: server, runtime: runtime, durable: durable, performance: config.performance}, nil
 }
 
 func (application *application) Close() error {
+	if application.analysisWorker != nil {
+		application.analysisWorker.close()
+	}
+	if application.analysis.reports.Client != nil {
+		application.analysis.reports.Client.CloseIdleConnections()
+	}
+	if application.analysisRoot != nil {
+		closeAnalysisFile(application.analysisRoot)
+	}
 	if application.worker != nil {
 		application.worker.close()
 	}
