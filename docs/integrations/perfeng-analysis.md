@@ -313,3 +313,35 @@ The inward collector copies mutable data and caps serialized compact results at
 8 MiB; exceedance fails rather than returning a truncated projection. There is no
 runtime activation, migration or new approval/lifecycle authority. See
 [ADR-0093](../decisions/0093-project-bounded-scoped-analysis-history.md).
+
+## One-publication consumption
+
+`AnalysisConsumer.Consume` composes existing lookup, protected review loading,
+scoped report retrieval, inward conversion and atomic retention. The caller
+supplies independently authorized scope, frozen pending work, `AnalysisStore`,
+separate provider/report clients and the independently expected reviewer. It
+opens a protected regular review file and retains ownership of closing it;
+other reader implementations must honor context cancellation. Never source
+review authority or credentials from publication metadata.
+
+Read authoritative retained settlement first; at most one authenticated
+publication GET and one signed report GET follow. Existing adapter time/byte
+limits apply. Failed review prevents report access. Network and file access
+finish before storage invokes the pure `RevalidateAnalysis` callback against
+its authoritative stored child and admission. A failed stage returns zero
+analysis evidence and does not advance subsequent stages.
+
+An append error permits one exact scoped read for the attempted event ID and
+admission using the same pure verifier. Only identical evidence fingerprints
+resolve the uncertain acknowledgement. Absent, changed or corrupt readback
+preserves the append failure; later/newer history cannot prove this append.
+There is no provider submission, in-call retry or fallback to latest evidence.
+Cancellation after a write may leave retained evidence; callers must reconcile
+that exact event rather than assume cancellation rolled back storage.
+
+Terminal execution does not suppress late analysis. Quality, SLO, regression,
+uncertainty and conflicts retain their existing independent meanings. This
+callable operation starts no worker or polling and grants no execution or
+baseline authority. PR9d3e still owns explicit runtime/credential composition;
+reverting this consumer leaves retained evidence untouched. See
+[ADR-0094](../decisions/0094-consume-one-reviewed-analysis-publication.md).
