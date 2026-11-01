@@ -112,6 +112,7 @@ func (c *performanceAnalysisConfig) prepareAnalysis() (*os.File, perfeng.Analysi
 	if c.caFile != "" {
 		provider.Client = c.reports.Client
 	}
+
 	return root, perfeng.AnalysisConsumer{Source: provider, Reports: source, ExpectedReviewer: c.expectedReviewer}, nil
 }
 
