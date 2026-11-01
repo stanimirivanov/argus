@@ -193,3 +193,4 @@ How will the assumptions and consequences be verified?
 | [ADR-0092](0092-append-and-read-scoped-analysis-evidence-atomically.md) | Append and read scoped analysis evidence atomically | Proposed | 2026-10-31 |
 | [ADR-0093](0093-project-bounded-scoped-analysis-history.md) | Project bounded scoped analysis history | Proposed | 2026-10-31 |
 | [ADR-0094](0094-consume-one-reviewed-analysis-publication.md) | Consume one reviewed analysis publication | Proposed | 2026-11-01 |
+| [ADR-0095](0095-enumerate-admitted-analysis-work.md) | Enumerate admitted analysis work | Proposed | 2026-11-01 |
