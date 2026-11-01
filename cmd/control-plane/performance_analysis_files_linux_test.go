@@ -90,7 +90,6 @@ func TestAnalysisPreparationRequiresExplicitProtectedResources(t *testing.T) {
 }
 
 func TestAnalysisCAFileVerifiedTLS(t *testing.T) {
-
 	directory := t.TempDir()
 	if err := os.Chmod(directory, 0o700); err != nil {
 		t.Fatal(err)
