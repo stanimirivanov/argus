@@ -73,6 +73,10 @@ The [staged safety report](../docs/integrations/predictive-safety.md) adds expli
 archive-index and observational report v1 contracts in
 `source/predictive-safety-report-v1.ts`, preserving all legacy shadow protocols.
 
+The [public performance decision projection](../docs/integrations/performance-decision-projection.md)
+adds scoped admitted-request metadata and independent analysis outcomes. It contains
+no protected report/review bytes and grants no export or approval authority.
+
 ## Delivered boundary
 
 `repository-descriptor/v1` lets one source repository declare:

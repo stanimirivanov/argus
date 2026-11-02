@@ -196,3 +196,4 @@ How will the assumptions and consequences be verified?
 | [ADR-0095](0095-enumerate-admitted-analysis-work.md) | Enumerate admitted analysis work | Proposed | 2026-11-01 |
 | [ADR-0096](0096-support-protected-s3-compatible-endpoints.md) | Support protected S3-compatible endpoints | Proposed | 2026-11-01 |
 | [ADR-0097](0097-validate-protected-analysis-configuration.md) | Validate protected analysis configuration | Proposed | 2026-11-01 |
+| [ADR-0098](0098-define-public-performance-decision-projection.md) | Define a public performance decision projection | Proposed | 2026-11-02 |

@@ -73,6 +73,7 @@ import { HeadTestInventoryV1 } from "../source/head-test-inventory-v1.js";
 import { ImpactEdgePageV1 } from "../source/impact-edge-page-v1.js";
 import { ImpactEvidenceBundleV1 } from "../source/impact-evidence-bundle-v1.js";
 import { MaintenanceAssessmentV1 } from "../source/maintenance-assessment-v1.js";
+import { PerformanceDecisionProjectionV1 } from "../source/performance-decision-projection-v1.js";
 import {
   PerformanceMappingPolicyV1,
   PerformanceSelectionContextV1,
@@ -110,6 +111,7 @@ import { compileJsonSchema } from "./json-schema.js";
 
 const artifacts = [
   ...[
+    { name: "performance-decision-projection", schema: PerformanceDecisionProjectionV1 },
     { name: "performance-mapping-policy", schema: PerformanceMappingPolicyV1 },
     { name: "performance-selection", schema: PerformanceSelectionV1 },
     { name: "performance-selection-context", schema: PerformanceSelectionContextV1 },
