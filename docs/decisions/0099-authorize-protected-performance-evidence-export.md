@@ -32,6 +32,7 @@ history. Conversion preserves original pins and independent outcomes, including
 empty history, late evidence and conflicts, and enforces the complete public byte
 budget. Failure returns no public document. Destination I/O may still be partial:
 protected CI consumers must discard output on nonzero exit and publish only after
-success. The [operator guide](../integrations/performance-evidence-export.md)
-defines provisioning, limits and recovery. Revert command before foundations;
+success. The [contract guide](../integrations/performance-decision-projection.md)
+defines disclosure and output bounds; the dependent command supplies provisioning
+and recovery guidance. Revert command before foundations;
 retain all data. This is no public HTTP service or execution/approval authority.
