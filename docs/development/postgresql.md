@@ -471,3 +471,14 @@ latest-snapshot resolution, and a general authenticated network API remain
 later work as recorded in the roadmap. The GitHub webhook is a narrow
 provider-authenticated ingress; catalog evidence ingestion and queries remain
 local administrative CLI boundaries until user/workload authorization exists.
+
+## Restricted performance evidence reads
+
+`postgres.OpenEvidenceRuntime` opens a dedicated SELECT-only catalog login with
+read-only sessions and one connection. It refuses administrative attributes,
+memberships, ownership, schema CREATE and effective catalog table/column writes.
+The five required SELECT tables are request intents, pending dispatches, dispatch
+outcomes, lifecycle events and analysis events in `argus_catalog`. It provisions
+no grants. Trusted host configuration supplies credentials and server trust.
+`DecisionSnapshot` reads all correlated evidence in one bounded read-only snapshot;
+its pure verifiers authenticate retained meanings without external I/O.
