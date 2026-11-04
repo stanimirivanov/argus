@@ -75,9 +75,14 @@ func (store *PerformanceStore) RequestOutcome(ctx context.Context, scope request
 	}
 	ctx, cancel := context.WithTimeout(ctx, operationTimeout)
 	defer cancel()
+
+	return readOutcome(ctx, store.runtime.pool, scope, position)
+}
+
+func readOutcome(ctx context.Context, query decisionQuery, scope requestintent.Scope, position int64) (requestintent.Outcome, error) {
 	data := requestintent.OutcomeData{Source: scope.Issuer}
 	var fingerprint string
-	err := store.runtime.pool.QueryRow(ctx, `SELECT p.request_issuer,p.request_id,p.attempt_issuer,p.attempt_id,o.kind,o.event_id,o.payload,o.fingerprint
+	err := query.QueryRow(ctx, `SELECT p.request_issuer,p.request_id,p.attempt_issuer,p.attempt_id,o.kind,o.event_id,o.payload,o.fingerprint
         FROM argus_catalog.performance_dispatch_outcomes o JOIN argus_catalog.performance_pending_dispatches p ON p.position=o.position
         WHERE o.position=$1 AND o.issuer=$2 AND o.principal_issuer=$3 AND o.principal_id=$4`, position, scope.Issuer, scope.PrincipalIssuer, scope.PrincipalID).Scan(&data.Request.Issuer, &data.Request.ID, &data.Attempt.Issuer, &data.Attempt.ID, &data.Kind, &data.EventID, &data.Payload, &fingerprint)
 	if err != nil {

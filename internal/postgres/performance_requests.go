@@ -110,14 +110,19 @@ func (store *PerformanceStore) GetRequest(ctx context.Context, scope requestinte
 	}
 	ctx, cancel := context.WithTimeout(ctx, operationTimeout)
 	defer cancel()
+
+	return readRequest(ctx, store.runtime.pool, scope, reviewSHA256)
+}
+
+func readRequest(ctx context.Context, query decisionQuery, scope requestintent.Scope, reviewSHA256 string) (requestintent.Intent, error) {
 	data := requestintent.Data{Scope: scope, ReviewSHA256: reviewSHA256}
 	var id, fingerprint string
 	var count int
-	if err := store.runtime.pool.QueryRow(ctx, `SELECT intent_uuid::text,catalog_sha256,evidence,fingerprint,child_count
+	if err := query.QueryRow(ctx, `SELECT intent_uuid::text,catalog_sha256,evidence,fingerprint,child_count
         FROM argus_catalog.performance_request_intents WHERE issuer=$1 AND principal_issuer=$2 AND principal_id=$3 AND review_sha256=$4`, scope.Issuer, scope.PrincipalIssuer, scope.PrincipalID, reviewSHA256).Scan(&id, &data.CatalogSHA256, &data.Evidence, &fingerprint, &count); err != nil {
 		return requestintent.Intent{}, requestError(err)
 	}
-	rows, err := store.runtime.pool.Query(ctx, `SELECT `+dispatchColumns+` FROM argus_catalog.performance_pending_dispatches WHERE intent_uuid=$1 ORDER BY ordinal`, id)
+	rows, err := query.Query(ctx, `SELECT `+dispatchColumns+` FROM argus_catalog.performance_pending_dispatches WHERE intent_uuid=$1 ORDER BY ordinal`, id)
 	if err != nil {
 		return requestintent.Intent{}, requestError(err)
 	}
