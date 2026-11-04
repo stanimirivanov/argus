@@ -81,3 +81,14 @@ independent authorization, read-only snapshot and all-or-nothing output gates;
 PR8 must correlate these pins with actual execution and consumption. No storage,
 runtime switch, migration or deployment change is made here. Reverting the new
 schema removes this unused public family without changing retained evidence.
+
+## Retained snapshot conversion
+
+`selectionio.ProjectDecision` binds independently approved intent/request checksums
+and scope before constructing the explicit Go wire DTO. It verifies original
+selection/review/policy hashes, authoritative admission and frozen source context;
+it uses no current catalog or expiry renewal. The read-only snapshot has already
+revalidated all original report/review bytes. The converter rechecks ordering,
+conflict and lateness, then validates the generated public schema and the complete
+8 MiB output including newline. Failure/cancellation returns no bytes. This pure
+operation grants no scope: the protected command must supply host-issued pins.
