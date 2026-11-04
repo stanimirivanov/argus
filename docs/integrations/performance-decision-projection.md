@@ -6,7 +6,7 @@
 - Publish only independently authorized metadata; structural validity grants no access.
 - Preserve independent quality, SLO and regression outcomes and all conflicting reports.
 - Empty known history is successful emptiness; unavailable/corrupt reads emit no document.
-- The authorized exporter is joint-plan PR11; this contract starts no runtime.
+- The [authorized exporter](performance-evidence-export.md) reads one retained snapshot.
 
 ## Wire boundary
 
@@ -76,9 +76,9 @@ this contract authorizes no anonymous publication or public HTTP endpoint.
 
 Run `make generate-contracts`, `pnpm contracts:check`, `pnpm test`, `make verify`
 and `make validate`. Contract tests exercise mixed/empty/conflicting/late history,
-closed disclosure boundaries and malformed/bounded outcomes. PR11 must add the
-independent authorization, read-only snapshot and all-or-nothing output gates;
-PR8 must correlate these pins with actual execution and consumption. No storage,
+closed disclosure boundaries and malformed/bounded outcomes. The [protected exporter](performance-evidence-export.md) supplies independent
+authorization, a read-only snapshot and complete output validation. Joint PR8
+must correlate these pins with actual execution and consumption. No storage,
 runtime switch, migration or deployment change is made here. Reverting the new
 schema removes this unused public family without changing retained evidence.
 

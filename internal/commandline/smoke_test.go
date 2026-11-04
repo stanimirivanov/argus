@@ -13,6 +13,7 @@ import (
 var commandNames = []string{
 	"performance-requests",
 	"performance-catalog",
+	"performance-evidence",
 	"select-performance",
 	"adaptation-evidence",
 	"assess-functional-api-maintenance",
