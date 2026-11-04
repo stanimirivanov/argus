@@ -45,6 +45,7 @@ source. Common entry points:
 - [PostgreSQL guide](docs/development/postgresql.md): catalog migrations, imports, queries, roles, and recovery.
 - [Functional UI selection](docs/integrations/functional-ui-selection.md): Playwright catalog checking and browser manifests.
 - [Functional API adapter protocol](docs/integrations/functional-api-adapters.md), [CI integration](docs/integrations/github-actions-functional-api.md), and [adaptation protocol](docs/integrations/functional-api-adaptation.md): execution, evidence, and repair.
+- [Authorized performance evidence export](docs/integrations/performance-evidence-export.md): scoped read-only decision metadata.
 - [Contract workspace](contracts/README.md) and [decisions](docs/decisions/README.md): versioned formats and technical choices.
 - [Contributor workflow](CONTRIBUTING.md), [milestones](docs/roadmap/milestones.md), and [security policy](SECURITY.md).
 

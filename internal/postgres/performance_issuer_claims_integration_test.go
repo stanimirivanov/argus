@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stanimirivanov/argus/internal/performance"
 	"github.com/stanimirivanov/argus/internal/performance/requestintent"
 )
 
@@ -72,6 +73,9 @@ func TestPerformanceIssuerClaimsRemainDisjointUnderConcurrency(t *testing.T) {
 			workers.Go(func() {
 				claim, err := capability.ClaimRequestForIssuer(t.Context(), original.Scope, issuer, time.Minute)
 				if err == nil {
+					if claim.Pending.Child.Request.Issuer != issuer {
+						t.Error("worker acquired a different issuer")
+					}
 					claims <- claim
 				} else if !errors.Is(err, requestintent.ErrNotFound) {
 					t.Error(err)
@@ -81,15 +85,38 @@ func TestPerformanceIssuerClaimsRemainDisjointUnderConcurrency(t *testing.T) {
 	}
 	workers.Wait()
 	close(claims)
+	remaining := map[performance.Identity]bool{
+		original.Children[0].Request: true,
+		original.Children[1].Request: true,
+		other.Children[1].Request:    true,
+	}
 	seen := map[int64]bool{}
-	for claim := range claims {
-		if seen[claim.Pending.After] || claim.Fence != 1 || claim.Pending.Child.Request.Issuer != claim.Pending.Child.Attempt.Issuer {
-			t.Fatal("duplicate or mixed-issuer acquisition")
+	record := func(claim requestintent.Claim) {
+		t.Helper()
+		child := claim.Pending.Child
+		if seen[claim.Pending.After] || !remaining[child.Request] || claim.Fence != 1 || child.Request.Issuer != child.Attempt.Issuer {
+			t.Fatal("duplicate, unexpected or mixed-issuer acquisition")
 		}
 		seen[claim.Pending.After] = true
+		delete(remaining, child.Request)
 	}
-	if len(seen) != 3 {
-		t.Fatal("eligible work lost", len(seen))
+	parallel := map[string]bool{}
+	for claim := range claims {
+		record(claim)
+		parallel[claim.Pending.Child.Request.Issuer] = true
+	}
+	if len(parallel) != 2 {
+		t.Fatal("both issuers must acquire work during the concurrent phase")
+	}
+	// A concurrent query may skip a lock or lose the lease upsert race. Once
+	// every worker has returned, each remaining child must still be claimable
+	// on its first fence with no release, lease expiry, or retry delay.
+	for request := range remaining {
+		claim, err := capability.ClaimRequestForIssuer(t.Context(), original.Scope, request.Issuer, time.Minute)
+		if err != nil {
+			t.Fatal("eligible work lost after contention ended", err)
+		}
+		record(claim)
 	}
 	legacy, err := capability.ClaimRequest(t.Context(), original.Scope, time.Minute)
 	if err != nil || legacy.Fence != 1 || legacy.Pending.Child.Request != other.Children[0].Request {
