@@ -24,6 +24,18 @@ func (store *PerformanceStore) AnalysisProjection(ctx context.Context, scope req
 		return requestintent.AnalysisProjection{}, requestError(err)
 	}
 	defer func() { _ = tx.Rollback(ctx) }() //nolint:errcheck // Best effort after commit or failure.
+	result, err := readAnalysisProjection(ctx, tx, scope, position, admission, verify, project)
+	if err != nil {
+		return requestintent.AnalysisProjection{}, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return requestintent.AnalysisProjection{}, requestError(err)
+	}
+
+	return result, nil
+}
+
+func readAnalysisProjection(ctx context.Context, tx pgx.Tx, scope requestintent.Scope, position int64, admission requestintent.LifecycleAdmission, verify requestintent.AnalysisVerifier, project requestintent.AnalysisProjector) (requestintent.AnalysisProjection, error) {
 	child, err := lifecycleContext(ctx, tx, scope, position, admission, false)
 	if err != nil {
 		return requestintent.AnalysisProjection{}, err
@@ -54,9 +66,6 @@ func (store *PerformanceStore) AnalysisProjection(ctx context.Context, scope req
 		if err := collector.Add(decision); err != nil {
 			return requestintent.AnalysisProjection{}, requestintent.ErrUnavailable
 		}
-	}
-	if err := tx.Commit(ctx); err != nil {
-		return requestintent.AnalysisProjection{}, requestError(err)
 	}
 
 	return collector.Result(), nil
