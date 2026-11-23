@@ -18,43 +18,43 @@
 - Argus may expose immutable change, selection, execution, and adaptation
   evidence to an independently authorized incident-intelligence product. It
   does not own production investigation or remediation authority.
-- [ADR-0001](../decisions/0001-use-go-and-evidence-based-cross-project-reuse.md)
+- [ADR-0001](../adr/0001-use-go-and-evidence-based-cross-project-reuse.md)
   selects Go for the operational control plane, permits a later versioned
   Python analysis boundary, and requires evidence before cross-project code
   extraction.
-- [ADR-0002](../decisions/0002-keep-argus-in-a-single-product-repository.md)
+- [ADR-0002](../adr/0002-keep-argus-in-a-single-product-repository.md)
   keeps Argus-owned components in one product repository and requires explicit
   lifecycle evidence and a migration ADR before a split.
-- [ADR-0003](../decisions/0003-use-effect-schema-at-contract-boundaries.md)
+- [ADR-0003](../adr/0003-use-effect-schema-at-contract-boundaries.md)
   selects Effect Schema as the contract source, generated JSON Schema as the
   portable artifact, and consumer-owned domain conversion.
-- [ADR-0004](../decisions/0004-use-postgresql-and-embedded-forward-migrations.md)
+- [ADR-0004](../adr/0004-use-postgresql-and-embedded-forward-migrations.md)
   selects PostgreSQL and explicit embedded forward migrations for catalog
   persistence.
-- [ADR-0006](../decisions/0006-enforce-capability-oriented-hexagonal-boundaries.md)
+- [ADR-0006](../adr/0006-enforce-capability-oriented-hexagonal-boundaries.md)
   makes each application capability own its ports, confines infrastructure to
   adapters, keeps commands as composition roots, and enforces import direction.
-- [ADR-0007](../decisions/0007-ingest-github-changes-as-bounded-immutable-evidence.md)
+- [ADR-0007](../adr/0007-ingest-github-changes-as-bounded-immutable-evidence.md)
   binds signed GitHub deliveries to immutable, bounded, durably idempotent
   change evidence.
-- [ADR-0021](../decisions/0021-keep-go-contract-dtos-product-internal.md)
+- [ADR-0021](../adr/0021-keep-go-contract-dtos-product-internal.md)
   confines hand-written Go wire DTOs to the product while preserving portable
   Effect and JSON Schema contracts.
-- [ADR-0022](../decisions/0022-keep-purpose-specific-command-boundaries.md)
+- [ADR-0022](../adr/0022-keep-purpose-specific-command-boundaries.md)
   retains separate server, administrator, and worker executables while marking
   direct-database clients transitional.
-- [ADR-0023](../decisions/0023-separate-github-review-read-and-write-authority.md)
+- [ADR-0023](../adr/0023-separate-github-review-read-and-write-authority.md)
   separates source-read, draft-publication, and outcome-observation authority.
-- [ADR-0024](../decisions/0024-own-endpoint-repair-proposals-by-test-family.md)
+- [ADR-0024](../adr/0024-own-endpoint-repair-proposals-by-test-family.md)
   gives functional API endpoint-repair proposal policy a family-owned domain
   package without changing portable evidence contracts.
-- [ADR-0025](../decisions/0025-select-browser-tests-only-for-fully-covered-api-changes.md)
+- [ADR-0025](../adr/0025-select-browser-tests-only-for-fully-covered-api-changes.md)
   adds a conservative browser capability-selection manifest without changing
   functional API v1 execution authority.
-- [ADR-0026](../decisions/0026-check-playwright-inventory-against-declared-tests.md)
+- [ADR-0026](../adr/0026-check-playwright-inventory-against-declared-tests.md)
   checks Playwright's collected test list against declared stable keys without
   treating generated runner IDs as durable identity.
-- [ADR-0028](../decisions/0028-evaluate-embedded-dbos-workflows-for-change-processing.md)
+- [ADR-0028](../adr/0028-evaluate-embedded-dbos-workflows-for-change-processing.md)
   evaluates an opt-in embedded workflow without replacing the existing
   change-evidence stores or selecting a portfolio-wide runtime.
   The [compatibility and cost verdict](../development/dbos-evaluation-verdict.md)
@@ -68,7 +68,7 @@ This document defines system responsibilities, logical boundaries, information
 flow, and non-negotiable architectural constraints. It does not itself select a
 database, queue, deployment topology, or model provider. Those durable choices
 MUST be recorded in
-[architecture decision records](../decisions/README.md). ADR-0001 selects the
+[architecture decision records](../adr/README.md). ADR-0001 selects the
 control-plane language and cross-project reuse policy; ADR-0002 selects the
 initial repository topology and split criteria; ADR-0003 selects the contract
 authoring and interoperability boundary; ADR-0004 selects the catalog database
@@ -212,7 +212,7 @@ authorized CLI, process-protocol, and contract-conversion adapters import them.
 The root `contracts` package embeds the checked-in JSON Schemas so compiled Go
 binaries retain offline validation. Portable schema paths and wire versions are
 unchanged; the former root Go DTO import path is not a supported SDK and is
-removed. [ADR-0021](../decisions/0021-keep-go-contract-dtos-product-internal.md)
+removed. [ADR-0021](../adr/0021-keep-go-contract-dtos-product-internal.md)
 records this ownership and migration boundary.
 
 `catalog.RepositoryIdentity.Valid`, `catalog.Repository.Valid`, and
@@ -235,7 +235,7 @@ Impact evidence follows the same inward dependency direction. The
 application service—not PostgreSQL or the CLI—derives supported, refuted,
 stale, and conflicting states. This keeps future storage adapters and network
 transports consistent and prevents a database query from becoming hidden
-selection policy. [ADR-0005](../decisions/0005-store-immutable-impact-evidence.md)
+selection policy. [ADR-0005](../adr/0005-store-immutable-impact-evidence.md)
 defines the persisted meaning and temporal rules.
 
 The product-level import-boundary test under `internal/architecture` discovers
@@ -244,11 +244,11 @@ capability classification, and enforces inward dependency, adapter-authority,
 and cross-capability matrices. It rejects unclassified packages, infrastructure
 in the core, undeclared sideways application coupling, and infrastructure
 selection outside command composition roots.
-[ADR-0006](../decisions/0006-enforce-capability-oriented-hexagonal-boundaries.md)
+[ADR-0006](../adr/0006-enforce-capability-oriented-hexagonal-boundaries.md)
 defines this modular-monolith structure and the deliberately rejected generic
 layer packages.
 
-[ADR-0020](../decisions/0020-scope-postgresql-runtime-stores-by-capability.md)
+[ADR-0020](../adr/0020-scope-postgresql-runtime-stores-by-capability.md)
 records why PostgreSQL remains one implementation package and schema but no
 longer presents an omnibus runtime store to application services.
 
@@ -326,7 +326,7 @@ predecessors, on path-segment boundaries. Truncated or unmatched paths require
 all UI candidates. This emits execution-manifest v3 and does not alter either
 the default API v1 or OpenAPI-only UI v2 policy. The projection is derived
 read-only at selection time; no new persisted impact document or route
-inference is implied. See [ADR-0027](../decisions/0027-opt-in-browser-selection-from-declared-component-roots.md).
+inference is implied. See [ADR-0027](../adr/0027-opt-in-browser-selection-from-declared-component-roots.md).
 
 The selector's inward projection can accept another impact producer without
 changing its policy. The public execution-manifest v1 Effect contract still
@@ -345,8 +345,8 @@ affected mappings require a full-suite fallback. New or modified tests,
 must-run rules, and pins take precedence over early-stage exclusions; every
 omission remains in the full-suite control. The Playwright API reference
 adapter now executes v4 through the existing bounded process protocol. See
-[ADR-0030](../decisions/0030-bind-reviewed-functional-api-policy-to-complete-head-inventory.md)
-and [ADR-0031](../decisions/0031-execute-reviewed-functional-api-manifests-through-the-existing-protocol.md).
+[ADR-0030](../adr/0030-bind-reviewed-functional-api-policy-to-complete-head-inventory.md)
+and [ADR-0031](../adr/0031-execute-reviewed-functional-api-manifests-through-the-existing-protocol.md).
 
 ### Current functional API execution boundaries
 
@@ -394,7 +394,7 @@ from conflicting ID reuse. Artifact rows register metadata and checksums; they
 do not upload or guarantee external bytes. Shadow comparison loads two named
 attempts, rejects mismatched provenance or an incomplete control set, and
 reports both aggregate recall and each missed failure. It never chooses a
-control by recency. See [ADR-0011](../decisions/0011-store-immutable-attempts-and-compare-explicit-shadow-pairs.md).
+control by recency. See [ADR-0011](../adr/0011-store-immutable-attempts-and-compare-explicit-shadow-pairs.md).
 
 ### Current functional API adaptation boundaries
 
@@ -436,7 +436,7 @@ Playwright fixture supplies structural accessibility evidence; the CLI checks
 saved artifact bytes and checkout revision before policy evaluation. Proposal
 generation never executes a candidate or mutates source. The three browser
 proposal contracts remain separate from execution-attempt v1.
-[ADR-0036](../decisions/0036-propose-browser-locator-edits-from-correlated-structure.md)
+[ADR-0036](../adr/0036-propose-browser-locator-edits-from-correlated-structure.md)
 records this boundary.
 
 Argus requires complete semantic impact and one contract-declared operation
@@ -445,7 +445,7 @@ stable test IDs to native syntax and may return only one byte-addressed
 `request-target` edit. The application revalidates the old/new strings and all
 identities before emitting `PATCH_AND_VALIDATE`. Proposal generation never
 writes to the test checkout and therefore cannot silently repair, commit, or
-merge a test. [ADR-0014](../decisions/0014-generate-endpoint-repair-proposals-through-reviewed-adapters.md)
+merge a test. [ADR-0014](../adr/0014-generate-endpoint-repair-proposals-through-reviewed-adapters.md)
 defines the evidence threshold and adapter boundary.
 
 Validation verifies the source preimage and runs the exact test against
@@ -453,13 +453,13 @@ unchanged, candidate, and deterministic negative-control bytes. The application
 owns the required `failed → passed → failed` sequence and restores the original
 file after each modified execution. Adapters only translate stable test IDs to
 framework invocation. Successful evidence retains every executed source digest
-and the final restored digest. [ADR-0015](../decisions/0015-validate-repairs-with-a-restored-negative-control-workspace.md)
+and the final restored digest. [ADR-0015](../adr/0015-validate-repairs-with-a-restored-negative-control-workspace.md)
 defines the workspace and negative-control policy.
 
 Trustworthy outcome mismatches are emitted and stored as a distinct validation
 rejection, never as successful proof. Only correlated pass/fail outcomes with a
 verified restored source qualify; infrastructure and integrity errors remain
-operational failures. [ADR-0019](../decisions/0019-preserve-trustworthy-validation-rejections.md)
+operational failures. [ADR-0019](../adr/0019-preserve-trustworthy-validation-rejections.md)
 defines this negative-evidence boundary and its exact-retry persistence.
 
 Review publication reloads the source at the proposal's immutable test
@@ -470,7 +470,7 @@ branch, and treats an exact retry as the same operation. A branch, file, or
 pull request that diverges from the validated candidate is a conflict rather
 than an overwrite. Publication creates only an open draft and returns
 `argus.dev/adaptation-review/v1`; it never marks the review ready or merges it.
-[ADR-0016](../decisions/0016-publish-validated-repairs-as-idempotent-draft-pull-requests.md)
+[ADR-0016](../adr/0016-publish-validated-repairs-as-idempotent-draft-pull-requests.md)
 defines the external-write and recovery boundary.
 
 Terminal outcome capture correlates that publication with the original
@@ -479,7 +479,7 @@ state. A changed final head is accepted only when it is linearly ahead of the
 generated commit and GitHub returns every bounded file patch. Explicit reason
 codes cannot contradict the derived disposition. The portable
 `argus.dev/review-outcome/v1` output is evidence for later learning, not a
-policy update or correctness verdict. [ADR-0017](../decisions/0017-capture-terminal-review-outcomes-as-bounded-evidence.md)
+policy update or correctness verdict. [ADR-0017](../adr/0017-capture-terminal-review-outcomes-as-bounded-evidence.md)
 defines this learning boundary.
 
 Durable ingestion validates the portable document and recomputed semantic
@@ -488,7 +488,7 @@ store port; the existing PostgreSQL adapter claims one immutable record per
 review and writes all reviewer edits in the same transaction. Observation time
 is excluded from exact-retry equality, while every disposition, reason,
 revision, provenance, and patch field remains conflict-significant. Reads use
-repeatable read and revalidate reconstructed domain evidence. [ADR-0018](../decisions/0018-store-one-immutable-outcome-per-adaptation-review.md)
+repeatable read and revalidate reconstructed domain evidence. [ADR-0018](../adr/0018-store-one-immutable-outcome-per-adaptation-review.md)
 defines the persisted meaning and retry boundary.
 
 For heterogeneous manifests, the planner groups by stable test-repository
@@ -497,7 +497,7 @@ provide matching coordinates, a stable group key, and an immutable revision.
 The plan creates selected jobs only for non-empty early subsets and a
 full-suite job for every group. It carries no command or credential; reviewed
 CI maps adapter IDs to literal commands. See
-[ADR-0012](../decisions/0012-plan-execution-from-reviewed-repository-bindings.md)
+[ADR-0012](../adr/0012-plan-execution-from-reviewed-repository-bindings.md)
 and the [reference GitHub Actions handoff](../integrations/github-actions-functional-api.md).
 
 Complete-plan shadow evaluation binds every planned group to explicit immutable
@@ -506,7 +506,7 @@ evidence. Selected/full groups reuse pairwise semantics. A full-only group has
 zero selected work, and each failing control test is a `not-selected` miss in
 aggregate recall. Reports record the canonical plan digest and sum normalized
 per-test durations rather than parallel workflow wall time. See
-[ADR-0013](../decisions/0013-evaluate-selection-across-complete-execution-plans.md).
+[ADR-0013](../adr/0013-evaluate-selection-across-complete-execution-plans.md).
 
 ## End-to-end decision flow
 
@@ -586,7 +586,7 @@ tables, or depend on Perfeng deployment layout. Reuse begins with published
 contracts, conformance fixtures, and proven design approaches. A shared library
 or service requires the semantic, ownership, compatibility, and operational
 evidence defined by
-[ADR-0001](../decisions/0001-use-go-and-evidence-based-cross-project-reuse.md).
+[ADR-0001](../adr/0001-use-go-and-evidence-based-cross-project-reuse.md).
 
 The contract adapter under `internal/performance` validates the pinned public
 catalog against independent scope and clock expectations. Bounded authenticated
@@ -595,7 +595,7 @@ port and the performance-only PostgreSQL view. Immutable source evidence and
 resource identities share a transaction with the scoped current pointer. Stored
 inspection retains expiry and grants no execution authority. The
 [catalog guide](../integrations/perfeng-catalog.md) records provenance and operation;
-[ADR-0054](../decisions/0054-publish-immutable-performance-catalogs-atomically.md)
+[ADR-0054](../adr/0054-publish-immutable-performance-catalogs-atomically.md)
 records identity, freshness, concurrency and persistence semantics.
 
 The pure `internal/performance` domain consumes public catalog/change values through
@@ -667,7 +667,7 @@ adapter-only resource and credential mechanics across capabilities. The
 architecture policy explicitly allows only the relevant process and GitHub
 adapters to import them; they own no domain language or application policy.
 
-[ADR-0002](../decisions/0002-keep-argus-in-a-single-product-repository.md)
+[ADR-0002](../adr/0002-keep-argus-in-a-single-product-repository.md)
 defines the evidence and migration required before an adapter, contract,
 analysis component, or deployment asset moves to another repository or service.
 
@@ -715,7 +715,7 @@ the existing execution adapters. Shared staged partitions remain domain values;
 wire DTOs stay at contract/CLI boundaries. Functional API execution normalizes
 exact v2 stage evidence; the existing attempt ingestion/store accepts explicit
 v1/v2 versions. Legacy selected/full-suite validators remain strict. The forward
-metadata migration and [ADR-0048](../decisions/0048-opt-in-functional-api-staged-execution.md)
+metadata migration and [ADR-0048](../adr/0048-opt-in-functional-api-staged-execution.md)
 define rollout, rollback and the external CI pass/capacity obligations.
 
 ## Browser staged execution
@@ -725,7 +725,7 @@ the same shared partition domain with independent complete discovery and reviewe
 project/environment bindings. Contract/CLI adapters load evidence; the browser
 service owns exact execution and artifact invariants. Explicit v2 plans, requests
 and attempts preserve strict legacy consumers. Fresh native inventory is checked
-by the process adapter before execution. [ADR-0049](../decisions/0049-opt-in-browser-staged-execution.md)
+by the process adapter before execution. [ADR-0049](../adr/0049-opt-in-browser-staged-execution.md)
 defines the forward provenance migration and CI pass/capacity obligations.
 
 ## Staged safety observations
@@ -736,7 +736,7 @@ into `internal/predictive`. The domain owns completeness, miss/recall, calibrati
 cost and conservative failure-time semantics without importing wire DTOs, SQL
 or runner application packages. V1 shadow consumers remain strict. Report v1
 retains unavailable measurements and grants no promotion authority; see
-[ADR-0050](../decisions/0050-report-explicit-staged-safety-observations.md).
+[ADR-0050](../adr/0050-report-explicit-staged-safety-observations.md).
 
 ## Owner-policy staged promotion
 
@@ -749,4 +749,4 @@ require current trusted authority for staged requests and otherwise restore
 independent full controls. Remaining-later work stays mandatory. Authentication,
 current time and complete archive declaration belong to trusted CI; there is no
 implicit latest lookup, durable approval or background monitor. See
-[ADR-0051](../decisions/0051-gate-staged-promotion-by-owner-policy.md).
+[ADR-0051](../adr/0051-gate-staged-promotion-by-owner-policy.md).

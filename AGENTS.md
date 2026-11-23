@@ -1,39 +1,23 @@
-# Repository working agreement
+# Repository agent guide
 
-This file is the concise, tool-facing entry point for contributors and coding
-agents. [CONTRIBUTING.md](CONTRIBUTING.md) is the canonical workflow policy.
-Normative terms such as MUST, SHOULD, and MAY have the meanings defined there.
+## Agent skills
 
-## Before changing anything
+Use `mattpocock/skills` as the primary workflow for planning, ticketing,
+implementation, TDD, review, and pull requests. The skills take precedence where
+contributor guidance covers the same steps. Follow the repository's technical
+requirements, verification gates, and authorization boundaries.
 
-1. You MUST read [CONTRIBUTING.md](CONTRIBUTING.md), especially its
-   [ambiguity](CONTRIBUTING.md#ambiguity-and-escalation),
-   [issue-timing](CONTRIBUTING.md#issue-timing), and
-   [verification](CONTRIBUTING.md#verification-and-constrained-environments)
-   rules.
-2. You MUST inspect the working tree and preserve pre-existing changes.
-3. You MUST use the [documentation map](docs/README.md) to load the canonical
-   product, architecture, development, integration, and decision sources that
-   apply to the task. Do not bulk-read unrelated guides or ADRs.
-4. You MUST use the repository-local build and verification commands. You
-   MUST NOT claim that an unavailable or unexecuted check passed.
+### Issue tracker
 
-If code, documentation, and an accepted decision disagree, you MUST NOT
-silently pick one. Correct an obvious local error or propose a superseding ADR.
-Ordinary missing requirements and implementation ambiguity follow the
-escalation rules in CONTRIBUTING; they do not automatically require an ADR.
+Use GitHub Issues in `stanimirivanov/argus`. See [issue tracker configuration](docs/agents/issue-tracker.md).
 
-## Shape of work
+### Triage labels
 
-- Each task and pull request MUST deliver one coherent, independently
-  reviewable capability.
-- Prefer a thin end-to-end slice over an unused layer or speculative framework.
-- Unrelated refactoring, dependency updates, generated churn, and formatting
-  MUST stay out of behavioral changes.
-- Scope, exclusions, compatibility effects, risks, assumptions, and
-  verification evidence MUST be explicit.
-- An abstraction, service, queue, cache, database, or dependency MUST NOT be
-  added without behavior in the current change that requires it.
+Use the default Matt Pocock label mapping. See [triage labels](docs/agents/triage-labels.md).
+
+### Domain docs
+
+Use a single root glossary and ADRs in `docs/adr/`. See [domain docs](docs/agents/domain.md).
 
 ## Architecture and implementation
 
@@ -56,15 +40,14 @@ escalation rules in CONTRIBUTING; they do not automatically require an ADR.
 - Published APIs, events, schemas, manifests, persisted payloads, and
   prompts/evaluation contracts are compatibility boundaries.
 
-Follow [engineering standards](docs/development/engineering-standards.md) and
+Preserve unrelated work and follow [engineering standards](docs/development/engineering-standards.md) and
 the task-specific routes in the [documentation map](docs/README.md). Database
 changes additionally follow the
 [SQL migration criteria](docs/development/sql-migrations.md).
 
 ## Quality and documentation
 
-- Test observable behavior at the lowest boundary that proves it. Defect fixes
-  SHOULD begin with a failing regression test.
+- Test observable behavior at the lowest boundary that proves it.
 - Tests MUST be deterministic, isolated, parallel-safe, and independent of wall
   clock, network, locale, and execution order unless those are the subject.
 - Exported/public APIs, invariants, units, side effects, ownership, concurrency,
@@ -78,17 +61,15 @@ changes additionally follow the
 
 The [coding harness guide](docs/development/harness.md) maps repository guidance
 to its executable feedback sensors and verification tiers.
-For host-managed, task-scoped work, use the
+When the host provides task scope and requests recorded verification, use the
 [agent harness runner](tools/agent-harness/README.md) to inspect the declared
 profile and record named offline checks. Its policy validation and limited
 child environment do not enforce filesystem or network isolation; the agent
 host owns those restrictions.
 
-## Completion
+## Verification
 
-The single source of truth for completion output is
-[Completion report](CONTRIBUTING.md#completion-report). Follow it after every
-work item; do not infer a different report shape from this summary.
-
-Planned milestones are listed in
-[docs/roadmap/milestones.md](docs/roadmap/milestones.md).
+Run `make verify` for local validation and `make validate` for complete
+non-database acceptance. Apply the additional gates for the affected boundary,
+including `make db-validate` for database changes. Report exact outcomes and
+limitations under the [verification rules](CONTRIBUTING.md#verification-and-constrained-environments).

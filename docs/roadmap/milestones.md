@@ -102,9 +102,9 @@ Acceptance ingredients:
 - Import the product proposal and split product, architecture, and roadmap
   sources of truth.
 - Record the control-plane language and cross-project reuse boundary in
-  [ADR-0001](../decisions/0001-use-go-and-evidence-based-cross-project-reuse.md).
+  [ADR-0001](../adr/0001-use-go-and-evidence-based-cross-project-reuse.md).
 - Record the initial repository topology in
-  [ADR-0002](../decisions/0002-keep-argus-in-a-single-product-repository.md).
+  [ADR-0002](../adr/0002-keep-argus-in-a-single-product-repository.md).
 - Scaffold the [Go module](../../go.mod) and a minimal
   [control-plane command](../../cmd/control-plane/main.go) with graceful startup
   and shutdown.
@@ -143,7 +143,7 @@ Acceptance ingredients:
 The delivered descriptor boundary is documented in the
 [contract workspace](../../contracts/README.md); its representation and
 compatibility policy are recorded in
-[ADR-0003](../decisions/0003-use-effect-schema-at-contract-boundaries.md).
+[ADR-0003](../adr/0003-use-effect-schema-at-contract-boundaries.md).
 
 Completion means the Go control plane can strictly validate a repository-owned
 descriptor, bind it to a trusted immutable revision, and produce normalized

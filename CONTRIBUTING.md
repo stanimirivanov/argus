@@ -7,8 +7,6 @@
   explanatory rather than a separate hidden policy.
 - Proceed on documented, reversible assumptions; stop for decisions that
   materially affect behavior, safety, compatibility, scope, or external state.
-- Use an existing issue when one is supplied. Otherwise complete the smallest
-  coherent scope and propose the full issue in the completion report.
 - Run the exact repository checks. If a check cannot run, report it as not run
   with the reason and residual risk—never as passed.
 - Name milestones `MNN - Outcome`, starting with M01, and state the milestone
@@ -34,17 +32,17 @@ not silently create another level of normative strength.
 
 | Concern | Canonical source |
 |:--|:--|
-| Contributor workflow, issue timing, escalation, and completion | This document |
+| Contributor requirements, escalation, and verification | This document |
 | Concise contributor and agent entry point | [AGENTS.md](AGENTS.md) |
 | Progressive task-to-document routing | [docs/README.md](docs/README.md) |
 | Product scope, taxonomy, decision outcomes, and safety | [docs/product/product-definition.md](docs/product/product-definition.md) |
 | Conceptual architecture and system boundaries | [docs/architecture/overview.md](docs/architecture/overview.md) |
 | Engineering and language standards | [docs/development/engineering-standards.md](docs/development/engineering-standards.md) |
-| Coding harness, feedback tiers, and multi-PR execution plans | [docs/development/harness.md](docs/development/harness.md) |
+| Verification tools, check tiers, and existing plan records | [docs/development/harness.md](docs/development/harness.md) |
 | Supported local environments and first-time setup | [docs/development/developer-quickstart.md](docs/development/developer-quickstart.md) |
 | Dependency admission, updates, licensing, and vulnerability handling | [docs/development/dependency-policy.md](docs/development/dependency-policy.md) |
 | PostgreSQL schema and migration rules | [docs/development/sql-migrations.md](docs/development/sql-migrations.md) |
-| Architecture decisions | [docs/decisions](docs/decisions/README.md) |
+| Architecture decisions | [docs/adr](docs/adr/README.md) |
 | Milestones and planned work | [docs/roadmap/milestones.md](docs/roadmap/milestones.md) |
 | Research and market evidence | [docs/research/landscape.md](docs/research/landscape.md) |
 | Exact local and CI commands | Root README and checked-in tool configuration |
@@ -69,8 +67,7 @@ A contributor MUST:
 - identify the smallest observable outcome that can be reviewed and merged
   independently;
 - identify affected contracts, migrations, security boundaries, documentation,
-  and operational behavior; and
-- determine the applicable issue workflow under [Issue timing](#issue-timing).
+  and operational behavior.
 
 A contributor MUST NOT discard, overwrite, reformat, or incorporate unrelated
 work merely to obtain a clean diff. Destructive operations and externally
@@ -97,8 +94,8 @@ following are true:
 - a reasonable alternative would not materially change what reviewers believe
   they are approving.
 
-The assumption and its consequence MUST be recorded in the pull request and
-completion report. Prefer the smallest change that preserves future choices.
+Record the assumption and its consequence in the issue or pull request when one
+exists. Prefer the smallest change that preserves future choices.
 
 A contributor MUST stop and request a decision when missing information could
 materially change any of the following:
@@ -118,25 +115,10 @@ choice that meets the proceed criteria.
 
 ## Issue timing
 
-Issue-first is the preferred workflow, but issue-after is the traceability
-fallback when implementation is requested without an existing issue.
-
-- If an issue number is supplied, the contributor MUST follow that issue and
-  its milestone, and the pull request MUST link it. A material mismatch follows
-  the ambiguity and escalation rules.
-- If no issue is supplied, the contributor MUST define the smallest coherent
-  scope, perform the requested work, and include a complete proposed issue in
-  the completion report. The proposed issue MUST describe the work actually
-  performed, not an invented broader initiative.
-- If repository permissions, branch protection, or the requester explicitly
-  requires an issue before implementation, the contributor MUST stop after
-  discovery and ask for or create the issue as authorized.
-- Read-only investigation and scoping MAY occur before an issue exists.
-
-Creating an issue, milestone, pull request, release, or other external record is
-an externally visible write. A contributor MUST do so only when requested or
-when the assigned workflow explicitly grants that authority. Otherwise, propose
-the content without publishing it.
+Use the [issue tracker configuration](docs/agents/issue-tracker.md) and the
+applicable skill. Reuse a supplied issue and follow its scope and milestone.
+Verify target and authority before writing to GitHub. External writes require
+the authorization of the requester or the assigned workflow.
 
 ## Milestones
 
@@ -227,17 +209,9 @@ When one approved outcome requires multiple dependent pull requests, follow the
 
 ## Development workflow
 
-1. Select the issue workflow defined in [Issue timing](#issue-timing).
-2. Create a focused branch when the surrounding workflow supports branches.
-3. Add or update tests with the behavior.
-4. Implement the smallest coherent solution.
-5. Format and run the exact repository checks.
-6. Review the complete diff for secrets, generated churn, accidental API
-   changes, assumptions, and unrelated edits.
-7. Update documentation, ADRs, migration notes, and troubleshooting material.
-8. Open a linked pull request only when authorized, and include verification
-   evidence.
-9. Produce the canonical [Completion report](#completion-report).
+Follow the applicable `mattpocock/skills` workflow through [AGENTS.md](AGENTS.md).
+Use this guide for repository-specific verification, issue and PR metadata,
+and architecture and compatibility rules.
 
 Commit subjects SHOULD be clear and imperative. Generated output MUST be
 reproducible and SHOULD be committed only when consumers require it without
@@ -303,7 +277,7 @@ executable or verified where practical. Stale comments and links MUST be
 updated or removed in the same change that makes them inaccurate.
 
 Architecture decisions use the template in
-[docs/decisions/README.md](docs/decisions/README.md). Accepted ADRs are
+[docs/adr/README.md](docs/adr/README.md). Accepted ADRs are
 historical records; supersede rather than rewrite them.
 
 ## Pull request description
@@ -343,17 +317,6 @@ A pull request MUST state:
 
 ## Completion report
 
-After every completed work item, the contributor MUST print:
-
-1. the exact milestone in the form `MNN - Outcome`;
-2. a proposed GitHub issue title;
-3. the complete issue body from [Required issue structure](#required-issue-structure),
-   matching the work actually performed;
-4. assumptions, unresolved questions, and limitations; and
-5. verification commands and outcomes, explicitly distinguishing **passed**,
-   **failed**, and **not run**.
-
-When an existing issue was supplied, the report SHOULD repeat or amend its
-title and body so the delivered scope is auditable. When no issue was supplied,
-the report provides the issue-after traceability record; it does not imply that
-the issue was published.
+Report the exact checks run, their outcomes, and remaining limitations.
+Include the issue or pull request when one exists. Use the applicable skill
+to prepare delivery evidence.

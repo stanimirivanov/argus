@@ -368,7 +368,7 @@ test revision. Expected values, comparison operators, and fixtures remain
 untouched. Run `make api-validate` for its disposable request/response check.
 
 `argus.dev/field-adaptation-proposal/v1` cannot be passed to the endpoint
-validation or publication commands. [ADR-0032](../decisions/0032-propose-compatible-field-renames-from-explicit-contract-identity.md)
+validation or publication commands. [ADR-0032](../adr/0032-propose-compatible-field-renames-from-explicit-contract-identity.md)
 records its proof and compatibility decision.
 
 ## Repeated field validation and review
@@ -445,7 +445,7 @@ human reason, and complete bounded reviewer patches. The existing PostgreSQL
 store accepts that generic outcome contract: exact retries preserve its first
 observation, while changed reasons, revisions, or patches for the same review
 are conflicts. A merge is workflow evidence, not correctness proof.
-[ADR-0033](../decisions/0033-validate-field-repairs-with-repeated-discriminating-runs.md)
+[ADR-0033](../adr/0033-validate-field-repairs-with-repeated-discriminating-runs.md)
 records the field policy.
 
 ## Remaining non-goals

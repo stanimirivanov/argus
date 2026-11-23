@@ -182,4 +182,4 @@ selector, evidence conversion and dependency-boundary verification. Run
 for scoped read and CLI failure coverage; the command smoke suite also checks metadata
 and exit codes. No database-specific gate is needed because this slice changes no
 SQL, schema or persistence writes. See
-[ADR-0055](../decisions/0055-select-reviewed-performance-workload-targets.md).
+[ADR-0055](../adr/0055-select-reviewed-performance-workload-targets.md).

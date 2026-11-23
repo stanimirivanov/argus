@@ -42,7 +42,7 @@ The proposal also corrected three early assumptions:
 | System context, logical capabilities, information flow, evidence invariants, adapters, trust boundaries, and Perfeng responsibilities | [Architecture overview](architecture/overview.md) |
 | Delivery phases, immediate work, sequencing, and promotion gates | [Implementation milestones](roadmap/milestones.md) |
 | Research findings, open-source references, commercial offerings, competitive thesis, and open questions | [Research and market landscape](research/landscape.md) |
-| Durable technology and repository choices | [Architecture decision records](decisions/README.md), once proposed and accepted |
+| Durable technology and repository choices | [Architecture decision records](adr/README.md), once proposed and accepted |
 
 When two sources appear to disagree, use the authority rules in
 [CONTRIBUTING.md](../CONTRIBUTING.md). This decomposition record provides

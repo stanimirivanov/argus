@@ -126,7 +126,7 @@ directly as transitional administrative clients, not as a pattern for new CI
 integrations. Executables return 0 for success or metadata, 1 for operational
 failure, and 2 for invalid syntax. `go run` may wrap a child's nonzero exit
 status; use a built binary when a script needs the exact code. See
-[ADR-0022](../decisions/0022-keep-purpose-specific-command-boundaries.md).
+[ADR-0022](../adr/0022-keep-purpose-specific-command-boundaries.md).
 
 ## Platform setup notes
 

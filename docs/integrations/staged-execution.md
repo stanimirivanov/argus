@@ -34,4 +34,4 @@ The new vocabulary is `relevant-now`, `remaining-later` and `shadow-control`. It
 
 Run `go test -vet=off -count=1 ./internal/execution/...`, `make architecture-check` and `make validate`. Regression tests cover exact partitions, hard requirements, aliases/duplicates/omissions, order and ownership, digest/episode/manifest mismatches, repository/revision/project/environment isolation, mode downgrade and v1 compatibility.
 
-See [ADR-0047](../decisions/0047-define-shared-staged-execution-invariants.md). The foundation adds no stored data or dispatch path; reverting it is sufficient rollback before runner adoption.
+See [ADR-0047](../adr/0047-define-shared-staged-execution-invariants.md). The foundation adds no stored data or dispatch path; reverting it is sufficient rollback before runner adoption.

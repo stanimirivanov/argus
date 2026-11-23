@@ -16,7 +16,7 @@ import (
 
 const (
 	modulePath   = "github.com/stanimirivanov/argus"
-	adrReference = "ADR-0006 (docs/decisions/0006-enforce-capability-oriented-hexagonal-boundaries.md)"
+	adrReference = "ADR-0006 (docs/adr/0006-enforce-capability-oriented-hexagonal-boundaries.md)"
 )
 
 type architectureLayer string

@@ -96,7 +96,7 @@ func TestCheckRepositoryReportsADRIndexAndMetadataDrift(t *testing.T) {
 	root := validRepository(t)
 	adr := strings.ReplaceAll(validADR, "- Status: Accepted", "- Status: Unknown")
 	adr = strings.ReplaceAll(adr, "# ADR-0001", "# ADR-0002")
-	writeFixture(t, root, "docs/decisions/0001-use-a-policy.md", adr)
+	writeFixture(t, root, "docs/adr/0001-use-a-policy.md", adr)
 
 	violations := mustCheck(t, root)
 	assertViolationContains(t, violations, "adr.number", "does not match filename")
@@ -125,8 +125,8 @@ func validRepository(t *testing.T) string {
 	writeFixture(t, root, "CONTRIBUTING.md", validContributing)
 	writeFixture(t, root, ".github/ISSUE_TEMPLATE/work-item.md", validIssueTemplate)
 	writeFixture(t, root, ".github/PULL_REQUEST_TEMPLATE.md", validPullRequestTemplate)
-	writeFixture(t, root, "docs/decisions/README.md", validADRIndex)
-	writeFixture(t, root, "docs/decisions/0001-use-a-policy.md", validADR)
+	writeFixture(t, root, "docs/adr/README.md", validADRIndex)
+	writeFixture(t, root, "docs/adr/0001-use-a-policy.md", validADR)
 
 	return root
 }

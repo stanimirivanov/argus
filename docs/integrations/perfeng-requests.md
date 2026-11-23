@@ -6,7 +6,7 @@
 - Decode/encode checks consistency, never authentication or execution authority.
 - PR7 completes through reviewed compilation, durable intent/outbox and operator CLI.
 - PR10 cancellation and explicit reruns follow the [delivery plan](../development/plans/m09-pr10-cancellation-reruns.md).
-- PR10b stores cancellation intent and cuts off unclaimed first sends; see [ADR-0071](../decisions/0071-retain-cancellation-before-local-first-acquisition.md).
+- PR10b stores cancellation intent and cuts off unclaimed first sends; see [ADR-0071](../adr/0071-retain-cancellation-before-local-first-acquisition.md).
 
 ## Pinned interchange
 
@@ -247,7 +247,7 @@ acknowledge completion. Uncertain commits must not trigger sending; preserve fro
 identities. Expired requests remain claimable only for lookup recovery.
 
 Apply `20261026092008_add_performance_dispatch_claims.sql` before callers; no worker
-is enabled. PR8b2 adds outcomes, PR8c the worker. [ADR-0059](../decisions/0059-lease-performance-dispatch-with-monotonic-fencing.md)
+is enabled. PR8b2 adds outcomes, PR8c the worker. [ADR-0059](../adr/0059-lease-performance-dispatch-with-monotonic-fencing.md)
 documents privileges, migration locks/headroom, retry uncertainty, rollback and tests.
 
 ## Validated dispatch outcomes
@@ -261,7 +261,7 @@ inputs return zero evidence and a redacted `ErrIntegration`.
 The owned `requestintent.Outcome` retains identities, source/event ID, kind and
 canonical provider message bytes with a versioned fingerprint. It does not preserve
 HTTP formatting, order run lifecycle, grant approval, persist evidence or enable a
-worker. [ADR-0060](../decisions/0060-validate-immutable-performance-dispatch-outcomes.md)
+worker. [ADR-0060](../adr/0060-validate-immutable-performance-dispatch-outcomes.md)
 defines the projection and dependent PR8b2b/PR8c responsibilities. Run focused
 requestintent/Perfeng tests and `make validate`.
 
@@ -273,7 +273,7 @@ exact winning-owner replay returns false even after expiry. Changed evidence,
 scope/child or ownership conflicts; malformed proof/provider evidence is invalid.
 Scoped reads hide absence/wrong scope and redact corrupt evidence. Settled work
 cannot be claimed or released, while pending inspection preserves its history.
-These APIs perform no provider calls and enable no worker. [ADR-0061](../decisions/0061-settle-performance-dispatch-under-live-fences.md)
+These APIs perform no provider calls and enable no worker. [ADR-0061](../adr/0061-settle-performance-dispatch-under-live-fences.md)
 records migration locks, required privileges, uncertainty and rollback. Apply the
 outcome migration before callers; verify with `make validate` and `make db-validate`.
 
@@ -281,7 +281,7 @@ outcome migration before callers; verify with `make validate` and `make db-valid
 
 PR8c1 adds `requestintent.Recover` over a store-issued claim and independently
 authorized scope. Its consumer-owned ports use existing scoped outcome reads and
-fenced settlement. [ADR-0062](../decisions/0062-recover-performance-admission-through-scoped-readback.md)
+fenced settlement. [ADR-0062](../adr/0062-recover-performance-admission-through-scoped-readback.md)
 records the boundary. `perfeng.IntegrationHTTP.LookupOutcome` supplies the configured
 provider port: it checks provider/principal scope, child integrity, request/attempt/
 event identities and timestamps against the frozen bytes before any network access.
@@ -320,7 +320,7 @@ Legacy `ClaimRequest` remains unfiltered. No schema, wire, index or privilege ch
 are needed. A claim still grants no approval or submission authority. This slice
 activates no command or worker; PR8c2a2/PR8c2b retain dispatch/runtime composition.
 Rollback disables callers and preserves evidence/fences. See
-[ADR-0063](../decisions/0063-acquire-performance-work-by-authorized-request-issuer.md).
+[ADR-0063](../adr/0063-acquire-performance-work-by-authorized-request-issuer.md).
 Run focused issuer-claim tests, `make validate` and `make db-validate`.
 
 ## One-shot dispatch
@@ -338,7 +338,7 @@ until expiry; there is no automatic release, retry or identity generation. A cra
 before POST or lost acquisition acknowledgement can strand absent work; 404 never
 authorizes replay. Provider admission and database fences remain authoritative
 despite context bounds. No schema/wire change or worker activation occurs here;
-PR8c2b retains runtime composition. See [ADR-0064](../decisions/0064-submit-performance-work-only-from-first-acquisitions.md).
+PR8c2b retains runtime composition. See [ADR-0064](../adr/0064-submit-performance-work-only-from-first-acquisitions.md).
 Run application/HTTP and database dispatch tests, `make validate`, `make db-validate`.
 
 ## Opt-in control-plane worker
@@ -373,7 +373,7 @@ raw errors, credentials, bodies or identities. Inspect scoped pending/outcome
 evidence to investigate; lookup absence cannot prove an uncertain POST never committed.
 Disable the flag and restart to roll back without deleting evidence/fences. Lifecycle
 ordering, cancellation/reruns and M10 recovery remain separate. See
-[ADR-0065](../decisions/0065-opt-in-to-configured-performance-workers.md).
+[ADR-0065](../adr/0065-opt-in-to-configured-performance-workers.md).
 Run worker/configuration/shutdown tests, `make validate` and `make db-validate`.
 
 ## Ordered lifecycle observations
@@ -403,7 +403,7 @@ event reuse, run identity, revision order, terminal immutability and 1000 rows p
 request. Its recording instant is database-owned; late provider evidence remains
 valid. These are foundations for PR9b2 atomic append/scoped projection, not a new
 writer or polling path. Apply explicit migrations first; retain the additive schema
-on application rollback. See [ADR-0067](../decisions/0067-bind-lifecycle-history-to-retained-admission.md)
+on application rollback. See [ADR-0067](../adr/0067-bind-lifecycle-history-to-retained-admission.md)
 for trust, privileges and lock behavior. Run `make validate` and `make db-validate`;
 busy-host verification may run on existing CI with results reported separately.
 
@@ -418,7 +418,7 @@ known empty history returns an empty slice and no projection (`ErrNotFound`).
 Wrong/missing scope is not found, invalid arguments are invalid, contradictory
 input conflicts, and corrupt storage is unavailable with no partial evidence.
 Cancellation/deadlines propagate. Reconcile unknown commit outcomes through exact
-retry/readback without provider resubmission. See [ADR-0068](../decisions/0068-append-and-read-scoped-lifecycle-evidence.md).
+retry/readback without provider resubmission. See [ADR-0068](../adr/0068-append-and-read-scoped-lifecycle-evidence.md).
 This adds no migration, grants, wire change or runtime consumer. Run local format,
 lint, compilation and focused tests; `make validate`/`make db-validate` may run in CI.
 
@@ -453,7 +453,7 @@ Healthy logs include `performance lifecycle retained`; failures use the redacted
 details; do not infer success from admission, elapsed deadline or COMPLETED.
 Shutdown cancels active work and joins the existing worker before pool closure.
 Disable the lifecycle flag to roll back; stored evidence and schema remain intact.
-See [ADR-0069](../decisions/0069-consume-authenticated-lifecycle-snapshots.md).
+See [ADR-0069](../adr/0069-consume-authenticated-lifecycle-snapshots.md).
 
 ## Cancellation transport
 
@@ -538,7 +538,7 @@ A commit error, cancellation or partial stdout can leave retained intent: inspec
 explicitly with the same approved target or replay the same approved message.
 There is no automatic retry or identity generation. Keep approval issuance/audit
 in the authenticated host workflow; changing/removing the protected file revokes
-future invocations. See [ADR-0072](../decisions/0072-pin-operator-cancellation-to-host-approval.md).
+future invocations. See [ADR-0072](../adr/0072-pin-operator-cancellation-to-host-approval.md).
 
 ## Callable cancellation consumption
 
@@ -551,7 +551,7 @@ history skips I/O, and current/newer CANCELLING/terminal evidence skips POST.
 The returned observation may be stale; use scoped LifecycleProjection for latest state.
 Lookup/cancellation 429/503 errors expose RetryAfter hints without sleeping/retrying.
 No worker activates here: PR10d2 owns traversal, backoff and admission coordination.
-See [ADR-0073](../decisions/0073-reconcile-cancellation-through-admitted-lifecycle.md).
+See [ADR-0073](../adr/0073-reconcile-cancellation-through-admitted-lifecycle.md).
 
 ## Durable cancellation polling cooldown
 
@@ -576,7 +576,7 @@ operational state and immutable evidence on rollback,
 and stop older lifecycle/cancellation pollers because their selectors ignore it.
 This PR activates no cancellation worker. PR10d2b adds a bounded pass; PR10d2c adds
 opt-in composition and admission recovery coordination. See
-[ADR-0074](../decisions/0074-retain-monotonic-cancellation-cooldown.md).
+[ADR-0074](../adr/0074-retain-monotonic-cancellation-cooldown.md).
 
 ## Callable bounded cancellation polling
 
@@ -605,7 +605,7 @@ already selected/in-flight work is not revoked. Failure to extend a long hint
 requires operator/runtime recovery before more provider polling. PR10d2c owns
 runtime activation and unresolved-admission coordination. No migration/config/wire
 change here; keep migration 21 and its cooldown data on rollback. See
-[ADR-0075](../decisions/0075-poll-cancellation-with-durable-baseline-cooldown.md).
+[ADR-0075](../adr/0075-poll-cancellation-with-durable-baseline-cooldown.md).
 
 ## Opt-in cancellation worker and admission coordination
 
@@ -639,7 +639,7 @@ new execution. Serialize the worker binding operationally: replicas may duplicat
 cancellation, and a deadline does not revoke already selected work. This is no
 fleet-wide throttle. Disable cancellation to roll back and stop old pollers that
 ignore cooldown, retaining migration/evidence. See
-[ADR-0076](../decisions/0076-compose-cancellation-after-admission-recovery.md).
+[ADR-0076](../adr/0076-compose-cancellation-after-admission-recovery.md).
 
 ## Reviewed rerun evidence foundation
 
@@ -664,7 +664,7 @@ Confirmed lineage policy is one direct successor per parent; further reruns form
 a chain. PR10e2 adds schema/guards, PR10e3 atomic retention/scoped reads and PR10e4
 the operator rerun/inspection flow. This foundation persists no lineage and enables
 no rerun command or provider execution. Existing intent/wire formats stay unchanged.
-See [ADR-0077](../decisions/0077-bind-reruns-to-reviewed-terminal-predecessors.md).
+See [ADR-0077](../adr/0077-bind-reruns-to-reviewed-terminal-predecessors.md).
 
 ## Immutable rerun lineage schema
 
@@ -680,7 +680,7 @@ Preserve linked evidence together on restore; never delete links to permit anoth
 send. SQL cannot authenticate canonical Go/wire fingerprints or owner approval;
 PR10e3/PR10e4 must revalidate those and expose atomic creation/scoped inspection.
 No rerun command or provider execution is enabled by this migration. See
-[ADR-0078](../decisions/0078-seal-rerun-lineage-with-successor-assembly.md).
+[ADR-0078](../adr/0078-seal-rerun-lineage-with-successor-assembly.md).
 
 ## Scoped historical lineage readback
 
@@ -698,7 +698,7 @@ renew approval/eligibility. Atomic new creation must revalidate current parent
 state and owner approval, not infer permission from restored historical evidence.
 No schema change or rerun command activates here. PR10e3b adds atomic retention and
 replay; PR10e4 adds approved operator creation/inspection. See
-[ADR-0079](../decisions/0079-read-historical-rerun-pins-without-renewing-eligibility.md).
+[ADR-0079](../adr/0079-read-historical-rerun-pins-without-renewing-eligibility.md).
 
 ## Atomic rerun retention and exact replay
 
@@ -720,7 +720,7 @@ identities. Context cancellation and SQL failures grant no new send permission.
 No migration, provider calls or rerun command activates here. Keep migration 22 and
 evidence on rollback; disable embedding callers. PR10e4 supplies protected owner/CI
 approval, fresh compilation and operator inspection. See
-[ADR-0080](../decisions/0080-retain-rerun-work-and-lineage-in-one-transaction.md).
+[ADR-0080](../adr/0080-retain-rerun-work-and-lineage-in-one-transaction.md).
 
 ## Approved operator reruns and lineage inspection
 
@@ -764,4 +764,4 @@ fresh compilation may expire or conflict after later history, so never regenerat
 identities to resolve uncertainty. Each chain hop needs its own approved parent.
 Disable these modes on rollback and retain schema/evidence. Approval issuance and
 host isolation remain deployment duties. See
-[ADR-0081](../decisions/0081-authorize-operator-reruns-with-protected-proof-pins.md).
+[ADR-0081](../adr/0081-authorize-operator-reruns-with-protected-proof-pins.md).

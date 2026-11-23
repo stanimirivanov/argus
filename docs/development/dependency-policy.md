@@ -210,7 +210,7 @@ packaging work.
 Effect, TypeScript, Node.js, pnpm, Biome, and tsx versions are exact. The contract
 toolchain uses stable Effect 4.0.2 and TypeScript 7.0.2, with Node 24.18.0 and
 `@types/node` 24.12.1; Node 26 is not required or admitted by this migration.
-See [ADR-0029](../decisions/0029-migrate-stable-contract-toolchain-without-wire-changes.md).
+See [ADR-0029](../adr/0029-migrate-stable-contract-toolchain-without-wire-changes.md).
 Updates MUST regenerate JSON Schema, run the shared fixture corpus,
 and inspect generated diffs rather than assuming type-check success proves wire
 compatibility.
