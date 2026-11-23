@@ -74,7 +74,7 @@ func (r *repository) readADRRecords() (map[string]adrRecord, []violation) {
 	records := make(map[string]adrRecord)
 	var violations []violation
 	for path, document := range r.documents {
-		if filepath.ToSlash(filepath.Dir(path)) != "docs/decisions" || filepath.Base(path) == "README.md" {
+		if filepath.ToSlash(filepath.Dir(path)) != "docs/adr" || filepath.Base(path) == "README.md" {
 			continue
 		}
 
@@ -250,10 +250,10 @@ func validateADRMetadata(record adrRecord) []violation {
 }
 
 func (r *repository) readADRIndex() (map[string]adrIndexEntry, []violation) {
-	document, found := r.document("docs/decisions/README.md")
+	document, found := r.document("docs/adr/README.md")
 	if !found {
 		return nil, []violation{adrViolation(
-			"docs/decisions/README.md",
+			"docs/adr/README.md",
 			1,
 			"adr.index",
 			"ADR index is missing",
@@ -463,7 +463,7 @@ func adrViolation(path string, line int, rule, message, fix string) violation {
 }
 
 func indexViolation(entry adrIndexEntry, message, fix string) violation {
-	return adrViolation("docs/decisions/README.md", entry.line, "adr.index", message, fix)
+	return adrViolation("docs/adr/README.md", entry.line, "adr.index", message, fix)
 }
 
 func formatADRNumber(number int) string {

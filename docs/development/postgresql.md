@@ -62,13 +62,13 @@ current pointer. Apply migrations before opting into `performance-catalog -publi
 see the [catalog guide](../integrations/perfeng-catalog.md) for credentials, replay,
 freshness and stored inspection. This view grants no workload execution authority.
 
-[ADR-0004](../decisions/0004-use-postgresql-and-embedded-forward-migrations.md)
+[ADR-0004](../adr/0004-use-postgresql-and-embedded-forward-migrations.md)
 records the database, migration, transaction, identity, and Perfeng-reuse
-decisions. [ADR-0020](../decisions/0020-scope-postgresql-runtime-stores-by-capability.md)
+decisions. [ADR-0020](../adr/0020-scope-postgresql-runtime-stores-by-capability.md)
 records the scoped runtime-store ownership and preserves one migration chain.
 The general migration policy remains
 [SQL migration criteria](sql-migrations.md).
-[ADR-0005](../decisions/0005-store-immutable-impact-evidence.md) defines the
+[ADR-0005](../adr/0005-store-immutable-impact-evidence.md) defines the
 append-only evidence, time, confidence, expiry, and conflict semantics.
 
 ## Apply migrations

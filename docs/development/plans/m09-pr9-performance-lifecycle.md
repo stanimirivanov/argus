@@ -39,7 +39,7 @@ the entire original immutable context. Provider revisions order snapshots, not
 arrival time. Stale delivery cannot regress state, but contradictory retained
 evidence must remain visible as a conflict. Terminal state and run identity are
 immutable. Late results remain valid; cancellation intent and elapsed deadlines
-cannot fabricate termination. See [ADR-0066](../../decisions/0066-project-performance-lifecycle-by-provider-revision.md).
+cannot fabricate termination. See [ADR-0066](../../adr/0066-project-performance-lifecycle-by-provider-revision.md).
 
 PR9a has no migration or activation; a revert removes the callable projection.
 Later storage/runtime slices must define migration, concurrent admission binding,

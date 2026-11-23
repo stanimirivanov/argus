@@ -11,7 +11,7 @@ import (
 
 const (
 	documentationPolicy = "CONTRIBUTING.md#documentation"
-	decisionPolicy      = "docs/decisions/README.md#naming-and-lifecycle"
+	decisionPolicy      = "docs/adr/README.md#naming-and-lifecycle"
 	issuePolicy         = "CONTRIBUTING.md#required-issue-structure"
 	pullRequestPolicy   = "CONTRIBUTING.md#pull-request-description"
 )

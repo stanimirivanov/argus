@@ -15,7 +15,7 @@ The current dependency pin is SDK v1.6.0 and runtime startup requires schema
 the explicit migration from this build. The default path remains synchronous;
 upgrading the dependency does not approve production adoption. The matrix now
 uses an isolated historical-worker overlay for 121, not a current-worker
-overlay for 123. See [ADR-0029](../decisions/0029-migrate-stable-contract-toolchain-without-wire-changes.md).
+overlay for 123. See [ADR-0029](../adr/0029-migrate-stable-contract-toolchain-without-wire-changes.md).
 
 The webhook response remains synchronous and is acknowledged only after Argus's immutable change and impact evidence is present. Those Argus tables remain the business source of truth. The `argus_dbos_eval` schema contains execution checkpoints, not replacement business evidence. Its migration history is owned by the pinned DBOS library and is deliberately separate from Argus's checksummed SQL ledger during the evaluation.
 

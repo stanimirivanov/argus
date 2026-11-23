@@ -133,5 +133,5 @@ Run `make generate-contracts`, `make ui-validate`, `make db-validate` and
 inventory, project/environment isolation, incomplete discovery, exact partitions,
 artifact corruption, cancellation, empty phases, strict v1 rejection, released
 schema upgrades, immutable concurrent retries and conflicts. See
-[ADR-0049](../decisions/0049-opt-in-browser-staged-execution.md) and the
+[ADR-0049](../adr/0049-opt-in-browser-staged-execution.md) and the
 [shared staged invariants](staged-execution.md).

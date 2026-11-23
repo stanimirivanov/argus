@@ -144,6 +144,6 @@ Run `make db-validate` with a disposable loopback PostgreSQL 17.11 server throug
 `ARGUS_TEST_POSTGRES_URL`. Tests cover full HTTP-to-publication flow, retained views
 on failure, replay/conflict, concurrent writers, rollback, empty/retired membership
 and immutable resource guards, as well as the complete migration/upgrade chain.
-See [ADR-0052](../decisions/0052-pin-perfeng-catalog-validation.md) and
-[ADR-0053](../decisions/0053-fetch-authorized-catalogs-for-inspection.md) and
-[ADR-0054](../decisions/0054-publish-immutable-performance-catalogs-atomically.md).
+See [ADR-0052](../adr/0052-pin-perfeng-catalog-validation.md) and
+[ADR-0053](../adr/0053-fetch-authorized-catalogs-for-inspection.md) and
+[ADR-0054](../adr/0054-publish-immutable-performance-catalogs-atomically.md).

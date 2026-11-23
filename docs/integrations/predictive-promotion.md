@@ -110,5 +110,5 @@ flags, allowing policy expiry, or re-evaluating breached evidence restores shado
 retain prior immutable inputs and decisions for audit. No migration is required.
 
 Run `make generate-contracts`, `make predictive-validate` and `make validate`.
-See [ADR-0051](../decisions/0051-gate-staged-promotion-by-owner-policy.md) for
+See [ADR-0051](../adr/0051-gate-staged-promotion-by-owner-policy.md) for
 the authority boundary and compatibility decision.

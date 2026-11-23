@@ -61,7 +61,7 @@ Decoded values own nested data and grant no authenticated reference, admission o
 fetch authority. PR9d2b1 supplies admission correlation; PR9d2b2 supplies independently
 reviewed frozen native association/rule coverage. PR9d2c
 supplies authenticated reference/byte retrieval. See
-[ADR-0083](../decisions/0083-pin-request-linked-analysis-publications.md).
+[ADR-0083](../adr/0083-pin-request-linked-analysis-publications.md).
 
 Decoded producer/run/workload/policy/reference fields are claims. This artifact is
 not an analysis-completed request envelope. Before request-linked consumption,
@@ -76,7 +76,7 @@ PR9d2 owns these correlation/authority gates; PR9d3 owns durable decision eviden
 and explicit runtime consumption. No fetches, persistence, commands, decision
 aggregation or runtime activation occur here. URI strings are retained references;
 Argus does not read raw k6 or normalized-result bytes. Revert removes only the
-callable decoder. See [ADR-0082](../decisions/0082-validate-native-analysis-with-independent-outcomes.md).
+callable decoder. See [ADR-0082](../adr/0082-validate-native-analysis-with-independent-outcomes.md).
 
 ## Publication admission binding
 
@@ -97,7 +97,7 @@ This binding grants no native resource/policy/baseline approval or artifact-fetc
 authority. PR9d2b2 must establish independently reviewed frozen native associations,
 exact policy bytes and complete rule coverage; PR9d2c must authenticate reference/
 byte retrieval and verify checksum/size. No identities are inferred from labels or
-public Run IDs. See [ADR-0084](../decisions/0084-bind-publications-to-frozen-admission.md).
+public Run IDs. See [ADR-0084](../adr/0084-bind-publications-to-frozen-admission.md).
 
 ## Native policy claims
 
@@ -120,7 +120,7 @@ serves the protected review-input loader and report conformance verifier below.
 Complete report/native/policy/baseline rule checks, artifact
 retrieval and durable decisions remain separate. There is no encoder, network,
 clock, persistence or activation. See
-[ADR-0085](../decisions/0085-validate-frozen-native-policy-claims.md).
+[ADR-0085](../adr/0085-validate-frozen-native-policy-claims.md).
 
 ## Protected native review bundle
 
@@ -156,7 +156,7 @@ This is historical review validation, not OS authentication, current approval
 eligibility, artifact access or report verdict verification. PR9d2b2c still checks
 complete report/native/policy/baseline/rule associations; PR9d2c authenticates byte
 retrieval. No CLI/runtime wiring, clock, network or persistence is introduced.
-See [ADR-0086](../decisions/0086-load-protected-native-review-bundles.md).
+See [ADR-0086](../adr/0086-load-protected-native-review-bundles.md).
 
 ## Reviewed report conformance
 
@@ -177,7 +177,7 @@ Returned opaque evidence owns report bytes and retains admission/review/report p
 zero evidence grants nothing. This is offline conformance, not authenticated fetch,
 current eligibility or durable decision projection. PR9d2c still owns authenticated
 origin/redirect/response bounds and PR9d3 durable consumption. See
-[ADR-0087](../decisions/0087-verify-reviewed-analysis-conformance.md).
+[ADR-0087](../adr/0087-verify-reviewed-analysis-conformance.md).
 
 ## Authenticated publication lookup
 
@@ -199,7 +199,7 @@ that execution did not occur. Cancellation and body/read/close errors fail safel
 
 This callable boundary does not read artifact URIs or activate polling. Separately
 authorized S3 access and `VerifyReviewedAnalysis` conformance belong to PR9d2c2;
-durable retention/runtime consumption belong to PR9d3. See [ADR-0088](../decisions/0088-fetch-authenticated-analysis-publications.md).
+durable retention/runtime consumption belong to PR9d3. See [ADR-0088](../adr/0088-fetch-authenticated-analysis-publications.md).
 
 ## Scoped S3 report retrieval
 
@@ -224,7 +224,7 @@ cancellation remains identifiable. Callers own retries; failure implies no verdi
 This callable adapter is not activated by configuration or a background worker.
 Runtime/CLI credential composition and durable consumption remain PR9d3; scoped
 IAM provisioning/live S3 verification are deployment follow-ups. See
-[ADR-0089](../decisions/0089-retrieve-reviewed-reports-through-scoped-s3-access.md).
+[ADR-0089](../adr/0089-retrieve-reviewed-reports-through-scoped-s3-access.md).
 
 ## Inward reviewed analysis evidence
 
@@ -244,7 +244,7 @@ Independent outcomes remain in original report bytes; no aggregate verdict or
 lifecycle transition is synthesized. Storage must compare authorized scope and
 retained admission before accepting evidence. Atomic retention, scoped projection
 and opt-in consumption follow in PR9d3b onward. See
-[ADR-0090](../decisions/0090-preserve-inward-reviewed-analysis-evidence.md).
+[ADR-0090](../adr/0090-preserve-inward-reviewed-analysis-evidence.md).
 
 ## Analysis retention schema
 
@@ -268,7 +268,7 @@ installation briefly locks admission/lifecycle tables. Existing runtime trigger
 paths require SELECT on this table: establish default privileges or pause workers,
 migrate, reapply existing runtime grants, then resume. Later append writers also
 need INSERT; UPDATE/DELETE/TRUNCATE remain prohibited. No roles/grants are created
-by this migration. See [ADR-0091](../decisions/0091-guard-append-only-analysis-retention.md).
+by this migration. See [ADR-0091](../adr/0091-guard-append-only-analysis-retention.md).
 
 ## Atomic analysis append and exact reads
 
@@ -288,7 +288,7 @@ event, conflict for a known mismatched admission, and no partial evidence on fai
 Each read returns one bounded evidence bundle. Broader history traversal and
 independent decision projection follow in PR9d3c; network consumption and opt-in
 activation remain later slices. No migration or new approval authority is added.
-See [ADR-0092](../decisions/0092-append-and-read-scoped-analysis-evidence-atomically.md).
+See [ADR-0092](../adr/0092-append-and-read-scoped-analysis-evidence-atomically.md).
 
 ## Scoped independent analysis projection
 
@@ -312,7 +312,7 @@ pinned original report available through exact-event reads.
 The inward collector copies mutable data and caps serialized compact results at
 8 MiB; exceedance fails rather than returning a truncated projection. There is no
 runtime activation, migration or new approval/lifecycle authority. See
-[ADR-0093](../decisions/0093-project-bounded-scoped-analysis-history.md).
+[ADR-0093](../adr/0093-project-bounded-scoped-analysis-history.md).
 
 ## One-publication consumption
 
@@ -344,7 +344,7 @@ uncertainty and conflicts retain their existing independent meanings. This
 callable operation starts no worker or polling and grants no execution or
 baseline authority. PR9d3e still owns explicit runtime/credential composition;
 reverting this consumer leaves retained evidence untouched. See
-[ADR-0094](../decisions/0094-consume-one-reviewed-analysis-publication.md).
+[ADR-0094](../adr/0094-consume-one-reviewed-analysis-publication.md).
 
 ## Admitted analysis traversal
 
@@ -372,7 +372,7 @@ must still revalidate authoritative admission and protected review.
 Use the existing scoped pending-position index and settlement primary key; no
 schema or scheduling state is added. PR9d3e owns runtime cursor rotation and
 consumption. Revert removes the callable read without modifying retained work.
-See [ADR-0095](../decisions/0095-enumerate-admitted-analysis-work.md).
+See [ADR-0095](../adr/0095-enumerate-admitted-analysis-work.md).
 
 ## Protected S3-compatible endpoints
 
@@ -410,7 +410,7 @@ Runtime enablement, secret delivery, object-store provisioning and real-store
 acceptance remain later composition slices. Rollback to AWS-only code requires
 removing custom endpoint/addressing configuration first; it cannot make local
 objects available through AWS. Retained references/evidence remain untouched.
-See [ADR-0096](../decisions/0096-support-protected-s3-compatible-endpoints.md).
+See [ADR-0096](../adr/0096-support-protected-s3-compatible-endpoints.md).
 
 ## Protected analysis configuration validation
 
@@ -456,7 +456,7 @@ Every enabled validation failure returns zero configuration with constant,
 secret-safe diagnostics. The parser does not prove endpoint reachability, grants
 or readiness. These requirements constrain later activation; they do not justify
 network probes, trust-store writes or credential provisioning during parsing.
-See [ADR-0097](../decisions/0097-validate-protected-analysis-configuration.md).
+See [ADR-0097](../adr/0097-validate-protected-analysis-configuration.md).
 
 ## Bounded analysis runtime
 

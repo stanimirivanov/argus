@@ -44,8 +44,8 @@ always applies.
 
 | Guide | What it supplies | Load when | Policy owner |
 |:--|:--|:--|:--|
-| [AGENTS.md](../../AGENTS.md) | Concise tool-facing working agreement and links to canonical policy | Every task | Contributor workflow |
-| [CONTRIBUTING.md](../../CONTRIBUTING.md) | Normative workflow, ambiguity, issue timing, verification, and completion rules | Every task | Contributor workflow |
+| [AGENTS.md](../../AGENTS.md) | Primary skills workflow and links to technical requirements | Every task | Contributor workflow |
+| [CONTRIBUTING.md](../../CONTRIBUTING.md) | Technical requirements, escalation, and verification | Every task | Contributor workflow |
 | [Documentation map](../README.md) | Progressive task-to-source routing | Every task | Documentation architecture |
 | [Product definition](../product/product-definition.md) | Outcomes, taxonomy, decision semantics, and safety gates | Product behavior or scope | Product |
 | [Architecture overview](../architecture/overview.md) | Capability ownership, dependency direction, information flow, and trust boundaries | Code or boundary changes | Architecture |
@@ -54,7 +54,7 @@ always applies.
 | [Dependency policy](dependency-policy.md) | Admission, update, license, and vulnerability rules | Dependency or tool changes | Supply chain |
 | [SQL migration criteria](sql-migrations.md) and [PostgreSQL guide](postgresql.md) | Persisted-data invariants and database operations | Database work | Persistence |
 | [Integration guides](../integrations/) | CI-local protocols, security boundaries, and operational workflows | Adapter or integration work | Owning capability |
-| [ADR index](../decisions/README.md) | Accepted durable decisions and supersession history | Decisions relevant to the task | Architecture |
+| [ADR index](../adr/README.md) | Accepted durable decisions and supersession history | Decisions relevant to the task | Architecture |
 | [Milestones](../roadmap/milestones.md) | Outcome sequence and coherent delivery slices | Planning and issue drafting | Product planning |
 | [Security policy](../../SECURITY.md) | Reporting and security expectations | Security-sensitive work | Security |
 
@@ -144,26 +144,10 @@ deterministic, actionable, and owned.
 
 ## Multi-PR execution plans
 
-Use a versioned execution plan when one approved outcome requires several
-dependent pull requests, especially for migrations, compatibility transitions,
-or architectural refactoring. The first implementation pull request SHOULD add
-the plan under `docs/development/plans/` using a short kebab-case name. Creating
-the directory is part of that first plan-bearing change; do not add empty
-placeholder plans.
-
-An execution plan SHOULD contain:
-
-- the outcome, invariants, exclusions, and relevant ADRs;
-- the ordered pull-request slices and dependencies between them;
-- compatibility, migration, rollout, rollback, and security considerations;
-- verification and promotion evidence for each stage; and
-- decisions or discoveries that changed the sequence.
-
-Each slice MUST remain independently reviewable and leave the repository
-buildable. Update the plan in the pull request that changes the technical
-sequence. The plan MUST NOT become a second issue tracker: GitHub issues and
-milestones remain authoritative for assignment and delivery status, while ADRs
-remain authoritative for durable decisions.
+Use the applicable `mattpocock/skills` workflow to plan and track dependent
+changes. Existing execution plans remain technical records of compatibility
+constraints, sequencing, rollout, recovery, and verification evidence. GitHub
+issues and milestones track delivery state.
 
 The current [harness hardening plan](plans/harness-hardening.md) records the
 ordered CI policy, workflow regression, and agent runner slices.

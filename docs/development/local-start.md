@@ -57,7 +57,7 @@ the GitHub webhook with **the same secret** and give the token read access
 to pull requests and repository metadata. Neither value has a checked-in
 default. This is a live-provider integration, not an offline demo; without
 those credentials, the server correctly refuses startup. See
-[ADR-0028](../decisions/0028-evaluate-embedded-dbos-workflows-for-change-processing.md)
+[ADR-0028](../adr/0028-evaluate-embedded-dbos-workflows-for-change-processing.md)
 for evaluation semantics and limitations.
 
 Use `Ctrl+C` to stop the server. `docker compose -f compose.local.yaml down`

@@ -97,9 +97,9 @@ The functional API planner and runner accept only v1; they **must not**
 execute these browser manifests. The Playwright checker validates test
 identity locally. Browser locator proposal and validation are described below;
 review publication is described below.
-[ADR-0025](../decisions/0025-select-browser-tests-only-for-fully-covered-api-changes.md),
-[ADR-0026](../decisions/0026-check-playwright-inventory-against-declared-tests.md),
-and [ADR-0027](../decisions/0027-opt-in-browser-selection-from-declared-component-roots.md)
+[ADR-0025](../adr/0025-select-browser-tests-only-for-fully-covered-api-changes.md),
+[ADR-0026](../adr/0026-check-playwright-inventory-against-declared-tests.md),
+and [ADR-0027](../adr/0027-opt-in-browser-selection-from-declared-component-roots.md)
 define the policy boundaries.
 
 ## Persist reviewed discovery and select from source mappings
@@ -309,10 +309,10 @@ cross-page, cross-test, and unsupported selectors abstain. Assertions and
 expected values are never edited.
 
 The proposal command does not apply the edit or make a failed test authoritative.
-[ADR-0036](../decisions/0036-propose-browser-locator-edits-from-correlated-structure.md)
+[ADR-0036](../adr/0036-propose-browser-locator-edits-from-correlated-structure.md)
 records the ownership and evidence boundary.
 The reviewed binding and control decision is recorded in
-[ADR-0035](../decisions/0035-plan-browser-controls-from-reviewed-project-bindings.md).
+[ADR-0035](../adr/0035-plan-browser-controls-from-reviewed-project-bindings.md).
 
 ## Validate a browser locator candidate
 
@@ -346,7 +346,7 @@ nonzero exit code; infrastructure and inconsistent runs emit no policy evidence.
 Keep the trace, screenshot, and accessibility bytes accessible to authorized
 reviewers because the database retains only checked references. An interrupted
 validation may leave the disposable checkout dirty; discard it. Validation
-does not publish or merge a repair. [ADR-0037](../decisions/0037-validate-browser-locator-repairs-with-artifact-bound-runs.md)
+does not publish or merge a repair. [ADR-0037](../adr/0037-validate-browser-locator-repairs-with-artifact-bound-runs.md)
 defines the policy and recovery behavior.
 
 ## Publish and review a validated locator edit
@@ -390,5 +390,5 @@ changes only the selected locator call. Edits to assertions, test flow, other
 files, or unsupported locator syntax fail capture rather than becoming safe
 training evidence. Reviewer edits are human decisions and do not inherit the
 candidate's six-run validation proof.
-[ADR-0038](../decisions/0038-publish-browser-locator-repairs-for-human-review.md)
+[ADR-0038](../adr/0038-publish-browser-locator-repairs-for-human-review.md)
 records the publication and terminal review boundary.

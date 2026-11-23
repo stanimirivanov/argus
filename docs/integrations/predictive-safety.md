@@ -133,4 +133,4 @@ full Go test gate, so CI does not execute that alias as a duplicate suite.
 This is an additive file-based command and versioned report; it changes no
 runner, database schema or promotion policy. Deploy the reader after the v2
 runner protocols. Rollback stops producing the new report and retains archived
-inputs/evidence. See [ADR-0050](../decisions/0050-report-explicit-staged-safety-observations.md).
+inputs/evidence. See [ADR-0050](../adr/0050-report-explicit-staged-safety-observations.md).

@@ -250,7 +250,7 @@ ordered by capability key followed by stable test identity. Their opaque cursor
 is bound to the snapshot, optional capability filter, and evaluation instant.
 
 The immutable storage and evaluation decision is recorded in
-[ADR-0005](../docs/decisions/0005-store-immutable-impact-evidence.md).
+[ADR-0005](../docs/adr/0005-store-immutable-impact-evidence.md).
 
 ## Execution manifest contract
 
@@ -385,26 +385,26 @@ validation succeeds. It is an executable ingestion seam for M03 persistence,
 not a replacement for the future control-plane API.
 
 The representation decision and compatibility rules are recorded in
-[ADR-0003](../docs/decisions/0003-use-effect-schema-at-contract-boundaries.md).
+[ADR-0003](../docs/adr/0003-use-effect-schema-at-contract-boundaries.md).
 Predictive dataset indexes and temporal replay results use additive v1 schemas;
 their split semantics are recorded in
-[ADR-0040](../docs/decisions/0040-replay-predictive-evidence-with-a-fixed-temporal-cutoff.md).
+[ADR-0040](../docs/adr/0040-replay-predictive-evidence-with-a-fixed-temporal-cutoff.md).
 Deterministic baseline reports use an additive v1 schema and the training-only
-semantics in [ADR-0041](../docs/decisions/0041-compare-predictive-baselines-with-training-only-signals.md).
+semantics in [ADR-0041](../docs/adr/0041-compare-predictive-baselines-with-training-only-signals.md).
 The additive ranking report records frozen interpretable coefficients and
 holdout comparisons under
-[ADR-0042](../docs/decisions/0042-train-a-causal-interpretable-ranking-baseline.md).
+[ADR-0042](../docs/adr/0042-train-a-causal-interpretable-ranking-baseline.md).
 The additive calibration report records frozen repository/family curves, explicit
 global fallback, and holdout reliability under
-[ADR-0043](../docs/decisions/0043-calibrate-predictive-risk-by-repository-and-family.md).
+[ADR-0043](../docs/adr/0043-calibrate-predictive-risk-by-repository-and-family.md).
 The additive abstention report records decision-time evidence gaps and
 full-control fallback under
-[ADR-0044](../docs/decisions/0044-abstain-on-weak-predictive-evidence.md).
+[ADR-0044](../docs/adr/0044-abstain-on-weak-predictive-evidence.md).
 The stage constraints and cost contracts bind reviewed resource/dependency
 requirements and training-only duration estimates under
-[ADR-0045](../docs/decisions/0045-estimate-stage-cost-from-reviewed-constraints.md).
+[ADR-0045](../docs/adr/0045-estimate-stage-cost-from-reviewed-constraints.md).
 The stable version migration, regex-export constraints and Node 24 retention
-are recorded in [ADR-0029](../docs/decisions/0029-migrate-stable-contract-toolchain-without-wire-changes.md).
+are recorded in [ADR-0029](../docs/adr/0029-migrate-stable-contract-toolchain-without-wire-changes.md).
 
 Predictive portfolio v1 composes the complete cost/review and abstention evidence with a deterministic serial selection, required prerequisite closure, explicit omitted IDs and budget overruns. See the [portfolio guide](../docs/integrations/predictive-portfolio.md).
 
