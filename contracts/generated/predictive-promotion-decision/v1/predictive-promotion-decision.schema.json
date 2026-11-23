@@ -98,18 +98,14 @@
         "missRate": {
           "anyOf": [
             {
-              "anyOf": [
-                {
-                  "type": "number"
-                },
-                {
-                  "type": "string",
-                  "enum": [
-                    "Infinity",
-                    "-Infinity",
-                    "NaN"
-                  ]
-                }
+              "type": "number"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "Infinity",
+                "-Infinity",
+                "NaN"
               ]
             },
             {
@@ -147,18 +143,14 @@
         "missRate": {
           "anyOf": [
             {
-              "anyOf": [
-                {
-                  "type": "number"
-                },
-                {
-                  "type": "string",
-                  "enum": [
-                    "Infinity",
-                    "-Infinity",
-                    "NaN"
-                  ]
-                }
+              "type": "number"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "Infinity",
+                "-Infinity",
+                "NaN"
               ]
             },
             {

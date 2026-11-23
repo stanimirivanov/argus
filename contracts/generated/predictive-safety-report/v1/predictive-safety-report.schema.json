@@ -165,18 +165,14 @@
           "baselineEce": {
             "anyOf": [
               {
-                "anyOf": [
-                  {
-                    "type": "number"
-                  },
-                  {
-                    "type": "string",
-                    "enum": [
-                      "Infinity",
-                      "-Infinity",
-                      "NaN"
-                    ]
-                  }
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "Infinity",
+                  "-Infinity",
+                  "NaN"
                 ]
               },
               {
@@ -256,18 +252,14 @@
           "recall": {
             "anyOf": [
               {
-                "anyOf": [
-                  {
-                    "type": "number"
-                  },
-                  {
-                    "type": "string",
-                    "enum": [
-                      "Infinity",
-                      "-Infinity",
-                      "NaN"
-                    ]
-                  }
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "Infinity",
+                  "-Infinity",
+                  "NaN"
                 ]
               },
               {
@@ -278,18 +270,14 @@
           "brier": {
             "anyOf": [
               {
-                "anyOf": [
-                  {
-                    "type": "number"
-                  },
-                  {
-                    "type": "string",
-                    "enum": [
-                      "Infinity",
-                      "-Infinity",
-                      "NaN"
-                    ]
-                  }
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "Infinity",
+                  "-Infinity",
+                  "NaN"
                 ]
               },
               {
@@ -300,18 +288,14 @@
           "ece": {
             "anyOf": [
               {
-                "anyOf": [
-                  {
-                    "type": "number"
-                  },
-                  {
-                    "type": "string",
-                    "enum": [
-                      "Infinity",
-                      "-Infinity",
-                      "NaN"
-                    ]
-                  }
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "Infinity",
+                  "-Infinity",
+                  "NaN"
                 ]
               },
               {
@@ -322,18 +306,14 @@
           "eceDrift": {
             "anyOf": [
               {
-                "anyOf": [
-                  {
-                    "type": "number"
-                  },
-                  {
-                    "type": "string",
-                    "enum": [
-                      "Infinity",
-                      "-Infinity",
-                      "NaN"
-                    ]
-                  }
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "Infinity",
+                  "-Infinity",
+                  "NaN"
                 ]
               },
               {
@@ -603,18 +583,14 @@
           "recall": {
             "anyOf": [
               {
-                "anyOf": [
-                  {
-                    "type": "number"
-                  },
-                  {
-                    "type": "string",
-                    "enum": [
-                      "Infinity",
-                      "-Infinity",
-                      "NaN"
-                    ]
-                  }
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "Infinity",
+                  "-Infinity",
+                  "NaN"
                 ]
               },
               {
