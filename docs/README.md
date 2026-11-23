@@ -24,6 +24,8 @@ the change actually spans those concerns. When a change affects product
 behavior or a dependency boundary, the product definition and architecture
 overview are always relevant.
 
+Read the [root glossary](../GLOSSARY.md) for domain terminology.
+
 ## Route by task
 
 | Task or changed area | Read before changing it | Verify or consult as needed |
@@ -78,6 +80,7 @@ overview are always relevant.
 | M09 protected analysis resources | [Linux resource preparation](integrations/perfeng-analysis-resources.md) | No-link private-file checks, CA-backed TLS and disabled preparation |
 | M09 analysis runtime configuration | [Protected configuration](integrations/perfeng-analysis.md#protected-analysis-configuration-validation), [ADR-0097](adr/0097-validate-protected-analysis-configuration.md) | Disabled getter isolation, explicit scope/credentials, resource syntax and bounded policy; no activation |
 | M09 analysis artifact validation | [Analysis boundary](integrations/perfeng-analysis.md), [ADR-0082](adr/0082-validate-native-analysis-with-independent-outcomes.md) | Published schema/fixture checksums, independent outcomes, malformed/contradictory evidence; `make validate` |
+| Argus-to-SRE change-evidence handoff | [ADR-0100](adr/0100-publish-artifact-first-change-evidence.md), [incident-intelligence boundary](architecture/overview.md#incident-intelligence-boundary) | Producer scope and replay requirements |
 | Milestone or issue planning | [Milestones](roadmap/milestones.md), [CONTRIBUTING.md](../CONTRIBUTING.md) | [M01–M07 completion plan](development/plans/m01-m07-implementation-completion.md), relevant product and architecture sources |
 | Research or competitive claims | [Research landscape](research/landscape.md) | Primary sources recorded with the claim |
 | Vulnerability reporting or security-sensitive behavior | [Security policy](../SECURITY.md) | Product safety rules, relevant ADRs and integration guides |
