@@ -617,6 +617,9 @@ This read-only workflow adds no dispatch authority or persistence writes.
 
 ## Incident-intelligence boundary
 
+The agreed first change-evidence handoff is a bounded, versioned Argus artifact.
+See [ADR-0100](../adr/0100-publish-artifact-first-change-evidence.md) for scope and ownership.
+
 An independently deployed incident-intelligence product MAY consume published
 Argus evidence to correlate a production symptom with an immutable change,
 affected capabilities, tests selected or omitted, execution attempts, observed
